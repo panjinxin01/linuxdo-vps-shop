@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>创建管理员 - VPS积分商城</title>
+    <link rel="stylesheet" href="../css/admin.css">
+    <script>
+        // 自动缓存破坏
+        (function() {
+            const v = Date.now();
+            document.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
+                if (link.href && !link.href.includes('fonts.googleapis.com')) {
+                    link.href = link.href.split('?')[0] + '?v=' + v;
+                }
+            });
+        })();
+    </script>
+</head>
+<body>
+    <div class="auth-layout">
+        <div class="auth-card">
+            <div style="text-align:center;margin-bottom:32px">
+                <div style="font-size:48px;margin-bottom:16px">👤</div>
+                <h1 style="font-size:24px;font-weight:700;color:var(--text-main);margin-bottom:8px">创建管理员</h1>
+                <p style="color:var(--text-muted);font-size:14px">初始化系统，设置首个管理员账号</p>
+            </div>
+            
+            <div class="form-group">
+                <label>管理员用户名</label>
+                <input type="text" id="username" placeholder="请设置用户名">
+            </div>
+            <div class="form-group">
+                <label>密码</label>
+                <input type="password" id="password" placeholder="请设置密码（至少6位）">
+            </div>
+            <div class="form-group">
+                <label>确认密码</label>
+                <input type="password" id="password2" placeholder="请再次输入密码">
+            </div>
+            
+            <button class="btn btn-primary" style="width:100%;margin-top:8px;padding:12px" onclick="doSetup()">
+                创建管理员账号
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let csrfToken = '';
+        function initCsrfToken() {
+            return window.fetch('../api/csrf.php', { credentials: 'same-origin' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.code === 1 && data.data && data.data.token) {
+                        csrfToken = data.data.token;
+                    }
+                })
+                .catch(() => {});
+        }
+
+        function apiFetch(url, options = {}) {
+            const opts = { credentials: 'same-origin', ...options };
+            const method = (opts.method || 'GET').toUpperCase();
+            const ensureToken = (!csrfToken && method !== 'GET' && method !== 'HEAD') ? initCsrfToken() : Promise.resolve();
+            return ensureToken.then(() => {
+                const headers = new Headers(opts.headers || {});
+                if (csrfToken && !headers.has('X-CSRF-Token')) {
+                    headers.set('X-CSRF-Token', csrfToken);
+                }
+                opts.headers = headers;
+                return window.fetch(url, opts);
+            });
+        }
+
+        initCsrfToken();
+
+        // 检查安装状态
+        apiFetch('../api/check_install.php')
+            .then(r => r.json())
+            .then(data => {
+                if (data.code === 1) {
+                if (!data.data.config_ok || !data.data.tables_ok) {
+                        window.location.href = 'install.html';
+                    } else if (data.data.admin_ok) {
+                        window.location.href = 'login.html';
+                    }
+                }
+            });
+
+        function doSetup() {
+            const user = document.getElementById('username').value.trim();
+            const pass = document.getElementById('password').value;
+            const pass2 = document.getElementById('password2').value;
+            
+            if (!user || !pass) {
+                alert('请填写完整');
+                return;
+            }
+            if (pass.length < 6) {
+                alert('密码至少6位');
+                return;
+            }
+            if (pass !== pass2) {
+                alert('两次密码不一致');
+                return;
+            }
+            
+            const body = new FormData();
+            body.append('action', 'setup');
+            body.append('username', user);
+            body.append('password', pass);
+            
+            apiFetch('../api/admin.php', { method: 'POST', body })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.code === 1) {
+                        alert('✅ 管理员创建成功！即将跳转到登录页面');
+                        window.location.href = 'login.html';
+                    } else {
+                        alert(data.msg);
+                    }
+                });
+        }
+    </script>
+</body>
+</html>
