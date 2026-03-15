@@ -3,14 +3,9 @@ require_once __DIR__ . '/../includes/security.php';
 startSecureSession();
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/coupons.php';
+require_once __DIR__ . '/../includes/commerce.php';
 
 $pdo = getDB();
-
-function getSetting(PDO $pdo, string $key): string {
-    $stmt = $pdo->prepare('SELECT key_value FROM settings WHERE key_name = ?');
-    $stmt->execute([$key]);
-    return (string)($stmt->fetchColumn() ?: '');
-}
 
 function makeSign(array $params, string $key): string {
     ksort($params);
@@ -51,22 +46,6 @@ function ordersHasColumn(PDO $pdo, string $column): bool {
 }
 
 
-function ensurePaymentRequestTable(PDO $pdo): void {
-    $pdo->exec("CREATE TABLE IF NOT EXISTS `payment_requests` (
-        `id` INT AUTO_INCREMENT PRIMARY KEY,
-        `order_no` VARCHAR(50) NOT NULL,
-        `external_order_no` VARCHAR(80) NOT NULL,
-        `user_id` INT NOT NULL,
-        `trade_no` VARCHAR(100) DEFAULT NULL,
-        `status` TINYINT NOT NULL DEFAULT 0,
-        `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
-        `paid_at` DATETIME DEFAULT NULL,
-        UNIQUE KEY `uniq_payment_requests_external` (`external_order_no`),
-        INDEX `idx_payment_requests_order` (`order_no`),
-        INDEX `idx_payment_requests_user_status` (`user_id`, `status`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-}
-
 function createExternalOrderNo(string $orderNo): string {
     $base = preg_replace('/[^A-Za-z0-9]/', '', $orderNo);
     $base = substr($base !== '' ? $base : 'VPS', 0, 28);
@@ -79,7 +58,7 @@ function createExternalOrderNo(string $orderNo): string {
 }
 
 function reserveExternalOrderNo(PDO $pdo, string $orderNo, int $userId): string {
-    ensurePaymentRequestTable($pdo);
+    commerceEnsurePaymentRequestTable($pdo);
     for ($i = 0; $i < 5; $i++) {
         $externalOrderNo = createExternalOrderNo($orderNo);
         try {
@@ -157,10 +136,10 @@ try {
     }
 }
 
-$pid = getSetting($pdo, 'epay_pid');
-$key = getSetting($pdo, 'epay_key');
-$notifyUrl = getSetting($pdo, 'notify_url');
-$returnUrl = getSetting($pdo, 'return_url');
+$pid = commerceGetSetting($pdo, 'epay_pid');
+$key = commerceGetSetting($pdo, 'epay_key');
+$notifyUrl = commerceGetSetting($pdo, 'notify_url');
+$returnUrl = commerceGetSetting($pdo, 'return_url');
 
 if ($pid === '' || $key === '') {
     exit('支付未配置，请联系管理员');

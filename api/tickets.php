@@ -7,7 +7,7 @@ require_once __DIR__ . '/../includes/commerce.php';
 $action = requestValue('action', '');
 $pdo = getDB();
 
-$csrfActions = ['create', 'reply', 'close', 'update_priority', 'assign', 'add_internal_note', 'update_meta', 'save_template', 'delete_template'];
+$csrfActions = ['create', 'create_refund_request', 'reply', 'close', 'update_priority', 'assign', 'add_internal_note', 'update_meta', 'approve_refund', 'save_template', 'delete_template'];
 if (in_array($action, $csrfActions, true)) {
     requireCsrf();
 }
@@ -48,6 +48,68 @@ try {
             jsonResponse(1, '工单创建成功', ['ticket_id' => $ticketId]);
             break;
 
+
+        case 'create_refund_request':
+            checkUser();
+            $orderId = validateInt(requestValue('order_id', null), 1);
+            $refundTarget = normalizeString(requestValue('refund_target', 'original'), 20);
+            $refundReason = normalizeString(requestValue('refund_reason', ''), 255);
+            $content = normalizeString(requestValue('content', ''), 5000);
+            if (!$orderId) {
+                jsonResponse(0, '订单ID无效');
+            }
+            if (!in_array($refundTarget, ['original', 'balance'], true)) {
+                $refundTarget = 'original';
+            }
+            if ($refundReason === '') {
+                jsonResponse(0, '请填写退款原因');
+            }
+            $stmt = $pdo->prepare('SELECT * FROM orders WHERE id = ? AND user_id = ? LIMIT 1');
+            $stmt->execute([$orderId, (int)$_SESSION['user_id']]);
+            $order = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$order) {
+                jsonResponse(0, '订单不存在');
+            }
+            if ((int)$order['status'] !== 1) {
+                jsonResponse(0, '仅支持对已支付订单发起退款申请');
+            }
+            if (in_array((string)($order['delivery_status'] ?? ''), ['refunded', 'cancelled'], true)) {
+                jsonResponse(0, '该订单当前状态不支持退款申请');
+            }
+            $refundPolicy = commerceBuildRefundPolicy($order);
+            if ((float)($refundPolicy['refundable_amount'] ?? 0) <= 0) {
+                jsonResponse(0, '当前订单剩余时长为 0，可退金额为 0');
+            }
+            $stmt = $pdo->prepare("SELECT id FROM tickets WHERE user_id = ? AND order_id = ? AND category = 'refund_request' AND status <> 2 ORDER BY id DESC LIMIT 1");
+            $stmt->execute([(int)$_SESSION['user_id'], $orderId]);
+            $exists = $stmt->fetchColumn();
+            if ($exists) {
+                jsonResponse(0, '该订单已有处理中退款工单');
+            }
+            $title = '退款申请 - ' . ($order['order_no'] ?? ('订单#' . $orderId));
+            $targetText = $refundTarget === 'balance' ? '退回站内余额' : '原路退回';
+            $fullContent = "订单号：" . ($order['order_no'] ?? '') . "
+退款方式：" . $targetText . "
+退款原因：" . $refundReason . "
+预计退款：" . number_format((float)($refundPolicy['refundable_amount'] ?? 0), 2) . " 积分";
+            if ($content !== '') {
+                $fullContent .= "
+补充说明：" . $content;
+            }
+            if (ticketsHasColumn($pdo, 'refund_target')) {
+                $stmt = $pdo->prepare('INSERT INTO tickets (user_id, order_id, title, status, category, priority, refund_reason, refund_target, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?, ?, ?, NOW(), NOW())');
+                $stmt->execute([(int)$_SESSION['user_id'], $orderId, $title, 'refund_request', 2, $refundReason, $refundTarget]);
+            } else {
+                $stmt = $pdo->prepare('INSERT INTO tickets (user_id, order_id, title, status, category, priority, refund_reason, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?, ?, NOW(), NOW())');
+                $stmt->execute([(int)$_SESSION['user_id'], $orderId, $title, 'refund_request', 2, $refundReason]);
+            }
+            $ticketId = (int)$pdo->lastInsertId();
+            $stmt = $pdo->prepare('INSERT INTO ticket_replies (ticket_id, user_id, content) VALUES (?, ?, ?)');
+            $stmt->execute([$ticketId, (int)$_SESSION['user_id'], $fullContent]);
+            commerceRecordTicketEvent($pdo, $ticketId, 'refund_request', '用户提交退款申请', ['refund_target' => $refundTarget, 'refund_reason' => $refundReason], true);
+            jsonResponse(1, '退款申请已提交', ['ticket_id' => $ticketId]);
+            break;
+
         case 'my':
             checkUser();
             $stmt = $pdo->prepare('SELECT t.*, o.order_no FROM tickets t LEFT JOIN orders o ON t.order_id = o.id WHERE t.user_id = ? ORDER BY t.updated_at DESC');
@@ -72,6 +134,16 @@ try {
             $stmt = $pdo->prepare('SELECT r.*, u.username FROM ticket_replies r LEFT JOIN users u ON r.user_id = u.id WHERE r.ticket_id = ? ORDER BY r.created_at ASC');
             $stmt->execute([$ticketId]);
             $ticket['replies'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            if (!empty($ticket['order_id'])) {
+                $stmt = $pdo->prepare('SELECT id, order_no, status, delivery_status, price, payment_method, refund_at, paid_at, delivered_at, created_at, balance_paid_amount, external_pay_amount FROM orders WHERE id = ? LIMIT 1');
+                $stmt->execute([(int)$ticket['order_id']]);
+                $ticket['order_info'] = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+                if ($ticket['order_info']) {
+                    commerceFillRefundPolicy($ticket['order_info']);
+                }
+            } else {
+                $ticket['order_info'] = null;
+            }
             if (commerceTableExists($pdo, 'ticket_events')) {
                 $sql = 'SELECT e.*, a.username AS admin_name, u.username AS user_name FROM ticket_events e LEFT JOIN admins a ON e.actor_type = "admin" AND e.actor_id = a.id LEFT JOIN users u ON e.actor_type = "user" AND e.actor_id = u.id WHERE e.ticket_id = ?';
                 if (empty($_SESSION['admin_id'])) {
@@ -292,6 +364,53 @@ try {
             commerceRecordTicketEvent($pdo, $ticketId, 'meta_update', '工单信息已更新', ['category' => $category, 'priority' => $priority, 'verified_status' => $verified, 'refund_allowed' => $refundAllowed], false);
             logAudit($pdo, 'ticket.update_meta', ['category' => $category, 'priority' => $priority], (string)$ticketId);
             jsonResponse(1, '工单信息已更新');
+            break;
+
+
+        case 'approve_refund':
+            checkAdmin($pdo);
+            $ticketId = validateInt(requestValue('ticket_id', null), 1);
+            if (!$ticketId) {
+                jsonResponse(0, '工单ID无效');
+            }
+            $stmt = $pdo->prepare('SELECT * FROM tickets WHERE id = ? LIMIT 1');
+            $stmt->execute([$ticketId]);
+            $ticket = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$ticket) {
+                jsonResponse(0, '工单不存在');
+            }
+            if ((string)($ticket['category'] ?? '') !== 'refund_request' || empty($ticket['order_id'])) {
+                jsonResponse(0, '该工单不是退款申请');
+            }
+            $stmt = $pdo->prepare('SELECT * FROM orders WHERE id = ? LIMIT 1');
+            $stmt->execute([(int)$ticket['order_id']]);
+            $order = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$order) {
+                jsonResponse(0, '关联订单不存在');
+            }
+            $refundTarget = normalizeString(requestValue('refund_target', (string)($ticket['refund_target'] ?? 'auto')), 20);
+            $refundReason = normalizeString(requestValue('refund_reason', (string)($ticket['refund_reason'] ?? '工单退款')), 255);
+            try {
+                $result = commerceRefundOrder($pdo, $order, $refundTarget, $refundReason);
+            } catch (Throwable $e) {
+                logError($pdo, 'tickets.approve_refund', $e->getMessage(), ['ticket_id' => $ticketId, 'order_id' => $ticket['order_id']]);
+                jsonResponse(0, $e->getMessage() ?: '退款失败');
+            }
+            $reply = '退款申请已通过。退款金额：' . number_format((float)$result['refund_total'], 2) . ' 积分；退款方式：' . ($result['refund_target'] === 'balance' ? '退回站内余额' : '原路退回') . '。';
+            $stmt = $pdo->prepare('INSERT INTO ticket_replies (ticket_id, user_id, content) VALUES (?, NULL, ?)');
+            $stmt->execute([$ticketId, $reply]);
+            $parts = ['status = 2', 'refund_allowed = 1', 'refund_reason = ?', 'handled_admin_id = ?', 'updated_at = NOW()'];
+            $params = [$refundReason, (int)$_SESSION['admin_id']];
+            if (ticketsHasColumn($pdo, 'refund_target')) {
+                $parts[] = 'refund_target = ?';
+                $params[] = $result['refund_target'];
+            }
+            $params[] = $ticketId;
+            $stmt = $pdo->prepare('UPDATE tickets SET ' . implode(', ', $parts) . ' WHERE id = ?');
+            $stmt->execute($params);
+            commerceRecordTicketEvent($pdo, $ticketId, 'refund_approved', '管理员已同意退款', ['refund_target' => $result['refund_target'], 'refund_total' => $result['refund_total']], true);
+            logAudit($pdo, 'ticket.approve_refund', ['ticket_id' => $ticketId, 'order_no' => $result['order_no'], 'refund_target' => $result['refund_target'], 'refund_total' => $result['refund_total']], (string)$ticketId);
+            jsonResponse(1, '退款已完成', $result);
             break;
 
         case 'templates':

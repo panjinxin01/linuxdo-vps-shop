@@ -29,9 +29,6 @@ function ensureUploadDir(): bool {
     return true;
 }
 
-function tableExists(PDO $pdo, string $table): bool {
-    return securityTableExists($pdo, $table);
-}
 
 function generateSafeFilename(string $originalName): string {
     $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
@@ -85,7 +82,7 @@ try {
                 jsonResponse(0, '请先登录');
             }
             requireCsrf();
-            if (!tableExists($pdo, 'ticket_attachments')) {
+            if (!securityTableExists($pdo, 'ticket_attachments')) {
                 jsonResponse(0, '功能未启用，请先执行数据库更新');
             }
 
@@ -169,7 +166,7 @@ try {
             if (!isset($_SESSION['user_id']) && !isset($_SESSION['admin_id'])) {
                 jsonResponse(0, '请先登录');
             }
-            if (!tableExists($pdo, 'ticket_attachments')) {
+            if (!securityTableExists($pdo, 'ticket_attachments')) {
                 jsonResponse(1, '', []);
             }
             $ticketId = validateInt(requestValue('ticket_id', null), 1);
@@ -195,7 +192,7 @@ try {
         case 'delete':
             checkAdmin($pdo);
             requireCsrf();
-            if (!tableExists($pdo, 'ticket_attachments')) {
+            if (!securityTableExists($pdo, 'ticket_attachments')) {
                 jsonResponse(0, '功能未启用');
             }
             $id = validateInt(requestValue('id', null), 1);
@@ -224,7 +221,7 @@ try {
                 header('HTTP/1.1 401 Unauthorized');
                 exit('请先登录');
             }
-            if (!tableExists($pdo, 'ticket_attachments')) {
+            if (!securityTableExists($pdo, 'ticket_attachments')) {
                 header('HTTP/1.1 404 Not Found');
                 exit('功能未启用');
             }

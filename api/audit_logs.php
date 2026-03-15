@@ -6,6 +6,12 @@ require_once __DIR__ . '/../includes/db.php';
 $action = requestValue('action', 'list');
 $pdo = getDB();
 
+
+$csrfActions = ['clear'];
+if (in_array($action, $csrfActions, true)) {
+    requireCsrf();
+}
+
 try {
     switch ($action) {
         case 'list':
@@ -31,6 +37,23 @@ try {
                 'page_size' => $pageSize,
                 'total_pages' => $pageSize > 0 ? ceil($total / $pageSize) : 0
             ]);
+            break;
+
+
+        case 'clear':
+            checkAdmin($pdo, true);
+            $password = (string)requestValue('password', '');
+            if ($password === '') {
+                jsonResponse(0, '请填写当前管理员密码');
+            }
+            $stmt = $pdo->prepare('SELECT password FROM admins WHERE id = ?');
+            $stmt->execute([(int)$_SESSION['admin_id']]);
+            $hash = $stmt->fetchColumn();
+            if (!$hash || !password_verify($password, (string)$hash)) {
+                jsonResponse(0, '密码验证失败');
+            }
+            $pdo->exec('DELETE FROM audit_logs');
+            jsonResponse(1, '操作日志已清空');
             break;
 
         default:

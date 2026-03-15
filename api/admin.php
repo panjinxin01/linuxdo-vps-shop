@@ -5,7 +5,7 @@ require_once __DIR__ . '/../includes/db.php';
 
 $action = requestValue('action', '');
 
-$csrfActions = ['setup', 'login', 'logout', 'change_password', 'add', 'delete'];
+$csrfActions = ['setup', 'login', 'logout', 'change_password', 'add', 'delete', 'promote_user'];
 if (in_array($action, $csrfActions, true)) {
     requireCsrf();
 }
@@ -121,6 +121,78 @@ try {
             checkAdmin($pdo, true);
             $stmt = $pdo->query('SELECT id, username, role, created_at FROM admins ORDER BY id');
             jsonResponse(1, '', $stmt->fetchAll(PDO::FETCH_ASSOC));
+            break;
+
+
+        case 'search_users':
+            checkAdmin($pdo, true);
+            $keyword = normalizeString(requestValue('keyword', ''), 100);
+            $limit = validateInt(requestValue('limit', 20), 1, 50) ?? 20;
+            $where = '1=1';
+            $params = [];
+            if ($keyword !== '') {
+                $where .= ' AND (u.username LIKE ? OR u.email LIKE ? OR u.linuxdo_username LIKE ? OR CAST(u.id AS CHAR) = ?)';
+                $kw = '%' . $keyword . '%';
+                $params = [$kw, $kw, $kw, $keyword];
+            }
+            $sql = 'SELECT u.id, u.username, u.email, u.linuxdo_username, u.created_at, u.password, a.id AS admin_id, a.role AS admin_role FROM users u LEFT JOIN admins a ON a.username = u.username WHERE ' . $where . ' ORDER BY u.id DESC LIMIT ?';
+            $stmt = $pdo->prepare($sql);
+            $bind = 1;
+            foreach ($params as $value) {
+                $stmt->bindValue($bind++, $value);
+            }
+            $stmt->bindValue($bind++, $limit, PDO::PARAM_INT);
+            $stmt->execute();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $rows = array_map(static function (array $row) {
+                $row['has_password'] = !empty($row['password']) ? 1 : 0;
+                unset($row['password']);
+                return $row;
+            }, $rows);
+            jsonResponse(1, 'ok', $rows);
+            break;
+
+        case 'promote_user':
+            checkAdmin($pdo, true);
+            $input = requestJson();
+            if (!$input) {
+                $input = $_POST;
+            }
+            $userId = validateInt($input['user_id'] ?? null, 1);
+            $role = (string)($input['role'] ?? 'admin');
+            $password = (string)($input['password'] ?? '');
+            if (!$userId) {
+                jsonResponse(0, '用户ID无效');
+            }
+            if (!in_array($role, ['admin', 'super'], true)) {
+                $role = 'admin';
+            }
+            $stmt = $pdo->prepare('SELECT id, username, password FROM users WHERE id = ?');
+            $stmt->execute([$userId]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$user) {
+                jsonResponse(0, '用户不存在');
+            }
+            $stmt = $pdo->prepare('SELECT id FROM admins WHERE username = ?');
+            $stmt->execute([$user['username']]);
+            if ($stmt->fetchColumn()) {
+                jsonResponse(0, '该用户已是管理员');
+            }
+            $hash = '';
+            if (!empty($password)) {
+                if (strlen($password) < 6) {
+                    jsonResponse(0, '管理员密码至少6位');
+                }
+                $hash = password_hash($password, PASSWORD_DEFAULT);
+            } elseif (!empty($user['password'])) {
+                $hash = (string)$user['password'];
+            } else {
+                jsonResponse(0, '该用户没有本地密码，请为管理员权限单独设置一个密码');
+            }
+            $stmt = $pdo->prepare('INSERT INTO admins (username, password, role) VALUES (?, ?, ?)');
+            $stmt->execute([$user['username'], $hash, $role]);
+            logAudit($pdo, 'admin.promote_user', ['username' => $user['username'], 'source_user_id' => $userId, 'role' => $role], (string)$pdo->lastInsertId());
+            jsonResponse(1, '提权成功');
             break;
 
         case 'add':

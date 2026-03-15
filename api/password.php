@@ -11,9 +11,6 @@ if (in_array($action, $csrfActions, true)) {
     requireCsrf();
 }
 
-function tableExists(PDO $pdo, string $table): bool {
-    return securityTableExists($pdo, $table);
-}
 
 function generateToken(int $length = 32): string {
     try {
@@ -67,7 +64,7 @@ try {
                 jsonResponse(0, '请输入有效的邮箱地址');
             }
             rateLimit($pdo, 'password_reset', $email, 3, 3600, 7200);
-            if (!tableExists($pdo, 'password_resets')) {
+            if (!securityTableExists($pdo, 'password_resets')) {
                 jsonResponse(0, '功能未启用，请先执行数据库更新');
             }
 
@@ -120,7 +117,7 @@ try {
             if (strlen($password) < 6) {
                 jsonResponse(0, '密码至少6位');
             }
-            if (!tableExists($pdo, 'password_resets')) {
+            if (!securityTableExists($pdo, 'password_resets')) {
                 jsonResponse(0, '功能未启用');
             }
 
@@ -150,7 +147,7 @@ try {
 
         case 'request_verify':
             checkUser();
-            if (!tableExists($pdo, 'email_verifications')) {
+            if (!securityTableExists($pdo, 'email_verifications')) {
                 jsonResponse(0, '功能未启用，请先执行数据库更新');
             }
 
@@ -199,7 +196,7 @@ try {
             if ($code === '' || strlen($code) !== 6) {
                 jsonResponse(0, '请输入6位验证码');
             }
-            if (!tableExists($pdo, 'email_verifications')) {
+            if (!securityTableExists($pdo, 'email_verifications')) {
                 jsonResponse(0, '功能未启用');
             }
             $stmt = $pdo->prepare('SELECT * FROM email_verifications WHERE user_id = ? AND expires_at > NOW() ORDER BY id DESC LIMIT 1');

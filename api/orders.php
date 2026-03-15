@@ -33,24 +33,12 @@ function supportsCoupons(PDO $pdo): bool {
     return ordersHasCouponColumns($pdo) && commerceTableExists($pdo, 'coupons') && commerceTableExists($pdo, 'coupon_usages');
 }
 
-function orderShouldShowCredentials(array $order): bool {
-        $status = (int)($order['status'] ?? 0);
-    $delivery = (string)($order['delivery_status'] ?? '');
-    if ($status !== 1) {
-        return false;
-    }
-    return !in_array($delivery, ['exception', 'cancelled', 'refunded'], true);
+function fillOrderCredentialsVisibility(array &$order): void {
+    commercePrepareOrderForOutput($order, true);
 }
 
-function fillOrderCredentialsVisibility(array &$order): void {
-    commerceNormalizePaymentMethod($order);
-    commerceNormalizeDeliveryStatus($order);
-    if (isset($order['ssh_password'])) {
-        $order['ssh_password'] = decryptSensitive($order['ssh_password']);
-    }
-    if (!orderShouldShowCredentials($order)) {
-        unset($order['ip_address'], $order['ssh_port'], $order['ssh_user'], $order['ssh_password'], $order['extra_info']);
-    }
+function fillAdminOrderOutput(array &$order): void {
+    commercePrepareOrderForOutput($order, false);
 }
 
 function autoCancelExpiredOrders(PDO $pdo): void {
@@ -372,8 +360,13 @@ try {
                     'remark' => '余额支付订单',
                 ]);
                 $tradeNo = 'BAL' . date('YmdHis') . bin2hex(random_bytes(3));
-                $deliveryStatus = !empty($order['delivery_note']) ? 'exception' : 'paid_waiting';
-                $stmt = $pdo->prepare('UPDATE orders SET status = 1, trade_no = ?, paid_at = NOW(), payment_method = ?, balance_paid_amount = ?, external_pay_amount = 0, delivery_status = ?, delivery_updated_at = NOW() WHERE order_no = ? AND status = 0');
+                $deliveryStatus = commerceResolveAutoDeliveryStatus($order, 'paid_waiting');
+                $sql = 'UPDATE orders SET status = 1, trade_no = ?, paid_at = NOW(), payment_method = ?, balance_paid_amount = ?, external_pay_amount = 0, delivery_status = ?, delivery_updated_at = NOW()';
+                if ($deliveryStatus === 'delivered' && commerceColumnExists($pdo, 'orders', 'delivered_at')) {
+                    $sql .= ', delivered_at = NOW()';
+                }
+                $sql .= ' WHERE order_no = ? AND status = 0';
+                $stmt = $pdo->prepare($sql);
                 $stmt->execute([$tradeNo, 'balance', $price, $deliveryStatus, $orderNo]);
                 if (!empty($order['product_id']) && commerceTableExists($pdo, 'products')) {
                     $pdo->prepare('UPDATE products SET status = 0 WHERE id = ?')->execute([(int)$order['product_id']]);
@@ -381,7 +374,9 @@ try {
                 markCouponUsedByOrder($pdo, $orderNo);
                 $pdo->commit();
                 createNotification($pdo, (int)$_SESSION['user_id'], 'order_paid', '余额支付成功', '您的订单 ' . $orderNo . ' 已使用余额支付成功，扣减 ' . number_format($price, 2) . ' 积分。', $orderNo);
-                if ($deliveryStatus === 'exception') {
+                if ($deliveryStatus === 'delivered') {
+                    createNotification($pdo, (int)$_SESSION['user_id'], 'order_delivered', '订单已自动交付', '您的订单 ' . $orderNo . ' 已自动标记为已交付，连接信息已可查看。', $orderNo);
+                } elseif ($deliveryStatus === 'exception') {
                     createNotification($pdo, (int)$_SESSION['user_id'], 'order_exception', '订单待人工审核', '您的订单 ' . $orderNo . ' 已支付，但因社区规则命中人工审核流程，管理员会尽快处理。', $orderNo);
                 }
                 jsonResponse(1, '余额支付成功', ['balance_after' => $balanceResult['after'], 'order_no' => $orderNo]);
@@ -457,11 +452,7 @@ try {
             $stmt->execute($params);
             $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
             foreach ($orders as &$order) {
-                commerceNormalizePaymentMethod($order);
-                commerceNormalizeDeliveryStatus($order);
-                if (isset($order['ssh_password'])) {
-                    $order['ssh_password'] = decryptSensitive($order['ssh_password']);
-                }
+                fillAdminOrderOutput($order);
             }
             unset($order);
             jsonResponse(1, '', ['list' => $orders, 'total' => $total, 'page' => $page, 'page_size' => $pageSize, 'total_pages' => $pageSize > 0 ? (int)ceil($total / $pageSize) : 0]);
@@ -509,9 +500,6 @@ try {
             $orderNo = normalizeString(requestValue('order_no', ''));
             $refundReason = normalizeString(requestValue('refund_reason', '人工退款'), 255);
             $refundTarget = normalizeString(requestValue('refund_target', 'original'), 20);
-            if (!in_array($refundTarget, ['original', 'balance', 'auto'], true)) {
-                $refundTarget = 'original';
-            }
             if ($orderNo === '') {
                 jsonResponse(0, '订单号不能为空');
             }
@@ -521,88 +509,14 @@ try {
             if (!$order) {
                 jsonResponse(0, '订单不存在');
             }
-            if ((int)$order['status'] !== 1) {
-                jsonResponse(0, '只能退款已支付的订单');
-            }
-            $externalAmount = round((float)($order['external_pay_amount'] ?? ((($order['payment_method'] ?? '') === 'epay') ? $order['price'] : 0)), 2);
-            $balanceAmount = round((float)($order['balance_paid_amount'] ?? ((($order['payment_method'] ?? '') === 'balance') ? $order['price'] : 0)), 2);
-            $refundTradeNo = null;
-            if ($refundTarget === 'auto') {
-                $refundTarget = $externalAmount > 0 ? 'original' : 'balance';
-            }
-            $refundToBalanceAmount = $balanceAmount;
-            $externalRefundAmount = $externalAmount;
-            if ($refundTarget === 'balance') {
-                $refundToBalanceAmount = round($balanceAmount + $externalAmount, 2);
-                $externalRefundAmount = 0.00;
-            }
-            if ($externalRefundAmount > 0) {
-                if (empty($order['trade_no'])) {
-                    jsonResponse(0, '订单缺少平台交易号，无法发起外部退款');
-                }
-                $pid = commerceGetSetting($pdo, 'epay_pid');
-                $key = commerceGetSetting($pdo, 'epay_key');
-                if ($pid === '' || $key === '') {
-                    jsonResponse(0, '支付配置不完整');
-                }
-                $refundData = ['pid' => $pid, 'key' => $key, 'trade_no' => $order['trade_no'], 'money' => $externalRefundAmount, 'out_trade_no' => $order['order_no']];
-                $refundResponse = httpRequest('https://credit.linux.do/epay/api.php', ['method' => 'POST', 'data' => $refundData, 'timeout' => 30, 'ssl_verify_peer' => true, 'ssl_verify_host' => 2]);
-                if (!$refundResponse['ok']) {
-                    jsonResponse(0, '请求退款接口失败: ' . ($refundResponse['error'] ?: 'network error'));
-                }
-                $result = json_decode((string)$refundResponse['body'], true);
-                if (!$result || (int)($result['code'] ?? 0) !== 1) {
-                    jsonResponse(0, $result['msg'] ?? '外部退款失败');
-                }
-                $refundTradeNo = $result['trade_no'] ?? $order['trade_no'];
-            }
             try {
-                $pdo->beginTransaction();
-                if ($refundToBalanceAmount > 0) {
-                    commerceAdjustBalance($pdo, (int)$order['user_id'], 'refund', $refundToBalanceAmount, [
-                        'related_order_id' => (int)$order['id'],
-                        'related_order_no' => $orderNo,
-                        'remark' => $refundTarget === 'balance' ? '订单退款退回站内余额' : '订单退款返还余额',
-                    ]);
-                }
-                releaseCouponByOrder($pdo, $orderNo);
-                $parts = ['status = 2'];
-                $params = [];
-                if (commerceColumnExists($pdo, 'orders', 'refund_reason')) {
-                    $parts[] = 'refund_reason = ?';
-                    $params[] = $refundReason;
-                }
-                if (commerceColumnExists($pdo, 'orders', 'refund_trade_no')) {
-                    $parts[] = 'refund_trade_no = ?';
-                    $params[] = $refundTradeNo;
-                }
-                if (commerceColumnExists($pdo, 'orders', 'refund_amount')) {
-                    $parts[] = 'refund_amount = ?';
-                    $params[] = round($externalRefundAmount + $refundToBalanceAmount, 2);
-                }
-                if (commerceColumnExists($pdo, 'orders', 'refund_at')) {
-                    $parts[] = 'refund_at = NOW()';
-                }
-                if (commerceColumnExists($pdo, 'orders', 'delivery_status')) {
-                    $parts[] = "delivery_status = 'refunded'";
-                    $parts[] = 'delivery_updated_at = NOW()';
-                }
-                $params[] = $orderNo;
-                $stmt = $pdo->prepare('UPDATE orders SET ' . implode(', ', $parts) . ' WHERE order_no = ? AND status = 1');
-                $stmt->execute($params);
-                $pdo->commit();
+                $result = commerceRefundOrder($pdo, $order, $refundTarget, $refundReason);
             } catch (Throwable $e) {
-                if ($pdo->inTransaction()) {
-                    $pdo->rollBack();
-                }
                 logError($pdo, 'orders.refund', $e->getMessage(), ['order_no' => $orderNo]);
-                jsonResponse(0, '退款成功但本地更新失败，请手动检查');
+                jsonResponse(0, $e->getMessage() ?: '退款失败');
             }
-            $refundTotal = round($externalRefundAmount + $refundToBalanceAmount, 2);
-            logAudit($pdo, 'order.refund', ['amount' => $refundTotal, 'refund_reason' => $refundReason, 'refund_target' => $refundTarget], $orderNo);
-            $refundMsg = $refundTarget === 'balance' ? '已退回站内余额' : '已按原支付路径退款';
-            createNotification($pdo, (int)$order['user_id'], 'order_refund', '订单已退款', '您的订单 ' . $orderNo . ' 已退款成功，退款金额：' . number_format($refundTotal, 2) . ' 积分，' . $refundMsg . '。', $orderNo);
-            jsonResponse(1, '退款成功');
+            logAudit($pdo, 'order.refund', ['amount' => $result['refund_total'], 'refund_reason' => $refundReason, 'refund_target' => $result['refund_target']], $orderNo);
+            jsonResponse(1, '退款成功', $result);
             break;
 
         case 'delete':
@@ -777,21 +691,33 @@ try {
             break;
 
         case 'detail':
-            checkAdmin($pdo);
-            $orderNo = normalizeString(requestValue('order_no', ''));
-            if ($orderNo === '') {
-                jsonResponse(0, '订单号不能为空');
+            $isAdmin = !empty($_SESSION['admin_id']);
+            $isUser = !empty($_SESSION['user_id']);
+            if (!$isAdmin && !$isUser) {
+                jsonResponse(0, '请先登录');
             }
-            $stmt = $pdo->prepare(buildOrderSelectSql(true) . ' WHERE o.order_no = ?');
-            $stmt->execute([$orderNo]);
+            $orderNo = normalizeString(requestValue('order_no', ''));
+            $orderId = validateInt(requestValue('id', null), 1);
+            if ($orderNo === '' && !$orderId) {
+                jsonResponse(0, '订单参数不能为空');
+            }
+            if ($isAdmin) {
+                $sql = buildOrderSelectSql(true) . ' WHERE ' . ($orderNo !== '' ? 'o.order_no = ?' : 'o.id = ?') . ' LIMIT 1';
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute([$orderNo !== '' ? $orderNo : $orderId]);
+            } else {
+                $sql = buildOrderSelectSql(false) . ' WHERE ' . ($orderNo !== '' ? 'o.order_no = ?' : 'o.id = ?') . ' AND o.user_id = ? LIMIT 1';
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute([$orderNo !== '' ? $orderNo : $orderId, (int)$_SESSION['user_id']]);
+            }
             $order = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$order) {
                 jsonResponse(0, '订单不存在');
             }
-            commerceNormalizePaymentMethod($order);
-            commerceNormalizeDeliveryStatus($order);
-            if (isset($order['ssh_password'])) {
-                $order['ssh_password'] = decryptSensitive($order['ssh_password']);
+            if ($isAdmin) {
+                fillAdminOrderOutput($order);
+            } else {
+                fillOrderCredentialsVisibility($order);
             }
             jsonResponse(1, '', $order);
             break;

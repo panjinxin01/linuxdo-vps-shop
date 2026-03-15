@@ -442,6 +442,7 @@ function updMigrate(PDO $pdo): array {
     updEnsureColumn($pdo, 'tickets', 'verified_status', "`verified_status` TINYINT DEFAULT 0", $migrated, $errors);
     updEnsureColumn($pdo, 'tickets', 'refund_allowed', "`refund_allowed` TINYINT DEFAULT 0", $migrated, $errors);
     updEnsureColumn($pdo, 'tickets', 'refund_reason', "`refund_reason` VARCHAR(255) DEFAULT NULL", $migrated, $errors);
+    updEnsureColumn($pdo, 'tickets', 'refund_target', "`refund_target` VARCHAR(20) DEFAULT NULL", $migrated, $errors);
     updEnsureColumn($pdo, 'tickets', 'handled_admin_id', "`handled_admin_id` INT DEFAULT NULL", $migrated, $errors);
     updEnsureIndex($pdo, 'tickets', 'idx_tickets_filters', '`category`, `priority`, `status`', $migrated, $errors);
     updEnsureIndex($pdo, 'tickets', 'idx_tickets_order', '`order_id`', $migrated, $errors);

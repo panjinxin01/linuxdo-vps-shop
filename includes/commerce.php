@@ -2,6 +2,7 @@
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/security.php';
 require_once __DIR__ . '/notifications.php';
+require_once __DIR__ . '/coupons.php';
 
 function commerceTableExists(PDO $pdo, string $table): bool {
     return securityTableExists($pdo, $table);
@@ -58,6 +59,53 @@ function commerceSetSetting(PDO $pdo, string $key, string $value): bool {
         return $stmt->execute([$key, $value]);
     } catch (Throwable $e) {
         return false;
+    }
+}
+
+
+function commerceEnsurePaymentRequestTable(PDO $pdo): void {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `payment_requests` (
+        `id` INT AUTO_INCREMENT PRIMARY KEY,
+        `order_no` VARCHAR(50) NOT NULL,
+        `external_order_no` VARCHAR(80) NOT NULL,
+        `user_id` INT NOT NULL,
+        `trade_no` VARCHAR(100) DEFAULT NULL,
+        `status` TINYINT NOT NULL DEFAULT 0,
+        `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        `paid_at` DATETIME DEFAULT NULL,
+        UNIQUE KEY `uniq_payment_requests_external` (`external_order_no`),
+        INDEX `idx_payment_requests_order` (`order_no`),
+        INDEX `idx_payment_requests_user_status` (`user_id`, `status`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+function commerceOrderShouldShowCredentials(array $order): bool {
+    $status = (int)($order['status'] ?? 0);
+    $delivery = (string)($order['delivery_status'] ?? '');
+    if ($status !== 1) {
+        return false;
+    }
+    return !in_array($delivery, ['exception', 'cancelled', 'refunded'], true);
+}
+
+function commerceDecryptDeliveryInfo(string $info): string {
+    return preg_replace_callback('/enc:[A-Za-z0-9+\/=]+/', static function (array $matches): string {
+        return (string)decryptSensitive($matches[0]);
+    }, $info);
+}
+
+function commercePrepareOrderForOutput(array &$order, bool $hideRestrictedCredentials = false): void {
+    commerceNormalizePaymentMethod($order);
+    commerceNormalizeDeliveryStatus($order);
+    commerceFillRefundPolicy($order);
+    if (isset($order['ssh_password'])) {
+        $order['ssh_password'] = decryptSensitive($order['ssh_password']);
+    }
+    if (!empty($order['delivery_info'])) {
+        $order['delivery_info'] = commerceDecryptDeliveryInfo((string)$order['delivery_info']);
+    }
+    if ($hideRestrictedCredentials && !commerceOrderShouldShowCredentials($order)) {
+        unset($order['ip_address'], $order['ssh_port'], $order['ssh_user'], $order['ssh_password'], $order['extra_info']);
     }
 }
 
@@ -259,6 +307,215 @@ function commerceNormalizeDeliveryStatus(array &$order): void {
     }
     $map = commerceGetDeliveryStatuses();
     $order['delivery_status_text'] = $map[$delivery] ?? $delivery;
+}
+
+
+function commerceOrderHasDeliveryPayload(array $order): bool {
+    $fields = [
+        'delivery_info',
+        'ip_address', 'ssh_user', 'ssh_password',
+        'ip_address_snapshot', 'ssh_user_snapshot', 'ssh_password_snapshot',
+    ];
+    foreach ($fields as $field) {
+        if (!empty($order[$field])) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function commerceResolveAutoDeliveryStatus(array $order, string $fallback = 'paid_waiting'): string {
+    if (!empty($order['delivery_note']) && strpos((string)$order['delivery_note'], '人工审核') !== false) {
+        return 'exception';
+    }
+    return commerceOrderHasDeliveryPayload($order) ? 'delivered' : $fallback;
+}
+
+
+
+function commerceBuildRefundPolicy(array $order): array {
+    $status = (int)($order['status'] ?? 0);
+    $delivery = (string)($order['delivery_status'] ?? '');
+    $price = round((float)($order['price'] ?? 0), 2);
+    $durationDays = max(1, (int)($order['service_period_days'] ?? 30));
+    $baseTime = (string)($order['delivered_at'] ?? '');
+    if ($baseTime === '') {
+        $baseTime = (string)($order['paid_at'] ?? '');
+    }
+    if ($baseTime === '') {
+        $baseTime = (string)($order['created_at'] ?? '');
+    }
+    $startTs = strtotime($baseTime ?: 'now');
+    if (!$startTs) {
+        $startTs = time();
+    }
+    $endTs = $startTs + ($durationDays * 86400);
+    if (!empty($order['service_end_at'])) {
+        $customEnd = strtotime((string)$order['service_end_at']);
+        if ($customEnd) {
+            $endTs = $customEnd;
+        }
+    }
+    $totalSeconds = max(1, $endTs - $startTs);
+    $remainingSeconds = max(0, $endTs - time());
+    $ratio = min(1, max(0, $remainingSeconds / $totalSeconds));
+    $amount = round($price * $ratio, 2);
+    if ($status !== 1 || in_array($delivery, ['refunded', 'cancelled'], true)) {
+        $remainingSeconds = 0;
+        $ratio = 0;
+        $amount = 0.00;
+    }
+    if ($price > 0 && $ratio > 0 && $amount <= 0) {
+        $amount = 0.01;
+    }
+    if ($amount > $price) {
+        $amount = $price;
+    }
+    return [
+        'service_start_at' => date('Y-m-d H:i:s', $startTs),
+        'service_end_at' => date('Y-m-d H:i:s', $endTs),
+        'service_period_days' => $durationDays,
+        'remaining_seconds' => (int)$remainingSeconds,
+        'remaining_days' => round($remainingSeconds / 86400, 2),
+        'refund_ratio' => round($ratio, 6),
+        'refundable_amount' => round($amount, 2),
+    ];
+}
+
+function commerceFillRefundPolicy(array &$order): void {
+    $order = array_merge($order, commerceBuildRefundPolicy($order));
+}
+
+function commerceRefundOrder(PDO $pdo, array $order, string $refundTarget = 'original', string $refundReason = '人工退款'): array {
+    if (!$order || empty($order['order_no'])) {
+        throw new InvalidArgumentException('order missing');
+    }
+    if ((int)($order['status'] ?? 0) !== 1) {
+        throw new RuntimeException('只能退款已支付的订单');
+    }
+
+    $policy = commerceBuildRefundPolicy($order);
+    $refundTotal = round((float)($policy['refundable_amount'] ?? 0), 2);
+    if ($refundTotal <= 0) {
+        throw new RuntimeException('当前订单剩余时长为 0，可退金额为 0');
+    }
+
+    $refundTarget = trim((string)$refundTarget);
+    if (!in_array($refundTarget, ['original', 'balance', 'auto'], true)) {
+        $refundTarget = 'original';
+    }
+
+    $orderNo = (string)$order['order_no'];
+    $externalPaid = round((float)($order['external_pay_amount'] ?? ((($order['payment_method'] ?? '') === 'epay') ? $order['price'] : 0)), 2);
+    $balancePaid = round((float)($order['balance_paid_amount'] ?? ((($order['payment_method'] ?? '') === 'balance') ? $order['price'] : 0)), 2);
+    $totalPaid = round($externalPaid + $balancePaid, 2);
+    if ($totalPaid <= 0) {
+        $totalPaid = round((float)($order['price'] ?? 0), 2);
+        if (($order['payment_method'] ?? '') === 'balance') {
+            $balancePaid = $totalPaid;
+            $externalPaid = 0.00;
+        } else {
+            $externalPaid = $totalPaid;
+            $balancePaid = 0.00;
+        }
+    }
+    if ($refundTarget === 'auto') {
+        $refundTarget = $externalPaid > 0 ? 'original' : 'balance';
+    }
+
+    $externalRatio = $totalPaid > 0 ? ($externalPaid / $totalPaid) : 0;
+    $externalRefundAmount = min($externalPaid, round($refundTotal * $externalRatio, 2));
+    $refundToBalanceAmount = round($refundTotal - $externalRefundAmount, 2);
+    if ($refundToBalanceAmount > $balancePaid) {
+        $overflow = round($refundToBalanceAmount - $balancePaid, 2);
+        $refundToBalanceAmount = $balancePaid;
+        $externalRefundAmount = min($externalPaid, round($externalRefundAmount + $overflow, 2));
+    }
+    if ($refundTarget === 'balance') {
+        $refundToBalanceAmount = $refundTotal;
+        $externalRefundAmount = 0.00;
+    }
+
+    $refundTradeNo = null;
+    if ($externalRefundAmount > 0) {
+        if (empty($order['trade_no'])) {
+            throw new RuntimeException('订单缺少平台交易号，无法发起外部退款');
+        }
+        $pid = commerceGetSetting($pdo, 'epay_pid');
+        $key = commerceGetSetting($pdo, 'epay_key');
+        if ($pid === '' || $key === '') {
+            throw new RuntimeException('支付配置不完整');
+        }
+        $refundData = ['pid' => $pid, 'key' => $key, 'trade_no' => $order['trade_no'], 'money' => $externalRefundAmount, 'out_trade_no' => $orderNo];
+        $refundResponse = httpRequest('https://credit.linux.do/epay/api.php', ['method' => 'POST', 'data' => $refundData, 'timeout' => 30, 'ssl_verify_peer' => true, 'ssl_verify_host' => 2]);
+        if (!$refundResponse['ok']) {
+            throw new RuntimeException('请求退款接口失败: ' . ($refundResponse['error'] ?: 'network error'));
+        }
+        $result = json_decode((string)$refundResponse['body'], true);
+        if (!$result || (int)($result['code'] ?? 0) !== 1) {
+            throw new RuntimeException($result['msg'] ?? '外部退款失败');
+        }
+        $refundTradeNo = $result['trade_no'] ?? $order['trade_no'];
+    }
+
+    try {
+        $pdo->beginTransaction();
+        if ($refundToBalanceAmount > 0) {
+            commerceAdjustBalance($pdo, (int)$order['user_id'], 'refund', $refundToBalanceAmount, [
+                'related_order_id' => (int)$order['id'],
+                'related_order_no' => $orderNo,
+                'remark' => $refundTarget === 'balance' ? '按剩余时长退款退回站内余额' : '按剩余时长退款返还余额',
+            ]);
+        }
+        releaseCouponByOrder($pdo, $orderNo);
+        $parts = ['status = 2'];
+        $params = [];
+        if (commerceColumnExists($pdo, 'orders', 'refund_reason')) {
+            $parts[] = 'refund_reason = ?';
+            $params[] = $refundReason;
+        }
+        if (commerceColumnExists($pdo, 'orders', 'refund_trade_no')) {
+            $parts[] = 'refund_trade_no = ?';
+            $params[] = $refundTradeNo;
+        }
+        if (commerceColumnExists($pdo, 'orders', 'refund_amount')) {
+            $parts[] = 'refund_amount = ?';
+            $params[] = $refundTotal;
+        }
+        if (commerceColumnExists($pdo, 'orders', 'refund_at')) {
+            $parts[] = 'refund_at = NOW()';
+        }
+        if (commerceColumnExists($pdo, 'orders', 'delivery_status')) {
+            $parts[] = "delivery_status = 'refunded'";
+            $parts[] = 'delivery_updated_at = NOW()';
+        }
+        $params[] = $orderNo;
+        $stmt = $pdo->prepare('UPDATE orders SET ' . implode(', ', $parts) . ' WHERE order_no = ? AND status = 1');
+        $stmt->execute($params);
+        $pdo->commit();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        throw $e;
+    }
+
+    $refundMsg = $refundTarget === 'balance' ? '已按剩余时长退回站内余额' : '已按剩余时长原路退款';
+    createNotification($pdo, (int)$order['user_id'], 'order_refund', '订单已退款', '您的订单 ' . $orderNo . ' 已退款成功，退款金额：' . number_format($refundTotal, 2) . ' 积分，' . $refundMsg . '。', $orderNo);
+
+    return [
+        'order_no' => $orderNo,
+        'refund_total' => $refundTotal,
+        'refund_target' => $refundTarget,
+        'refund_reason' => $refundReason,
+        'refund_trade_no' => $refundTradeNo,
+        'refund_to_balance_amount' => round($refundToBalanceAmount, 2),
+        'external_refund_amount' => round($externalRefundAmount, 2),
+        'refund_ratio' => (float)$policy['refund_ratio'],
+        'remaining_days' => (float)$policy['remaining_days'],
+        'service_end_at' => $policy['service_end_at'],
+        'message' => $refundMsg,
+    ];
 }
 
 function commerceUpdateOrderDelivery(PDO $pdo, string $orderNo, string $deliveryStatus, string $note = '', string $error = ''): bool {

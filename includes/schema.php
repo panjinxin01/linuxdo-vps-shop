@@ -223,6 +223,7 @@ function getProjectTableDefinitions(): array {
             `verified_status` TINYINT DEFAULT 0,
             `refund_allowed` TINYINT DEFAULT 0,
             `refund_reason` VARCHAR(255) DEFAULT NULL,
+            `refund_target` VARCHAR(20) DEFAULT NULL,
             `handled_admin_id` INT DEFAULT NULL,
             `assignee_admin_id` INT DEFAULT NULL,
             `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
