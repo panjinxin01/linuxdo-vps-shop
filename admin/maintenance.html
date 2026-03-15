@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>数据库维护 - VPS积分商城</title>
+    <title>数据库维护 - VPS积分商城（build 20260315i）</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -175,7 +175,7 @@
         }
 
         function apiFetch(url, options = {}) {
-            const opts = { credentials: 'same-origin', ...options };
+            const opts = { credentials: 'same-origin', cache: 'no-store', ...options };
             const method = (opts.method || 'GET').toUpperCase();
             const ensureToken = (!csrfToken && method !== 'GET' && method !== 'HEAD') ? initCsrfToken() : Promise.resolve();
             return ensureToken.then(() => {
@@ -191,7 +191,7 @@
         initCsrfToken();
 
         document.addEventListener('DOMContentLoaded', function() {
-            apiFetch('../api/admin.php?action=check')
+            apiFetch('../api/admin.php?action=check&_ts=' + Date.now())
                 .then(r => r.json())
                 .then(data => {
                     if (data.code !== 1) location.href = 'login.html';
@@ -204,14 +204,23 @@
             statusDiv.className = 'show loading';
             statusDiv.innerHTML = '⏳ 正在检查...';
             
-            apiFetch('../api/update_db.php?action=check')
+            apiFetch('../api/update_db.php?action=check&_ts=' + Date.now())
                 .then(r => r.json())
                 .then(data => {
                     if (data.code === 1) {
                         const info = data.data;
                         if (info.all_installed) {
                             statusDiv.className = 'show success';
-                            statusDiv.innerHTML = '✅ 数据库状态正常，所有表已安装<br><small style="opacity:0.8">已安装: ' + info.existing.join(', ') + '</small>';
+                            const build = info.build ? ('<br><small style="opacity:0.8">构建版本: ' + info.build + '</small>') : '';
+                            const missingColCount = info.missing_columns ? info.missing_columns.length : 0;
+                            const missingCols = (info.missing_columns && info.missing_columns.length) ? ('<br><small style="opacity:0.8">缺失关键列: ' + info.missing_columns.join(', ') + '</small>') : '';
+                            const columnOk = info.all_columns_ready !== false;
+                            if (columnOk) {
+                                statusDiv.innerHTML = '✅ 数据库状态正常，所有表和关键列已安装' + build + '<br><small style="opacity:0.8">已安装表: ' + info.existing.join(', ') + '</small>';
+                            } else {
+                                statusDiv.className = 'show warning';
+                                statusDiv.innerHTML = '⚠️ 表都在，但关键列不完整' + build + (missingColCount ? ('<br><small style="opacity:0.8">缺失数量: ' + missingColCount + '</small>') : '') + missingCols + '<br><small style="opacity:0.8">请点击“更新数据库”执行补列</small>'; 
+                            }
                         } else {
                             statusDiv.className = 'show warning';
                             statusDiv.innerHTML = '⚠️ 发现缺失的表:<strong>' + info.missing.join(', ') + '</strong><br><small style="opacity:0.8">请点击"更新数据库"按钮进行安装</small>';
@@ -240,20 +249,19 @@
             apiFetch('../api/update_db.php', { method: 'POST', body })
                 .then(r => r.json())
                 .then(data => {
+                    const info = data.data || {};
+                    const build = info.build ? ('<br><small style="opacity:0.8">构建版本: ' + info.build + '</small>') : '';
+                    const created = (info.created || []).length ? ('<br><small style="opacity:0.8">新建表: ' + info.created.join(', ') + '</small>') : '';
+                    const migrated = (info.migrated || []).length ? ('<br><small style="opacity:0.8">已补项目: ' + info.migrated.join(', ') + '</small>') : '';
+                    const remaining = (info.remaining_missing_columns || []).length ? ('<br><small style="opacity:0.8">仍缺关键列: ' + info.remaining_missing_columns.join(', ') + '</small>') : '';
+                    const errors = (info.errors || []).length ? ('<br><small style="opacity:0.8">错误详情:<br>' + info.errors.join('<br>') + '</small>') : '';
                     if (data.code === 1) {
                         statusDiv.className = 'show success';
-                        if (data.data && data.data.created && data.data.created.length > 0) {
-                            statusDiv.innerHTML = '✅ ' + data.msg + '<br><small style="opacity:0.8">新建表: ' + data.data.created.join(', ') + '</small>';
-                        } else {
-                            statusDiv.innerHTML = '✅ ' + data.msg;
-                        }
+                        statusDiv.innerHTML = '✅ ' + data.msg + build + created + migrated + remaining;
+                        setTimeout(checkDbStatus, 300);
                     } else {
                         statusDiv.className = 'show error';
-                        let msg = '❌ ' + data.msg;
-                        if (data.data && data.data.errors) {
-                            msg += '<br><small style="opacity:0.8">' + data.data.errors.join('<br>') + '</small>';
-                        }
-                        statusDiv.innerHTML = msg;
+                        statusDiv.innerHTML = '❌ ' + data.msg + build + created + migrated + remaining + errors;
                     }
                 })
                 .catch(() => {
@@ -281,12 +289,19 @@
             apiFetch('../api/update_db.php', { method: 'POST', body })
                 .then(r => r.json())
                 .then(data => {
+                    const info = data.data || {};
+                    const build = info.build ? ('<br><small style="opacity:0.8">构建版本: ' + info.build + '</small>') : '';
+                    const created = (info.created || []).length ? ('<br><small style="opacity:0.8">新建表: ' + info.created.join(', ') + '</small>') : '';
+                    const migrated = (info.migrated || []).length ? ('<br><small style="opacity:0.8">已补项目: ' + info.migrated.join(', ') + '</small>') : '';
+                    const remaining = (info.remaining_missing_columns || []).length ? ('<br><small style="opacity:0.8">仍缺关键列: ' + info.remaining_missing_columns.join(', ') + '</small>') : '';
+                    const errors = (info.errors || []).length ? ('<br><small style="opacity:0.8">错误详情:<br>' + info.errors.join('<br>') + '</small>') : '';
                     if (data.code === 1) {
                         statusDiv.className = 'show success';
-                        statusDiv.innerHTML = '✅ ' + data.msg;
+                        statusDiv.innerHTML = '✅ ' + data.msg + build + created + migrated + remaining;
+                        setTimeout(checkDbStatus, 300);
                     } else {
                         statusDiv.className = 'show error';
-                        statusDiv.innerHTML = '❌ ' + data.msg;
+                        statusDiv.innerHTML = '❌ ' + data.msg + build + created + migrated + remaining + errors;
                     }
                 })
                 .catch(() => {

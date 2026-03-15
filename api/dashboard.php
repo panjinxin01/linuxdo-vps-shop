@@ -2,267 +2,106 @@
 require_once __DIR__ . '/../includes/security.php';
 startSecureSession();
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/commerce.php';
 
-$action = requestValue('action', '');
 $pdo = getDB();
+checkAdmin($pdo);
+$action = requestValue('action', 'summary');
 
-function tableExists(PDO $pdo, string $table): bool {
-    static $cache = [];
-    if (isset($cache[$table])) {
-        return $cache[$table];
-    }
+function tableExistsDash(PDO $pdo, string $table): bool {
+    return securityTableExists($pdo, $table);
+}
+
+function scalar(PDO $pdo, string $sql, $default = 0) {
     try {
-        $stmt = $pdo->prepare('SHOW TABLES LIKE ?');
-        $stmt->execute([$table]);
-        $cache[$table] = (bool)$stmt->fetchColumn();
+        $value = $pdo->query($sql)->fetchColumn();
+        return $value === false || $value === null ? $default : $value;
     } catch (Throwable $e) {
-        $cache[$table] = false;
+        return $default;
     }
-    return $cache[$table];
 }
 
 try {
-    checkAdmin($pdo);
-
     switch ($action) {
+        case 'summary':
         case 'overview':
             $today = date('Y-m-d');
-            $thisMonth = date('Y-m-01');
-            $lastMonth = date('Y-m-01', strtotime('-1 month'));
-            $lastMonthEnd = date('Y-m-t', strtotime('-1 month'));
-
-            $stats = [
-                'today_orders' => (int)$pdo->query("SELECT COUNT(*) FROM orders WHERE DATE(created_at) = '$today'")->fetchColumn(),
-                'today_paid' => (int)$pdo->query("SELECT COUNT(*) FROM orders WHERE DATE(paid_at) = '$today' AND status = 1")->fetchColumn(),
-                'today_income' => (float)$pdo->query("SELECT COALESCE(SUM(price), 0) FROM orders WHERE DATE(paid_at) = '$today' AND status = 1")->fetchColumn(),
-                'month_orders' => (int)$pdo->query("SELECT COUNT(*) FROM orders WHERE created_at >= '$thisMonth'")->fetchColumn(),
-                'month_paid' => (int)$pdo->query("SELECT COUNT(*) FROM orders WHERE paid_at >= '$thisMonth' AND status = 1")->fetchColumn(),
-                'month_income' => (float)$pdo->query("SELECT COALESCE(SUM(price), 0) FROM orders WHERE paid_at >= '$thisMonth' AND status = 1")->fetchColumn(),
-                'last_month_income' => (float)$pdo->query("SELECT COALESCE(SUM(price), 0) FROM orders WHERE paid_at >= '$lastMonth' AND paid_at <= '$lastMonthEnd 23:59:59' AND status = 1")->fetchColumn(),
-                'total_orders' => (int)$pdo->query('SELECT COUNT(*) FROM orders')->fetchColumn(),
-                'total_paid' => (int)$pdo->query('SELECT COUNT(*) FROM orders WHERE status = 1')->fetchColumn(),
-                'total_income' => (float)$pdo->query('SELECT COALESCE(SUM(price), 0) FROM orders WHERE status = 1')->fetchColumn(),
-                'total_refunded' => (float)$pdo->query('SELECT COALESCE(SUM(refund_amount), 0) FROM orders WHERE status = 2')->fetchColumn(),
-                'products_total' => (int)$pdo->query('SELECT COUNT(*) FROM products')->fetchColumn(),
-                'products_available' => (int)$pdo->query('SELECT COUNT(*) FROM products WHERE status = 1')->fetchColumn(),
-                'products_sold' => (int)$pdo->query('SELECT COUNT(*) FROM products WHERE status = 0')->fetchColumn(),
-                'users_total' => (int)$pdo->query('SELECT COUNT(*) FROM users')->fetchColumn(),
-                'users_today' => (int)$pdo->query("SELECT COUNT(*) FROM users WHERE DATE(created_at) = '$today'")->fetchColumn(),
-                'users_month' => (int)$pdo->query("SELECT COUNT(*) FROM users WHERE created_at >= '$thisMonth'")->fetchColumn()
-            ];
-
-            $stats['conversion_rate'] = $stats['total_orders'] > 0 ? round($stats['total_paid'] / $stats['total_orders'] * 100, 1) : 0;
-            $stats['month_growth'] = $stats['last_month_income'] > 0 ? round(($stats['month_income'] - $stats['last_month_income']) / $stats['last_month_income'] * 100, 1) : 0;
-            $stats['avg_order_value'] = $stats['total_paid'] > 0 ? round($stats['total_income'] / $stats['total_paid'], 2) : 0;
-
-            if (tableExists($pdo, 'tickets')) {
-                $stats['tickets_pending'] = (int)$pdo->query('SELECT COUNT(*) FROM tickets WHERE status = 0')->fetchColumn();
-                $stats['tickets_total'] = (int)$pdo->query('SELECT COUNT(*) FROM tickets')->fetchColumn();
-            }
-
-            if (tableExists($pdo, 'coupons')) {
-                $stats['coupons_active'] = (int)$pdo->query('SELECT COUNT(*) FROM coupons WHERE status = 1')->fetchColumn();
-                $stats['coupons_used'] = (int)$pdo->query('SELECT COALESCE(SUM(used_count), 0) FROM coupons')->fetchColumn();
-                $stats['coupon_discount_total'] = (float)$pdo->query('SELECT COALESCE(SUM(coupon_discount), 0) FROM orders WHERE status = 1 AND coupon_id IS NOT NULL')->fetchColumn();
-            }
-
-            jsonResponse(1, '', $stats);
-            break;
-
-        case 'trend':
-            $days = validateInt(requestValue('days', 30), 7, 90) ?? 30;
-            $startDate = date('Y-m-d', strtotime("-{$days} days"));
-
-            $sql = "SELECT DATE(created_at) as date, COUNT(*) as orders,
-                    SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as paid,
-                    SUM(CASE WHEN status = 1 THEN price ELSE 0 END) as income
-                    FROM orders
-                    WHERE created_at >= '$startDate'
-                    GROUP BY DATE(created_at)
-                    ORDER BY date ASC";
-            $orderTrend = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
-
-            $sql = "SELECT DATE(created_at) as date, COUNT(*) as users
-                    FROM users
-                    WHERE created_at >= '$startDate'
-                    GROUP BY DATE(created_at)
-                    ORDER BY date ASC";
-            $userTrend = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
-
-            $dateMap = [];
-            foreach ($orderTrend as $row) {
-                $dateMap[$row['date']] = [
-                    'date' => $row['date'],
-                    'orders' => (int)$row['orders'],
-                    'paid' => (int)$row['paid'],
-                    'income' => (float)$row['income'],
-                    'users' => 0
-                ];
-            }
-            foreach ($userTrend as $row) {
-                if (isset($dateMap[$row['date']])) {
-                    $dateMap[$row['date']]['users'] = (int)$row['users'];
-                } else {
-                    $dateMap[$row['date']] = [
-                        'date' => $row['date'],
-                        'orders' => 0,
-                        'paid' => 0,
-                        'income' => 0,
-                        'users' => (int)$row['users']
-                    ];
-                }
-            }
-
-            for ($i = $days; $i >= 0; $i--) {
-                $date = date('Y-m-d', strtotime("-{$i} days"));
-                if (!isset($dateMap[$date])) {
-                    $dateMap[$date] = [
-                        'date' => $date,
-                        'orders' => 0,
-                        'paid' => 0,
-                        'income' => 0,
-                        'users' => 0
-                    ];
-                }
-            }
-            ksort($dateMap);
-            jsonResponse(1, '', array_values($dateMap));
-            break;
-
-        case 'products_rank':
-            $limit = validateInt(requestValue('limit', 10), 5, 20) ?? 10;
-            $sql = "SELECT p.id, p.name, p.price, COUNT(o.id) as sales,
-                    SUM(CASE WHEN o.status = 1 THEN o.price ELSE 0 END) as revenue
-                    FROM products p
-                    LEFT JOIN orders o ON p.id = o.product_id AND o.status = 1
-                    GROUP BY p.id
-                    ORDER BY sales DESC, revenue DESC
-                    LIMIT {$limit}";
-            $products = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
-            jsonResponse(1, '', $products);
-            break;
-
-        case 'payment_stats':
-            $stats = [
-                'pending' => (int)$pdo->query('SELECT COUNT(*) FROM orders WHERE status = 0')->fetchColumn(),
-                'paid' => (int)$pdo->query('SELECT COUNT(*) FROM orders WHERE status = 1')->fetchColumn(),
-                'refunded' => (int)$pdo->query('SELECT COUNT(*) FROM orders WHERE status = 2')->fetchColumn(),
-                'cancelled' => (int)$pdo->query('SELECT COUNT(*) FROM orders WHERE status = 3')->fetchColumn()
-            ];
-            $stats['total'] = array_sum($stats);
-            $stats['success_rate'] = $stats['total'] > 0 ? round($stats['paid'] / $stats['total'] * 100, 1) : 0;
-            $avgPayTime = $pdo->query('SELECT AVG(TIMESTAMPDIFF(MINUTE, created_at, paid_at)) FROM orders WHERE status = 1 AND paid_at IS NOT NULL')->fetchColumn();
-            $stats['avg_pay_minutes'] = $avgPayTime ? round($avgPayTime, 1) : 0;
-            jsonResponse(1, '', $stats);
-            break;
-
-        case 'coupon_stats':
-            if (!tableExists($pdo, 'coupons')) {
-                jsonResponse(1, '', []);
-            }
-            $sql = "SELECT c.id, c.code, c.name, c.type, c.value, c.used_count, c.max_uses,
-                    COALESCE(SUM(CASE WHEN o.status = 1 THEN o.coupon_discount ELSE 0 END), 0) as total_discount,
-                    COUNT(DISTINCT CASE WHEN o.status = 1 THEN o.id END) as success_uses
-                    FROM coupons c
-                    LEFT JOIN orders o ON c.id = o.coupon_id
-                    GROUP BY c.id
-                    ORDER BY c.used_count DESC
-                    LIMIT 20";
-            $coupons = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+            $monthStart = date('Y-m-01 00:00:00');
             $summary = [
-                'total_coupons' => (int)$pdo->query('SELECT COUNT(*) FROM coupons')->fetchColumn(),
-                'active_coupons' => (int)$pdo->query('SELECT COUNT(*) FROM coupons WHERE status = 1')->fetchColumn(),
-                'total_uses' => (int)$pdo->query('SELECT SUM(used_count) FROM coupons')->fetchColumn(),
-                'total_discount' => (float)$pdo->query('SELECT COALESCE(SUM(coupon_discount), 0) FROM orders WHERE status = 1 AND coupon_id IS NOT NULL')->fetchColumn(),
-                'usage_rate' => 0
+                'today_income' => (float)scalar($pdo, "SELECT COALESCE(SUM(price),0) FROM orders WHERE status = 1 AND DATE(paid_at) = '{$today}'", 0),
+                'month_income' => (float)scalar($pdo, "SELECT COALESCE(SUM(price),0) FROM orders WHERE status = 1 AND paid_at >= '{$monthStart}'", 0),
+                'paid_orders' => (int)scalar($pdo, 'SELECT COUNT(*) FROM orders WHERE status = 1', 0),
+                'refund_orders' => (int)scalar($pdo, 'SELECT COUNT(*) FROM orders WHERE status = 2', 0),
+                'balance_paid_orders' => commerceColumnExists($pdo, 'orders', 'payment_method') ? (int)scalar($pdo, "SELECT COUNT(*) FROM orders WHERE status = 1 AND payment_method = 'balance'", 0) : 0,
+                'epay_paid_orders' => commerceColumnExists($pdo, 'orders', 'payment_method') ? (int)scalar($pdo, "SELECT COUNT(*) FROM orders WHERE status = 1 AND payment_method = 'epay'", 0) : 0,
+                'exception_orders' => commerceColumnExists($pdo, 'orders', 'delivery_status') ? (int)scalar($pdo, "SELECT COUNT(*) FROM orders WHERE delivery_status = 'exception'", 0) : 0,
+                'ticket_total' => tableExistsDash($pdo, 'tickets') ? (int)scalar($pdo, 'SELECT COUNT(*) FROM tickets', 0) : 0,
+                'ticket_pending' => tableExistsDash($pdo, 'tickets') ? (int)scalar($pdo, 'SELECT COUNT(*) FROM tickets WHERE status = 0', 0) : 0,
+                'user_balance_total' => commerceColumnExists($pdo, 'users', 'credit_balance') ? (float)scalar($pdo, 'SELECT COALESCE(SUM(credit_balance),0) FROM users', 0) : 0,
+                'credit_total_in' => tableExistsDash($pdo, 'credit_transactions') ? (float)scalar($pdo, "SELECT COALESCE(SUM(amount),0) FROM credit_transactions WHERE amount > 0", 0) : 0,
+                'credit_total_out' => tableExistsDash($pdo, 'credit_transactions') ? (float)scalar($pdo, "SELECT COALESCE(SUM(ABS(amount)),0) FROM credit_transactions WHERE amount < 0", 0) : 0,
+                'products_total' => (int)scalar($pdo, 'SELECT COUNT(*) FROM products', 0),
+                'users_total' => (int)scalar($pdo, 'SELECT COUNT(*) FROM users', 0),
             ];
-            $ordersWithCoupon = (int)$pdo->query('SELECT COUNT(*) FROM orders WHERE status = 1 AND coupon_id IS NOT NULL')->fetchColumn();
-            $totalPaidOrders = (int)$pdo->query('SELECT COUNT(*) FROM orders WHERE status = 1')->fetchColumn();
-            $summary['usage_rate'] = $totalPaidOrders > 0 ? round($ordersWithCoupon / $totalPaidOrders * 100, 1) : 0;
-            jsonResponse(1, '', [
-                'summary' => $summary,
-                'list' => $coupons
-            ]);
+            jsonResponse(1, '', $summary);
             break;
 
-        case 'user_stats':
-            $today = date('Y-m-d');
-            $thisMonth = date('Y-m-01');
-            $stats = [
-                'total' => (int)$pdo->query('SELECT COUNT(*) FROM users')->fetchColumn(),
-                'today' => (int)$pdo->query("SELECT COUNT(*) FROM users WHERE DATE(created_at) = '$today'")->fetchColumn(),
-                'this_month' => (int)$pdo->query("SELECT COUNT(*) FROM users WHERE created_at >= '$thisMonth'")->fetchColumn(),
-                'with_orders' => (int)$pdo->query('SELECT COUNT(DISTINCT user_id) FROM orders WHERE status = 1')->fetchColumn(),
-                'oauth_users' => (int)$pdo->query('SELECT COUNT(*) FROM users WHERE linuxdo_id IS NOT NULL')->fetchColumn()
-            ];
-            $sql = "SELECT u.id, u.username, COUNT(o.id) as order_count,
-                    COALESCE(SUM(CASE WHEN o.status = 1 THEN o.price ELSE 0 END), 0) as total_spent
-                    FROM users u
-                    LEFT JOIN orders o ON u.id = o.user_id
-                    GROUP BY u.id
-                    HAVING total_spent > 0
-                    ORDER BY total_spent DESC
-                    LIMIT 10";
-            $topUsers = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
-            jsonResponse(1, '', [
-                'summary' => $stats,
-                'top_users' => $topUsers
-            ]);
+        case 'trends':
+            $days = validateInt(requestValue('days', 7), 1, 90) ?? 7;
+            $rows = [];
+            $stmt = $pdo->prepare("SELECT DATE(created_at) AS date,
+                    COUNT(*) AS order_count,
+                    SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) AS paid_count,
+                    SUM(CASE WHEN status = 1 THEN price ELSE 0 END) AS income
+                FROM orders
+                WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+                GROUP BY DATE(created_at)
+                ORDER BY DATE(created_at) ASC");
+            $stmt->execute([$days]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            jsonResponse(1, '', $rows);
             break;
 
-        case 'recent_activity':
-            $limit = validateInt(requestValue('limit', 20), 10, 50) ?? 20;
-            $activities = [];
+        case 'hot_products':
+            $limit = validateInt(requestValue('limit', 10), 1, 50) ?? 10;
+            $stmt = $pdo->prepare("SELECT p.id, p.name,
+                    COUNT(o.id) AS order_count,
+                    SUM(CASE WHEN o.status = 1 THEN 1 ELSE 0 END) AS paid_count,
+                    SUM(CASE WHEN o.status = 1 THEN o.price ELSE 0 END) AS income
+                FROM products p
+                LEFT JOIN orders o ON o.product_id = p.id
+                GROUP BY p.id, p.name
+                ORDER BY paid_count DESC, income DESC, order_count DESC
+                LIMIT ?");
+            $stmt->execute([$limit]);
+            jsonResponse(1, '', $stmt->fetchAll(PDO::FETCH_ASSOC));
+            break;
 
-            $sql = "SELECT 'order' as type, o.order_no as id, o.status, o.price as amount, o.created_at, u.username
-                    FROM orders o LEFT JOIN users u ON o.user_id = u.id
-                    ORDER BY o.id DESC LIMIT " . (int)floor($limit / 2);
-            $orders = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
-            $orderStatusText = ['待支付', '已支付', '已退款', '已取消'];
-            foreach ($orders as $order) {
-                $statusText = $orderStatusText[(int)$order['status']] ?? '未知';
-                $activities[] = [
-                    'type' => 'order',
-                    'icon' => (int)$order['status'] === 1 ? '💰' : ((int)$order['status'] === 0 ? '🕒' : '📦'),
-                    'title' => "订单 {$order['id']}",
-                    'desc' => "{$order['username']} - ￥{$order['amount']} - {$statusText}",
-                    'time' => $order['created_at']
-                ];
+        case 'ticket_summary':
+            $data = [
+                'total' => tableExistsDash($pdo, 'tickets') ? (int)scalar($pdo, 'SELECT COUNT(*) FROM tickets', 0) : 0,
+                'pending' => tableExistsDash($pdo, 'tickets') ? (int)scalar($pdo, 'SELECT COUNT(*) FROM tickets WHERE status = 0', 0) : 0,
+                'replied' => tableExistsDash($pdo, 'tickets') ? (int)scalar($pdo, 'SELECT COUNT(*) FROM tickets WHERE status = 1', 0) : 0,
+                'closed' => tableExistsDash($pdo, 'tickets') ? (int)scalar($pdo, 'SELECT COUNT(*) FROM tickets WHERE status = 2', 0) : 0,
+                'category_breakdown' => [],
+            ];
+            if (tableExistsDash($pdo, 'tickets') && commerceColumnExists($pdo, 'tickets', 'category')) {
+                $stmt = $pdo->query('SELECT category, COUNT(*) AS total FROM tickets GROUP BY category ORDER BY total DESC');
+                $data['category_breakdown'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
             }
+            jsonResponse(1, '', $data);
+            break;
 
-            if (tableExists($pdo, 'tickets')) {
-                $sql = "SELECT t.id, t.title, t.status, t.created_at, u.username
-                        FROM tickets t LEFT JOIN users u ON t.user_id = u.id
-                        ORDER BY t.id DESC LIMIT " . (int)floor($limit / 4);
-                $tickets = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
-                $ticketStatusText = ['待回复', '已回复', '已关闭'];
-                foreach ($tickets as $ticket) {
-                    $statusText = $ticketStatusText[(int)$ticket['status']] ?? '未知';
-                    $activities[] = [
-                        'type' => 'ticket',
-                        'icon' => (int)$ticket['status'] === 0 ? '🎫' : ((int)$ticket['status'] === 2 ? '✅' : '💬'),
-                        'title' => "工单 #{$ticket['id']}",
-                        'desc' => "{$ticket['username']} - {$ticket['title']} - {$statusText}",
-                        'time' => $ticket['created_at']
-                    ];
-                }
-            }
-
-            $sql = "SELECT id, username, created_at FROM users ORDER BY id DESC LIMIT " . (int)floor($limit / 4);
-            $users = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
-            foreach ($users as $user) {
-                $activities[] = [
-                    'type' => 'user',
-                    'icon' => '👤',
-                    'title' => '新用户注册',
-                    'desc' => $user['username'],
-                    'time' => $user['created_at']
-                ];
-            }
-
-            usort($activities, fn($a, $b) => strtotime($b['time']) - strtotime($a['time']));
-            $activities = array_slice($activities, 0, $limit);
-            jsonResponse(1, '', $activities);
+        case 'recent':
+            $limit = validateInt(requestValue('limit', 10), 1, 50) ?? 10;
+            $orders = $pdo->query('SELECT order_no, status, delivery_status, price, created_at FROM orders ORDER BY id DESC LIMIT ' . (int)$limit)->fetchAll(PDO::FETCH_ASSOC);
+            $tickets = tableExistsDash($pdo, 'tickets') ? $pdo->query('SELECT id, title, status, category, updated_at FROM tickets ORDER BY id DESC LIMIT ' . (int)$limit)->fetchAll(PDO::FETCH_ASSOC) : [];
+            $credits = tableExistsDash($pdo, 'credit_transactions') ? $pdo->query('SELECT id, user_id, type, amount, created_at FROM credit_transactions ORDER BY id DESC LIMIT ' . (int)$limit)->fetchAll(PDO::FETCH_ASSOC) : [];
+            jsonResponse(1, '', [
+                'orders' => $orders,
+                'tickets' => $tickets,
+                'credits' => $credits,
+            ]);
             break;
 
         default:
@@ -272,4 +111,3 @@ try {
     logError($pdo, 'api.dashboard', $e->getMessage());
     jsonResponse(0, '服务器错误');
 }
-

@@ -2,32 +2,19 @@
 require_once __DIR__ . '/../includes/security.php';
 startSecureSession();
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/commerce.php';
 
 $action = requestValue('action', '');
 $pdo = getDB();
 
-require_once __DIR__ . '/../includes/notifications.php';
-
-$csrfActions = ['create', 'reply', 'close', 'update_priority', 'update_tags', 'assign'];
+$csrfActions = ['create', 'reply', 'close', 'update_priority', 'assign', 'add_internal_note', 'update_meta', 'save_template', 'delete_template'];
 if (in_array($action, $csrfActions, true)) {
     requireCsrf();
 }
 
 function ticketsHasColumn(PDO $pdo, string $column): bool {
-    static $cache = [];
-    if (isset($cache[$column])) {
-        return $cache[$column];
-    }
-    try {
-        $stmt = $pdo->prepare('SHOW COLUMNS FROM `tickets` LIKE ?');
-        $stmt->execute([$column]);
-        $cache[$column] = (bool)$stmt->fetchColumn();
-    } catch (Throwable $e) {
-        $cache[$column] = false;
-    }
-    return $cache[$column];
+    return commerceColumnExists($pdo, 'tickets', $column);
 }
-
 
 try {
     switch ($action) {
@@ -36,21 +23,28 @@ try {
             $title = normalizeString(requestValue('title', ''), 200);
             $content = normalizeString(requestValue('content', ''), 5000);
             $orderId = validateInt(requestValue('order_id', 0), 0) ?? 0;
-
+            $category = normalizeString(requestValue('category', 'other'), 30);
+            $priority = validateInt(requestValue('priority', 1), 0, 3) ?? 1;
             if ($title === '' || $content === '') {
                 jsonResponse(0, '标题和内容不能为空');
             }
-            if (mb_strlen($title, 'UTF-8') > 200) {
-                jsonResponse(0, '标题不能超过200字');
+            if (!array_key_exists($category, commerceGetTicketCategories())) {
+                $category = 'other';
             }
-
-            $stmt = $pdo->prepare('INSERT INTO tickets (user_id, order_id, title, status) VALUES (?, ?, ?, 0)');
-            $stmt->execute([(int)$_SESSION['user_id'], $orderId ?: null, $title]);
+            if ($orderId > 0) {
+                $stmt = $pdo->prepare('SELECT id FROM orders WHERE id = ? AND user_id = ?');
+                $stmt->execute([$orderId, (int)$_SESSION['user_id']]);
+                if (!$stmt->fetchColumn()) {
+                    jsonResponse(0, '关联订单无效');
+                }
+            }
+            $stmt = $pdo->prepare('INSERT INTO tickets (user_id, order_id, title, status, category, priority, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?, NOW(), NOW())');
+            $stmt->execute([(int)$_SESSION['user_id'], $orderId ?: null, $title, $category, $priority]);
             $ticketId = (int)$pdo->lastInsertId();
-
             $stmt = $pdo->prepare('INSERT INTO ticket_replies (ticket_id, user_id, content) VALUES (?, ?, ?)');
             $stmt->execute([$ticketId, (int)$_SESSION['user_id'], $content]);
-
+            commerceRecordTicketEvent($pdo, $ticketId, 'created', '工单已创建', ['category' => $category, 'priority' => $priority], true);
+            commerceRecordTicketEvent($pdo, $ticketId, 'reply', '用户提交首条描述', [], true);
             jsonResponse(1, '工单创建成功', ['ticket_id' => $ticketId]);
             break;
 
@@ -78,6 +72,18 @@ try {
             $stmt = $pdo->prepare('SELECT r.*, u.username FROM ticket_replies r LEFT JOIN users u ON r.user_id = u.id WHERE r.ticket_id = ? ORDER BY r.created_at ASC');
             $stmt->execute([$ticketId]);
             $ticket['replies'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            if (commerceTableExists($pdo, 'ticket_events')) {
+                $sql = 'SELECT e.*, a.username AS admin_name, u.username AS user_name FROM ticket_events e LEFT JOIN admins a ON e.actor_type = "admin" AND e.actor_id = a.id LEFT JOIN users u ON e.actor_type = "user" AND e.actor_id = u.id WHERE e.ticket_id = ?';
+                if (empty($_SESSION['admin_id'])) {
+                    $sql .= ' AND e.is_visible = 1';
+                }
+                $sql .= ' ORDER BY e.id ASC';
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute([$ticketId]);
+                $ticket['events'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } else {
+                $ticket['events'] = [];
+            }
             jsonResponse(1, 'ok', $ticket);
             break;
 
@@ -96,31 +102,21 @@ try {
             if ((int)$ticket['status'] === 2) {
                 jsonResponse(0, '工单已关闭，无法回复');
             }
-
             $isAdmin = !empty($_SESSION['admin_id']);
             $isOwner = !empty($_SESSION['user_id']) && (int)$_SESSION['user_id'] === (int)$ticket['user_id'];
             if (!$isAdmin && !$isOwner) {
                 jsonResponse(0, '无权回复此工单');
             }
-
             $userId = $isAdmin ? null : (int)$_SESSION['user_id'];
             $stmt = $pdo->prepare('INSERT INTO ticket_replies (ticket_id, user_id, content) VALUES (?, ?, ?)');
             $stmt->execute([$ticketId, $userId, $content]);
-
             $newStatus = $isAdmin ? 1 : 0;
-            $stmt = $pdo->prepare('UPDATE tickets SET status = ?, updated_at = NOW() WHERE id = ?');
-            $stmt->execute([$newStatus, $ticketId]);
-
+            $stmt = $pdo->prepare('UPDATE tickets SET status = ?, updated_at = NOW(), handled_admin_id = ? WHERE id = ?');
+            $stmt->execute([$newStatus, $isAdmin ? (int)$_SESSION['admin_id'] : ($ticket['handled_admin_id'] ?? null), $ticketId]);
+            commerceRecordTicketEvent($pdo, $ticketId, 'reply', $isAdmin ? '管理员回复' : '用户回复', [], true);
             if ($isAdmin) {
                 logAudit($pdo, 'ticket.reply', ['ticket_id' => $ticketId], (string)$ticketId);
-                createNotification(
-                    $pdo,
-                    (int)$ticket['user_id'],
-                    'ticket_reply',
-                    '工单有新回复',
-                    "您的工单 #{$ticketId}《{$ticket['title']}》收到管理员回复，请及时查看。",
-                    (string)$ticketId
-                );
+                createNotification($pdo, (int)$ticket['user_id'], 'ticket_reply', '工单有新回复', "您的工单 #{$ticketId}《{$ticket['title']}》收到管理员回复，请及时查看。", (string)$ticketId);
             }
             jsonResponse(1, '回复成功');
             break;
@@ -143,28 +139,48 @@ try {
             }
             $stmt = $pdo->prepare('UPDATE tickets SET status = 2, updated_at = NOW() WHERE id = ?');
             $stmt->execute([$ticketId]);
+            commerceRecordTicketEvent($pdo, $ticketId, 'status_change', $isAdmin ? '管理员关闭工单' : '用户关闭工单', ['status' => 2], true);
             if ($isAdmin) {
                 logAudit($pdo, 'ticket.close', ['ticket_id' => $ticketId], (string)$ticketId);
-                // 发送工单关闭通知给用户
-                try {
-                    createNotification(
-                        $pdo,
-                        (int)$ticket['user_id'],
-                        'ticket_closed',
-                        '工单已关闭',
-                        "您的工单 #{$ticketId}《{$ticket['title']}》已被管理员关闭。如有新问题请提交新工单。",
-                        (string)$ticketId
-                    );
-                } catch (Throwable $e) {
-                    // ignore
-                }
+                createNotification($pdo, (int)$ticket['user_id'], 'ticket_closed', '工单已关闭', "您的工单 #{$ticketId}《{$ticket['title']}》已被管理员关闭。如有新问题请提交新工单。", (string)$ticketId);
             }
             jsonResponse(1, '工单已关闭');
             break;
 
         case 'all':
             checkAdmin($pdo);
-            $stmt = $pdo->query('SELECT t.*, u.username, o.order_no FROM tickets t LEFT JOIN users u ON t.user_id = u.id LEFT JOIN orders o ON t.order_id = o.id ORDER BY CASE WHEN t.status = 0 THEN 0 ELSE 1 END, t.updated_at DESC');
+            $status = requestValue('status', '');
+            $category = normalizeString(requestValue('category', ''), 30);
+            $priority = requestValue('priority', '');
+            $keyword = normalizeString(requestValue('keyword', ''), 100);
+            $orderNo = normalizeString(requestValue('order_no', ''), 50);
+            $where = '1=1';
+            $params = [];
+            if ($status !== '' && validateInt($status, 0, 2) !== null) {
+                $where .= ' AND t.status = ?';
+                $params[] = (int)$status;
+            }
+            if ($category !== '') {
+                $where .= ' AND t.category = ?';
+                $params[] = $category;
+            }
+            if ($priority !== '' && validateInt($priority, 0, 3) !== null) {
+                $where .= ' AND t.priority = ?';
+                $params[] = (int)$priority;
+            }
+            if ($keyword !== '') {
+                $where .= ' AND (t.title LIKE ? OR u.username LIKE ?)';
+                $kw = '%' . $keyword . '%';
+                $params[] = $kw;
+                $params[] = $kw;
+            }
+            if ($orderNo !== '') {
+                $where .= ' AND o.order_no = ?';
+                $params[] = $orderNo;
+            }
+            $sql = 'SELECT t.*, u.username, o.order_no, a.username AS handled_admin_name FROM tickets t LEFT JOIN users u ON t.user_id = u.id LEFT JOIN orders o ON t.order_id = o.id LEFT JOIN admins a ON t.handled_admin_id = a.id WHERE ' . $where . ' ORDER BY CASE WHEN t.status = 0 THEN 0 ELSE 1 END, t.priority DESC, t.updated_at DESC';
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
             jsonResponse(1, 'ok', $stmt->fetchAll(PDO::FETCH_ASSOC));
             break;
 
@@ -174,79 +190,56 @@ try {
                 'total' => (int)$pdo->query('SELECT COUNT(*) FROM tickets')->fetchColumn(),
                 'pending' => (int)$pdo->query('SELECT COUNT(*) FROM tickets WHERE status = 0')->fetchColumn(),
                 'replied' => (int)$pdo->query('SELECT COUNT(*) FROM tickets WHERE status = 1')->fetchColumn(),
-                'closed' => (int)$pdo->query('SELECT COUNT(*) FROM tickets WHERE status = 2')->fetchColumn()
+                'closed' => (int)$pdo->query('SELECT COUNT(*) FROM tickets WHERE status = 2')->fetchColumn(),
+                'refund_requests' => ticketsHasColumn($pdo, 'category') ? (int)$pdo->query("SELECT COUNT(*) FROM tickets WHERE category = 'refund_request'")->fetchColumn() : 0,
             ];
+            if (ticketsHasColumn($pdo, 'category')) {
+                $stmt = $pdo->query('SELECT category, COUNT(*) AS total FROM tickets GROUP BY category');
+                $stats['category_breakdown'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } else {
+                $stats['category_breakdown'] = [];
+            }
             jsonResponse(1, 'ok', $stats);
             break;
 
         case 'admin_list':
             checkAdmin($pdo);
             $limit = validateInt(requestValue('limit', 5), 1, 20) ?? 5;
-            $hasPriority = ticketsHasColumn($pdo, 'priority');
-            if ($hasPriority) {
-                $sql = 'SELECT id, title, status, priority, created_at FROM tickets ORDER BY CASE WHEN status = 0 THEN 0 ELSE 1 END, priority DESC, updated_at DESC LIMIT ?';
-            } else {
-                $sql = 'SELECT id, title, status, created_at FROM tickets ORDER BY CASE WHEN status = 0 THEN 0 ELSE 1 END, updated_at DESC LIMIT ?';
-            }
-            $stmt = $pdo->prepare($sql);
+            $stmt = $pdo->prepare('SELECT id, title, status, priority, category, created_at FROM tickets ORDER BY CASE WHEN status = 0 THEN 0 ELSE 1 END, priority DESC, updated_at DESC LIMIT ?');
             $stmt->bindValue(1, $limit, PDO::PARAM_INT);
             $stmt->execute();
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
             $statusMap = [0 => 'open', 1 => 'replied', 2 => 'closed'];
             $priorityMap = [0 => 'low', 1 => 'normal', 2 => 'high', 3 => 'urgent'];
-            $list = array_map(function (array $row) use ($statusMap, $priorityMap, $hasPriority) {
-                $code = (int)($row['status'] ?? 0);
-                $result = [
+            $list = array_map(static function (array $row) use ($statusMap, $priorityMap) {
+                return [
                     'id' => (int)$row['id'],
                     'title' => $row['title'],
                     'created_at' => $row['created_at'],
-                    'status' => $statusMap[$code] ?? 'unknown'
+                    'status' => $statusMap[(int)($row['status'] ?? 0)] ?? 'unknown',
+                    'priority' => $priorityMap[(int)($row['priority'] ?? 1)] ?? 'normal',
+                    'category' => $row['category'] ?? 'other',
                 ];
-                if ($hasPriority) {
-                    $result['priority'] = $priorityMap[(int)($row['priority'] ?? 1)] ?? 'normal';
-                }
-                return $result;
             }, $rows);
             jsonResponse(1, 'ok', $list);
             break;
 
         case 'update_priority':
             checkAdmin($pdo);
-            if (!ticketsHasColumn($pdo, 'priority')) {
-                jsonResponse(0, '数据库未升级，请先执行数据库更新');
-            }
             $ticketId = validateInt(requestValue('ticket_id', null), 1);
             $priority = validateInt(requestValue('priority', 1), 0, 3);
             if (!$ticketId || $priority === null) {
                 jsonResponse(0, '工单ID无效');
             }
-            $stmt = $pdo->prepare('UPDATE tickets SET priority = ? WHERE id = ?');
+            $stmt = $pdo->prepare('UPDATE tickets SET priority = ?, updated_at = NOW() WHERE id = ?');
             $stmt->execute([$priority, $ticketId]);
+            commerceRecordTicketEvent($pdo, $ticketId, 'priority_change', '优先级已更新', ['priority' => $priority], false);
             logAudit($pdo, 'ticket.update_priority', ['priority' => $priority], (string)$ticketId);
             jsonResponse(1, '优先级已更新');
             break;
 
-        case 'update_tags':
-            checkAdmin($pdo);
-            if (!ticketsHasColumn($pdo, 'tags')) {
-                jsonResponse(0, '数据库未升级，请先执行数据库更新');
-            }
-            $ticketId = validateInt(requestValue('ticket_id', null), 1);
-            $tags = normalizeString(requestValue('tags', ''), 255);
-            if (!$ticketId) {
-                jsonResponse(0, '工单ID无效');
-            }
-            $stmt = $pdo->prepare('UPDATE tickets SET tags = ? WHERE id = ?');
-            $stmt->execute([$tags !== '' ? $tags : null, $ticketId]);
-            logAudit($pdo, 'ticket.update_tags', ['tags' => $tags], (string)$ticketId);
-            jsonResponse(1, '标签已更新');
-            break;
-
         case 'assign':
             checkAdmin($pdo);
-            if (!ticketsHasColumn($pdo, 'assignee_admin_id')) {
-                jsonResponse(0, '数据库未升级，请先执行数据库更新');
-            }
             $ticketId = validateInt(requestValue('ticket_id', null), 1);
             $assigneeId = validateInt(requestValue('assignee_id', 0), 0) ?? 0;
             if (!$ticketId) {
@@ -259,10 +252,90 @@ try {
                     jsonResponse(0, '指派的管理员不存在');
                 }
             }
-            $stmt = $pdo->prepare('UPDATE tickets SET assignee_admin_id = ? WHERE id = ?');
-            $stmt->execute([$assigneeId ?: null, $ticketId]);
+            $stmt = $pdo->prepare('UPDATE tickets SET assignee_admin_id = ?, handled_admin_id = ?, updated_at = NOW() WHERE id = ?');
+            $stmt->execute([$assigneeId ?: null, $assigneeId ?: null, $ticketId]);
+            commerceRecordTicketEvent($pdo, $ticketId, 'assign', $assigneeId ? '工单已指派' : '已取消指派', ['assignee_id' => $assigneeId], false);
             logAudit($pdo, 'ticket.assign', ['assignee_id' => $assigneeId], (string)$ticketId);
             jsonResponse(1, $assigneeId ? '工单已指派' : '已取消指派');
+            break;
+
+        case 'add_internal_note':
+            checkAdmin($pdo);
+            $ticketId = validateInt(requestValue('ticket_id', null), 1);
+            $note = normalizeString(requestValue('note', ''), 5000);
+            if (!$ticketId || $note === '') {
+                jsonResponse(0, '参数不完整');
+            }
+            $stmt = $pdo->prepare('UPDATE tickets SET internal_note = ?, updated_at = NOW(), handled_admin_id = ? WHERE id = ?');
+            $stmt->execute([$note, (int)$_SESSION['admin_id'], $ticketId]);
+            commerceRecordTicketEvent($pdo, $ticketId, 'internal_note', $note, [], false);
+            logAudit($pdo, 'ticket.internal_note', ['length' => utf8Length($note)], (string)$ticketId);
+            jsonResponse(1, '内部备注已保存');
+            break;
+
+        case 'update_meta':
+            checkAdmin($pdo);
+            $ticketId = validateInt(requestValue('ticket_id', null), 1);
+            if (!$ticketId) {
+                jsonResponse(0, '工单ID无效');
+            }
+            $category = normalizeString(requestValue('category', 'other'), 30);
+            $priority = validateInt(requestValue('priority', 1), 0, 3) ?? 1;
+            $verified = validateInt(requestValue('verified_status', 0), 0, 1) ?? 0;
+            $refundAllowed = validateInt(requestValue('refund_allowed', 0), 0, 1) ?? 0;
+            $refundReason = normalizeString(requestValue('refund_reason', ''), 255);
+            if (!array_key_exists($category, commerceGetTicketCategories())) {
+                $category = 'other';
+            }
+            $stmt = $pdo->prepare('UPDATE tickets SET category=?, priority=?, verified_status=?, refund_allowed=?, refund_reason=?, handled_admin_id=?, updated_at=NOW() WHERE id=?');
+            $stmt->execute([$category, $priority, $verified, $refundAllowed, $refundReason ?: null, (int)$_SESSION['admin_id'], $ticketId]);
+            commerceRecordTicketEvent($pdo, $ticketId, 'meta_update', '工单信息已更新', ['category' => $category, 'priority' => $priority, 'verified_status' => $verified, 'refund_allowed' => $refundAllowed], false);
+            logAudit($pdo, 'ticket.update_meta', ['category' => $category, 'priority' => $priority], (string)$ticketId);
+            jsonResponse(1, '工单信息已更新');
+            break;
+
+        case 'templates':
+            checkAdmin($pdo);
+            if (!commerceTableExists($pdo, 'ticket_reply_templates')) {
+                jsonResponse(1, 'ok', []);
+            }
+            $stmt = $pdo->query('SELECT * FROM ticket_reply_templates ORDER BY sort_order ASC, id DESC');
+            jsonResponse(1, 'ok', $stmt->fetchAll(PDO::FETCH_ASSOC));
+            break;
+
+        case 'save_template':
+            checkAdmin($pdo);
+            $id = validateInt(requestValue('id', 0), 0) ?? 0;
+            $title = normalizeString(requestValue('title', ''), 100);
+            $content = normalizeString(requestValue('content', ''), 5000);
+            $category = normalizeString(requestValue('category', ''), 30);
+            $sortOrder = validateInt(requestValue('sort_order', 0), 0, 99999) ?? 0;
+            $status = validateInt(requestValue('status', 1), 0, 1) ?? 1;
+            if ($title === '' || $content === '') {
+                jsonResponse(0, '模板标题和内容不能为空');
+            }
+            if ($id > 0) {
+                $stmt = $pdo->prepare('UPDATE ticket_reply_templates SET title=?, content=?, category=?, sort_order=?, status=?, updated_at=NOW() WHERE id=?');
+                $stmt->execute([$title, $content, $category ?: null, $sortOrder, $status, $id]);
+                logAudit($pdo, 'ticket.template_update', ['title' => $title], (string)$id);
+                jsonResponse(1, '回复模板已更新');
+            }
+            $stmt = $pdo->prepare('INSERT INTO ticket_reply_templates (title, content, category, sort_order, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())');
+            $stmt->execute([$title, $content, $category ?: null, $sortOrder, $status]);
+            $newId = (int)$pdo->lastInsertId();
+            logAudit($pdo, 'ticket.template_create', ['title' => $title], (string)$newId);
+            jsonResponse(1, '回复模板已创建', ['id' => $newId]);
+            break;
+
+        case 'delete_template':
+            checkAdmin($pdo);
+            $id = validateInt(requestValue('id', null), 1);
+            if (!$id) {
+                jsonResponse(0, '模板ID无效');
+            }
+            $pdo->prepare('DELETE FROM ticket_reply_templates WHERE id = ?')->execute([$id]);
+            logAudit($pdo, 'ticket.template_delete', [], (string)$id);
+            jsonResponse(1, '回复模板已删除');
             break;
 
         default:
@@ -272,4 +345,3 @@ try {
     logError($pdo, 'api.tickets', $e->getMessage());
     jsonResponse(0, '服务器错误');
 }
-

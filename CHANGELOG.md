@@ -1,7 +1,139 @@
+# 更新日志
+
+## 2026-03-15 更新汇总
+
+### 修复
+- 修复数据库更新脚本遗漏 `orders.delivery_info` 字段，导致后台填写交付信息后前台仍无法显示的问题。
+- 修复后台填写交付信息后仍可能保持“待开通”的问题；现在保存交付信息时会自动切换为“已交付”。
+- 修复前台订单详情在无快照字段但有交付文本时，无法识别并展示连接信息的问题。
+- 修复前台缺少 `orderDetailModal` 节点，导致点击“订单详情”后无法正常弹出详情层的问题。
+- 修复旧版“可用实例”卡片中仍残留 `switchPage('orders')` 逻辑，点击详情会误跳转到订单列表的问题。
+- 修复后台“标记已交付”时传入的 `delivery_info` 没有实际写入订单表的问题。
+- 修复 Linux DO OAuth 回调在 `state` 丢失或重复回调场景下，页面提示“安全验证失败”但返回首页后又已登录的体验问题；错误页增加“重新登录”入口。
+- 修复后台“积分管理 / 搜索用户”接口已返回分页结构，但前端仍按数组读取，导致明明有用户却始终显示“暂无用户”的问题。
+- 修复后台订单列表与订单详情错误读取 `username` 字段，导致订单明明有关联用户却显示为 `-` 的问题。
+- 修复订单查询在商品被删除或已不存在时，商品名称直接丢失的问题；现会优先读取订单快照，并在缺失时回退显示 `商品#ID`。
+- 修复余额支付与 EasyPay 回调成功后未自动将商品标记为非在售状态的问题，避免已付款商品继续显示“在售”。
+- 修复后台积分流水未联查用户表，导致流水列表只能显示 `#用户ID`、无法显示用户名的问题。
+- 修复前台欢迎语偶发显示 `[object Object]` 或丢失用户名的问题，统一前端用户态归一化逻辑。
+- 修复“可用实例”与“我的订单”对历史订单展示不一致的问题，前端改为优先展示订单商品快照。
+- 修复点击“订单详情”只跳转列表、看不到配置的问题，新增前台订单详情弹窗。
+- 修复商品被删除后，历史订单显示“商品已删除”且规格全为空的问题；新增订单商品/凭据快照字段，并在查询时优先回退到订单快照。
+- 修复删除商品后导致历史订单丢失名称、规格、凭据的问题，删除前自动回填订单快照。
+- 修复前台 `currentUser` 在缓存/回退场景下偶发显示为 `[object Object]` 或丢失用户名的问题。
+- 修复浏览器从支付页返回后，`新建实例`/`可用实例` 区块偶发读取旧缓存而出现“加载失败，请刷新重试”的问题。
+- 修复 EasyPay 多次发起同一未支付订单时，`out_trade_no` 重复导致平台返回唯一键冲突的问题；新增 `payment_requests` 映射表为每次外部支付生成唯一请求号。
+- 修复异步支付通知仅按 `orders.order_no` 匹配，导致新外部支付请求号无法正确回写订单的问题。
+- 修复前台首页欢迎语偶发显示 `[object Object]` 的问题，统一前端用户态结构。
+- 修复“可用实例 / 新建实例”语义混淆：可用实例改为展示用户已拥有实例，新建实例仅展示可购买商品。
+- 修复部分旧站升级时 `users.email_verified`、`users.updated_at` 重复字段被误判为失败的问题。
+- 修复旧库缺少 `product_templates` 或部分商品扩展字段时，商品列表接口直接报错导致前台“加载失败”的问题。
+- 修复订单列表里已支付订单仍显示 `payment_method=pending`、`delivery_status=待支付` 的兼容展示问题。
+- 新增退款方式：后台可选择退回站内余额或原路退回支付账户。
+
+### 调整
+- 数据库更新时会尝试用已有快照回填 `delivery_info`，便于旧订单补显示连接信息。
+- 前台静态资源版本更新为 `20260315e`，降低浏览器缓存导致旧脚本不生效的概率。
+- 前台订单详情页新增展示：配置信息、交付信息、交付备注、异常说明、连接信息。
+- 已支付订单在非异常状态下即可查看订单快照中的连接信息，不再强依赖 `delivered` 状态。
+- 后台订单详情新增“交付信息”编辑框，并在保存交付状态时一并写入。
+- 更新前台静态资源版本号为 `20260315d`，降低浏览器缓存导致旧脚本继续生效的概率。
+
+### 数据库
+- `orders` 新增商品快照字段：`product_name_snapshot`、`cpu_snapshot`、`memory_snapshot`、`disk_snapshot`、`bandwidth_snapshot`、`region_snapshot`、`line_type_snapshot`、`os_type_snapshot`、`description_snapshot`、`extra_info_snapshot`、`ip_address_snapshot`、`ssh_port_snapshot`、`ssh_user_snapshot`、`ssh_password_snapshot`。
+- `update_db.php` 增加快照字段迁移与基于现有 `products` 的自动回填逻辑。
+
+### 说明
+- 旧订单若是在“订单快照字段”上线前创建、且对应商品又已被物理删除，历史规格/凭据无法从现有数据中完全反推；本次修复后，新订单会继续保留快照，后续删除商品也不会再只剩“商品已删除”。
+
 # VPS积分商城更新日志
 
 ---
-## v20260224（当前版本）
+## v20260314.1（余额钱包 / 商品模板 / 交付状态 / 社区规则 / 工单增强 / 报表）
+
+### 新增
+- ✨ 新增站内余额钱包：`users.credit_balance` + `credit_transactions`，支持后台手动加减积分、前台余额摘要、积分流水、余额变动通知。
+- ✨ 新增余额支付订单能力：保留优惠券链路，支持“优惠券后余额支付”，EasyPay 外部支付继续保留。
+- ✨ 新增商品模板系统：`product_templates` + 商品 `template_id`，支持模板回填规格字段。
+- ✨ 新增 Linux DO 社区特化：最低 `trust_level`、silenced 风控、白名单/黑名单、信任等级折扣。
+- ✨ 新增工单增强：分类、优先级、内部备注、核实状态、退款审核字段、事件时间线、回复模板、附件上传审计。
+- ✨ 新增通知中心升级：站内通知继续保留，并扩展邮件 / Webhook 通道配置。
+- ✨ 新增后台统计报表接口：今日/月成交额、余额支付订单数、EasyPay 支付订单数、热门商品、工单分类占比、余额总量、异常订单统计。
+
+### 调整
+- 🔧 `api/install.php` 与 `api/update_db.php` 统一复用 `includes/schema.php`，新装与旧站升级结构保持一致。
+- 🔧 `api/orders.php` 改为支付状态与交付状态分离，前后台都可以看到订单真实处理进度。
+- 🔧 `api/oauth.php` / `api/user.php` 继续兼容 Linux DO Connect，并补充 `active / silenced` 字段入库与返回。
+- 🔧 `api/notify.php` 在 EasyPay 回调成功后自动推进 `delivery_status=paid_waiting`（或命中审核时进入异常 / 审核状态）。
+- 🔧 前台购买弹窗增加余额支付入口；后台商品弹窗增加模板、地区、线路、系统、最低信任等级、审核/白名单限制字段。
+
+### 变更文件
+- `includes/schema.php`
+- `includes/commerce.php`
+- `includes/notifications.php`
+- `api/install.php`
+- `api/update_db.php`
+- `api/settings.php`
+- `api/dashboard.php`
+- `api/credits.php`
+- `api/templates.php`
+- `api/community.php`
+- `api/products.php`
+- `api/orders.php`
+- `api/notify.php`
+- `api/oauth.php`
+- `api/user.php`
+- `api/upload.php`
+- `js/main.js`
+- `js/admin.js`
+- `index.html`
+- `admin/index.html`
+- `README.md`
+- `DEVELOPMENT.md`
+
+### 兼容性
+- ✅ 保留原有 PHP + MySQL + 静态前端架构，不改框架。
+- ✅ 保留 Linux DO Connect OAuth 授权码登录链路。
+- ✅ 保留 Linux DO Credit / EasyPay 支付与退款链路。
+- ✅ 老站升级只需执行数据库更新，不破坏原数据。
+
+## v20260314（当前版本）
+**Debug 修复版 / 安装兼容性增强 / 依赖缺失兜底 / 文档补充**
+
+
+### 修复
+- 🐛 修复安装器写入 `api/config.php` 后，在启用 OPcache 的环境下仍可能读取旧配置的问题。
+- 🐛 修复 `mbstring` 扩展缺失时，部分接口因直接调用 `mb_strlen()` / `mb_substr()` 导致的 fatal error。
+- 🐛 修复 `curl` 扩展缺失时，OAuth 与退款相关接口因直接调用 `curl_*` 导致的 500 / fatal error。
+
+### 调整
+- 🔧 在 `api/install.php` 写入配置后增加缓存失效处理，确保安装流程读取到最新配置。
+- 🔧 在 `includes/db.php` 中增加 UTF-8 兼容函数 `utf8Length()` 与 `utf8Substr()`，并统一替换相关调用。
+- 🔧 在 `includes/security.php` 中增加通用 HTTP 请求函数 `httpRequest()`，优先使用 cURL，缺失时自动回退到 `file_get_contents + stream_context_create`。
+
+### 涉及文件
+- `api/install.php`
+- `api/announcements.php`
+- `api/tickets.php`
+- `api/orders.php`
+- `api/oauth.php`
+- `includes/db.php`
+- `includes/security.php`
+- `DEBUG_REPORT.md`
+
+### 校验结果
+- ✅ 全部 PHP 文件已通过 `php -l` 语法检查。
+- ✅ 全部 JS 文件已通过 `node --check` 检查。
+- ✅ 本地已验证安装器生成密钥后，`has_encryption_key` 状态可正常返回。
+
+### 上线前建议
+- 确认服务器已启用：`pdo_mysql`、`openssl`、`fileinfo`。
+- 确认 `api/config.php` 与 `uploads/` 目录具备写入权限。
+- 确认支付回调地址与 OAuth 回调地址配置正确。
+- 若为旧库升级，建议先执行一次数据库更新流程。
+
+---
+## v20260224
 **安装向导重构 & Bug修复 & 代码优化**
 
 ### 新增功能
@@ -372,3 +504,15 @@ CREATE TABLE ticket_replies (
 <link rel="stylesheet" href="css/style.css?v=20260109">
 <script src="js/main.js?v=20260109"></script>
 ```
+
+## 2026-03-15 数据库列检测兼容修复版
+
+### 修复
+- 修复部分 MySQL / MariaDB 环境下，`SHOW COLUMNS ... LIKE ?` 预处理写法导致列存在性误判的问题。
+- 修复数据库维护页出现“更新结果显示 already_exists，但检查状态仍提示缺列”的自相矛盾现象。
+- 修复支付与商城公共逻辑中对订单/商品列存在性检测不稳定的问题，避免已存在列被误判为不存在。
+
+### 调整
+- 数据库更新脚本改为优先使用 `information_schema.COLUMNS` / `information_schema.STATISTICS` 检测列与索引。
+- 维护页接口请求增加 `no-store` 与时间戳参数，降低浏览器缓存导致旧状态残留的概率。
+- 构建版本更新为 `20260315i`。

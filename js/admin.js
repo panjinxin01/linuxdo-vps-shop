@@ -1,32 +1,5 @@
 // 管理后台逻辑 - 优化版
 
-// 主题切换（与前台共享 localStorage key）
-function toggleTheme() {
-    const isDark = document.documentElement.classList.toggle('dark');
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    updateThemeIcon(isDark);
-}
-function updateThemeIcon(isDark) {
-    const icon = document.getElementById('themeIcon');
-    if (!icon) return;
-    if (isDark) {
-        icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
-    } else {
-        icon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
-    }
-}
-// 恢复主题（默认深色）
-(function() {
-    const saved = localStorage.getItem('theme');
-    if (saved === 'light') {
-        document.documentElement.classList.remove('dark');
-        updateThemeIcon(false);
-    } else {
-        document.documentElement.classList.add('dark');
-        updateThemeIcon(true);
-    }
-})();
-
 let productCache = {};
 let adminOrderPagination = { page: 1, pageSize: 20, total: 0, totalPages: 0 };
 let auditPagination = { page: 1, pageSize: 20, total: 0, totalPages: 0 };
@@ -481,22 +454,30 @@ function exportData(type) {
 
 // 退款订单
 function refundOrder(orderNo, price) {
-    if (!confirm(`确定要对订单 ${orderNo} 进行退款吗？\n退款金额：${price}积分\n\n退款后积分将返还给用户，商品将重新上架。`)) {
-        return;
-    }
-    
+    const choice = prompt(`确定要对订单 ${orderNo} 进行退款吗？
+退款金额：${price}积分
+
+请输入退款方式：
+original = 原路退回支付账户
+balance = 退回站内余额`, 'original');
+    if (choice === null) return;
+    const mode = String(choice).trim().toLowerCase() === 'balance' ? 'balance' : 'original';
+    const reason = prompt('请输入退款原因（会留痕记录）', '人工退款') || '人工退款';
     const body = new FormData();
     body.append('action', 'refund');
     body.append('order_no', orderNo);
+    body.append('refund_target', mode);
+    body.append('refund_reason', reason);
     apiFetch('../api/orders.php', { method: 'POST', body })
         .then(r => r.json())
         .then(data => {
-            alert(data.msg);
+            alert(data.msg || (data.code === 1 ? '退款成功' : '退款失败'));
             if (data.code === 1) {
-                loadOrders();loadStats();
+                loadOrders();
+                loadStats();
             }
         })
-        .catch(err => alert('退款请求失败'));
+        .catch(() => alert('退款请求失败'));
 }
 
 // 加载设置
@@ -1619,4 +1600,566 @@ function deleteAdmin(id) {
             showToast(data.msg || '删除失败', 'error');
         }
     });
+}
+
+// ===== 增量增强：模板 / 积分 / 社区规则 / 报表 =====
+function init() {
+    loadStats();
+    loadProducts();
+    loadOrders();
+    loadCoupons();
+    loadSettings();
+    loadOAuthSettings();
+    loadSmtpSettings();
+    loadNotificationSettings();
+    loadCacheStats();
+    loadTickets();
+    loadAnnouncements();
+    loadTicketStats();
+    loadRecentOrders();
+    loadRecentTickets();
+    loadAdmins();
+    loadAuditLogs();
+    loadTemplateList();
+    loadProductTemplateOptions();
+    loadCreditAdminUsers();
+    loadCreditTransactionList();
+    loadCommunityOverview();
+    loadReportDashboard();
+    checkDbMissing();
+}
+
+function loadStats() {
+    Promise.all([
+        apiFetch('../api/orders.php?action=stats').then(r => r.json()),
+        apiFetch('../api/dashboard.php?action=summary').then(r => r.json()).catch(() => ({ code: 0, data: {} }))
+    ]).then(([orderStats, dashboard]) => {
+        if (orderStats.code === 1) {
+            document.getElementById('statProducts').textContent = orderStats.data.products;
+            document.getElementById('statUsers').textContent = orderStats.data.users;
+            document.getElementById('statPending').textContent = orderStats.data.pending;
+            document.getElementById('statPaid').textContent = orderStats.data.paid;
+            document.getElementById('statIncome').textContent = orderStats.data.income;
+        }
+        if (dashboard.code === 1) {
+            const footer = document.getElementById('breadcrumbCurrent');
+            if (footer) footer.textContent = '仪表盘';
+        }
+    });
+}
+
+function loadProductTemplateOptions(selectedId = '') {
+    apiFetch('../api/templates.php?action=list')
+        .then(r => r.json())
+        .then(data => {
+            const select = document.getElementById('pTemplate');
+            if (!select) return;
+            select.innerHTML = '<option value="">不使用模板</option>';
+            if (data.code === 1 && Array.isArray(data.data)) {
+                data.data.forEach(t => {
+                    select.innerHTML += `<option value="${t.id}">${escapeHtml(t.name)}</option>`;
+                });
+            }
+            if (selectedId !== '') select.value = String(selectedId);
+        });
+}
+
+function loadProducts() {
+    apiFetch('../api/products.php?action=all')
+        .then(r => r.json())
+        .then(data => {
+            const tbody = document.getElementById('productTable');
+            if (data.code !== 1 || !data.data || data.data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="empty">暂无商品</td></tr>';
+                return;
+            }
+            productCache = {};
+            data.data.forEach(p => { productCache[p.id] = p; });
+            tbody.innerHTML = data.data.map(p => `
+                <tr>
+                    <td>${p.id}</td>
+                    <td><span style="font-weight:600;color:var(--text-main)">${escapeHtml(p.name)}</span><div style="font-size:12px;color:var(--text-muted)">${escapeHtml(p.template_name || '')}</div></td>
+                    <td>${escapeHtml(p.cpu) || '-'}/${escapeHtml(p.memory) || '-'}/${escapeHtml(p.disk) || '-'}<div style="font-size:12px;color:var(--text-muted)">${escapeHtml(p.region || '-')} · TL${parseInt(p.min_trust_level || 0)}</div></td>
+                    <td>${parseFloat(p.price || 0).toFixed(2)}积分</td>
+                    <td>${escapeHtml(p.ip_address || '-')}</td>
+                    <td><span class="badge ${p.status == 1 ? 'on' : 'off'}">${p.status == 1 ? '在售' : '已售'}</span></td>
+                    <td>
+                        <button class="action-btn edit" onclick="editProductById(${p.id})">编辑</button>
+                        <button class="action-btn del" onclick="deleteProduct(${p.id})">删除</button>
+                    </td>
+                </tr>`).join('');
+        });
+}
+
+function showAddProduct() {
+    document.getElementById('productModalTitle').textContent = '添加商品';
+    ['pId','pName','pCpu','pMem','pDisk','pBw','pPrice','pIp','pPort','pUser','pPass','pExtra','pRegion','pLineType','pOsType','pDescription'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    document.getElementById('pPort').value = '22';
+    document.getElementById('pUser').value = 'root';
+    document.getElementById('pTemplate').value = '';
+    document.getElementById('pMinTrustLevel').value = '0';
+    document.getElementById('pRiskReviewRequired').checked = false;
+    document.getElementById('pAllowWhitelistOnly').checked = false;
+    loadProductTemplateOptions();
+    document.getElementById('productModal').classList.add('show');
+}
+
+function editProduct(p) {
+    document.getElementById('productModalTitle').textContent = '编辑商品';
+    document.getElementById('pId').value = p.id || '';
+    document.getElementById('pName').value = p.name || '';
+    document.getElementById('pCpu').value = p.cpu || '';
+    document.getElementById('pMem').value = p.memory || '';
+    document.getElementById('pDisk').value = p.disk || '';
+    document.getElementById('pBw').value = p.bandwidth || '';
+    document.getElementById('pPrice').value = p.price || '';
+    document.getElementById('pIp').value = p.ip_address || '';
+    document.getElementById('pPort').value = p.ssh_port || 22;
+    document.getElementById('pUser').value = p.ssh_user || 'root';
+    document.getElementById('pPass').value = p.ssh_password || '';
+    document.getElementById('pExtra').value = p.extra_info || '';
+    document.getElementById('pRegion').value = p.region || '';
+    document.getElementById('pLineType').value = p.line_type || '';
+    document.getElementById('pOsType').value = p.os_type || '';
+    document.getElementById('pDescription').value = p.description || '';
+    document.getElementById('pMinTrustLevel').value = p.min_trust_level || 0;
+    document.getElementById('pRiskReviewRequired').checked = parseInt(p.risk_review_required || 0) === 1;
+    document.getElementById('pAllowWhitelistOnly').checked = parseInt(p.allow_whitelist_only || 0) === 1;
+    loadProductTemplateOptions(p.template_id || '');
+    document.getElementById('productModal').classList.add('show');
+}
+
+function saveProduct() {
+    const body = new FormData();
+    const id = document.getElementById('pId').value;
+    body.append('action', id ? 'edit' : 'add');
+    if (id) body.append('id', id);
+    ['name:pName','cpu:pCpu','memory:pMem','disk:pDisk','bandwidth:pBw','price:pPrice','ip_address:pIp','ssh_port:pPort','ssh_user:pUser','ssh_password:pPass','extra_info:pExtra','region:pRegion','line_type:pLineType','os_type:pOsType','description:pDescription','template_id:pTemplate','min_trust_level:pMinTrustLevel'].forEach(pair => {
+        const [k, idName] = pair.split(':');
+        const el = document.getElementById(idName);
+        body.append(k, el ? el.value : '');
+    });
+    body.append('risk_review_required', document.getElementById('pRiskReviewRequired').checked ? '1' : '0');
+    body.append('allow_whitelist_only', document.getElementById('pAllowWhitelistOnly').checked ? '1' : '0');
+    apiFetch('../api/products.php', { method: 'POST', body })
+        .then(r => r.json())
+        .then(data => {
+            if (data.code === 1) {
+                showToast('保存成功');
+                closeProductModal();
+                loadProducts();
+            } else {
+                alert(data.msg || '保存失败');
+            }
+        });
+}
+
+function loadTemplateList() {
+    apiFetch('../api/templates.php?action=list')
+        .then(r => r.json())
+        .then(data => {
+            const tbody = document.getElementById('templateTable');
+            if (!tbody) return;
+            if (data.code !== 1 || !Array.isArray(data.data) || data.data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty">暂无模板</td></tr>';
+                return;
+            }
+            tbody.innerHTML = data.data.map(t => `
+                <tr>
+                    <td>${t.id}</td>
+                    <td>${escapeHtml(t.name)}</td>
+                    <td>${escapeHtml(t.cpu || '-')}/${escapeHtml(t.memory || '-')}/${escapeHtml(t.disk || '-')}</td>
+                    <td><span class="badge ${parseInt(t.status||1)===1?'on':'off'}">${parseInt(t.status||1)===1?'启用':'停用'}</span></td>
+                    <td></td>
+                </tr>`).join('');
+            // safer second pass to avoid inline JSON issues
+            Array.from(tbody.querySelectorAll('tr')).forEach((tr, idx) => {
+                const cell = tr.lastElementChild;
+                if (!cell) return;
+                const t = data.data[idx];
+                cell.innerHTML = `<button class="action-btn edit" onclick="fillTemplateForm(${t.id})">编辑</button><button class="action-btn edit" onclick="createTemplateFromProductPrompt()">从商品生成</button><button class="action-btn del" onclick="deleteTemplate(${t.id})">删除</button>`;
+            });
+            window.__templateCache = {};
+            data.data.forEach(t => window.__templateCache[t.id] = t);
+        });
+}
+
+function fillTemplateForm(id) {
+    const t = window.__templateCache ? window.__templateCache[id] : null;
+    if (!t) return;
+    document.getElementById('tplId').value = t.id || '';
+    document.getElementById('tplName').value = t.name || '';
+    document.getElementById('tplCpu').value = t.cpu || '';
+    document.getElementById('tplMemory').value = t.memory || '';
+    document.getElementById('tplDisk').value = t.disk || '';
+    document.getElementById('tplBandwidth').value = t.bandwidth || '';
+    document.getElementById('tplRegion').value = t.region || '';
+    document.getElementById('tplLineType').value = t.line_type || '';
+    document.getElementById('tplOsType').value = t.os_type || '';
+    document.getElementById('tplDescription').value = t.description || '';
+    document.getElementById('tplExtraInfo').value = t.extra_info || '';
+    document.getElementById('tplSort').value = t.sort_order || 0;
+    switchTab('templates');
+}
+
+function saveTemplate() {
+    const body = new FormData();
+    const id = document.getElementById('tplId').value;
+    body.append('action', id ? 'update' : 'create');
+    if (id) body.append('id', id);
+    ['name:tplName','cpu:tplCpu','memory:tplMemory','disk:tplDisk','bandwidth:tplBandwidth','region:tplRegion','line_type:tplLineType','os_type:tplOsType','description:tplDescription','extra_info:tplExtraInfo','sort_order:tplSort'].forEach(pair => {
+        const [k, elId] = pair.split(':');
+        body.append(k, document.getElementById(elId).value);
+    });
+    apiFetch('../api/templates.php', { method: 'POST', body })
+        .then(r => r.json())
+        .then(data => {
+            if (data.code === 1) {
+                showToast('模板已保存');
+                ['tplId','tplName','tplCpu','tplMemory','tplDisk','tplBandwidth','tplRegion','tplLineType','tplOsType','tplDescription','tplExtraInfo'].forEach(id=>document.getElementById(id).value='');
+                document.getElementById('tplSort').value = '0';
+                loadTemplateList();
+                loadProductTemplateOptions();
+            } else {
+                alert(data.msg || '保存失败');
+            }
+        });
+}
+
+function deleteTemplate(id) {
+    if (!confirm('确定删除该模板？')) return;
+    const body = new FormData();
+    body.append('action', 'delete');
+    body.append('id', id);
+    apiFetch('../api/templates.php', { method: 'POST', body })
+        .then(r => r.json())
+        .then(data => { if (data.code === 1) { showToast('删除成功'); loadTemplateList(); loadProductTemplateOptions(); } else alert(data.msg || '删除失败'); });
+}
+
+function createTemplateFromProductPrompt() {
+    const id = prompt('输入商品ID，快速生成模板');
+    if (!id) return;
+    const body = new FormData();
+    body.append('action', 'create_from_product');
+    body.append('product_id', id);
+    apiFetch('../api/templates.php', { method: 'POST', body })
+        .then(r => r.json())
+        .then(data => { if (data.code === 1) { showToast('已从商品生成模板'); loadTemplateList(); loadProductTemplateOptions(); } else alert(data.msg || '生成失败'); });
+}
+
+function loadCreditAdminUsers() {
+    const keyword = document.getElementById('creditSearchKeyword') ? document.getElementById('creditSearchKeyword').value.trim() : '';
+    apiFetch('../api/credits.php?action=admin_users&keyword=' + encodeURIComponent(keyword))
+        .then(r => r.json())
+        .then(data => {
+            const tbody = document.getElementById('creditUserTable');
+            if (!tbody) return;
+            const list = data && data.code === 1 && data.data && Array.isArray(data.data.list) ? data.data.list : [];
+            if (!list.length) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty">暂无用户</td></tr>';
+                return;
+            }
+            tbody.innerHTML = list.map(u => `
+                <tr>
+                    <td>${u.id}</td>
+                    <td>${escapeHtml(u.username || '-')}</td>
+                    <td>${escapeHtml(u.linuxdo_username || '-')}<div style="font-size:12px;color:var(--text-muted)">TL${parseInt(u.linuxdo_trust_level || 0)} ${parseInt(u.linuxdo_silenced||0)===1?'· silenced':''}</div></td>
+                    <td>${parseFloat(u.credit_balance || 0).toFixed(2)}</td>
+                    <td><button class="action-btn edit" onclick="selectCreditUser(${u.id})">选择</button></td>
+                </tr>`).join('');
+        });
+}
+
+function selectCreditUser(id) {
+    document.getElementById('creditUserId').value = id;
+    loadCreditTransactionList(id);
+}
+
+function loadCreditTransactionList(userId = '') {
+    let url = '../api/credits.php?action=admin_transactions&page_size=20';
+    if (userId) url += '&user_id=' + encodeURIComponent(userId);
+    apiFetch(url)
+        .then(r => r.json())
+        .then(data => {
+            const tbody = document.getElementById('creditTxnTable');
+            if (!tbody) return;
+            if (data.code !== 1 || !data.data || !Array.isArray(data.data.list) || data.data.list.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty">暂无流水</td></tr>';
+                return;
+            }
+            tbody.innerHTML = data.data.list.map(t => `
+                <tr>
+                    <td>${escapeHtml(t.created_at || '')}</td>
+                    <td>${escapeHtml(t.username || ('#' + t.user_id))}</td>
+                    <td>${escapeHtml(t.type || '-')}</td>
+                    <td style="color:${parseFloat(t.amount) >= 0 ? 'var(--success)' : 'var(--danger)'}">${parseFloat(t.amount).toFixed(2)}</td>
+                    <td>${escapeHtml(t.remark || '-')}</td>
+                </tr>`).join('');
+        });
+}
+
+function submitCreditAdjust() {
+    const body = new FormData();
+    body.append('action', 'admin_adjust');
+    body.append('user_id', document.getElementById('creditUserId').value);
+    body.append('amount', document.getElementById('creditAmount').value);
+    body.append('remark', document.getElementById('creditRemark').value);
+    apiFetch('../api/credits.php', { method: 'POST', body })
+        .then(r => r.json())
+        .then(data => {
+            if (data.code === 1) {
+                showToast('积分已调整');
+                document.getElementById('creditAmount').value = '';
+                document.getElementById('creditRemark').value = '';
+                loadCreditAdminUsers();
+                loadCreditTransactionList(document.getElementById('creditUserId').value);
+                loadStats();
+            } else {
+                alert(data.msg || '调整失败');
+            }
+        });
+}
+
+function loadCommunityOverview() {
+    apiFetch('../api/community.php?action=overview').then(r => r.json()).then(data => {
+        if (data.code === 1 && data.data && data.data.settings) {
+            document.getElementById('communitySilencedMode').value = data.data.settings.linuxdo_silenced_order_mode || 'review';
+        }
+    });
+    apiFetch('../api/community.php?action=rules').then(r => r.json()).then(data => {
+        const tbody = document.getElementById('communityRuleTable');
+        if (!tbody) return;
+        if (data.code !== 1 || !Array.isArray(data.data) || data.data.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="empty">暂无规则</td></tr>'; return; }
+        window.__communityRules = {};
+        data.data.forEach(r => window.__communityRules[r.id] = r);
+        tbody.innerHTML = data.data.map(r => `<tr><td>${r.id}</td><td>${escapeHtml(r.rule_type)}</td><td>${r.product_id ? '商品#'+r.product_id : '全局'} / ${r.linuxdo_id ? 'LD#'+r.linuxdo_id : '本站#'+(r.user_id||'-')}</td><td>${escapeHtml(r.remark || '-')}</td><td><button class="action-btn edit" onclick="fillCommunityRule(${r.id})">编辑</button><button class="action-btn del" onclick="deleteCommunityRule(${r.id})">删除</button></td></tr>`).join('');
+    });
+    apiFetch('../api/community.php?action=discounts').then(r => r.json()).then(data => {
+        const tbody = document.getElementById('communityDiscountTable');
+        if (!tbody) return;
+        if (data.code !== 1 || !Array.isArray(data.data) || data.data.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="empty">暂无折扣规则</td></tr>'; return; }
+        window.__communityDiscounts = {};
+        data.data.forEach(r => window.__communityDiscounts[r.id] = r);
+        tbody.innerHTML = data.data.map(r => `<tr><td>${r.id}</td><td>TL${r.trust_level}</td><td>${r.product_id ? '#'+r.product_id : '全局'}</td><td>${escapeHtml(r.discount_type)}</td><td>${parseFloat(r.discount_value || 0).toFixed(2)}</td><td><button class="action-btn edit" onclick="fillCommunityDiscount(${r.id})">编辑</button><button class="action-btn del" onclick="deleteCommunityDiscount(${r.id})">删除</button></td></tr>`).join('');
+    });
+}
+
+function saveCommunitySettings() {
+    const body = new FormData();
+    body.append('action', 'save_settings');
+    body.append('linuxdo_silenced_order_mode', document.getElementById('communitySilencedMode').value);
+    apiFetch('../api/community.php', { method: 'POST', body }).then(r => r.json()).then(data => { if (data.code === 1) showToast('设置已保存'); else alert(data.msg || '保存失败'); });
+}
+
+function saveCommunityRule() {
+    const body = new FormData();
+    body.append('action', 'save_rule');
+    if (document.getElementById('ruleId').value) body.append('id', document.getElementById('ruleId').value);
+    ['rule_type:ruleType','product_id:ruleProductId','user_id:ruleUserId','linuxdo_id:ruleLinuxdoId','remark:ruleRemark'].forEach(pair => { const [k,i]=pair.split(':'); body.append(k, document.getElementById(i).value); });
+    apiFetch('../api/community.php', { method: 'POST', body }).then(r => r.json()).then(data => { if (data.code === 1) { showToast('规则已保存'); ['ruleId','ruleProductId','ruleUserId','ruleLinuxdoId','ruleRemark'].forEach(i => document.getElementById(i).value=''); document.getElementById('ruleType').value='whitelist'; loadCommunityOverview(); } else alert(data.msg || '保存失败'); });
+}
+
+function fillCommunityRule(id) {
+    const r = window.__communityRules ? window.__communityRules[id] : null; if (!r) return;
+    document.getElementById('ruleId').value = r.id;
+    document.getElementById('ruleType').value = r.rule_type || 'whitelist';
+    document.getElementById('ruleProductId').value = r.product_id || '';
+    document.getElementById('ruleUserId').value = r.user_id || '';
+    document.getElementById('ruleLinuxdoId').value = r.linuxdo_id || '';
+    document.getElementById('ruleRemark').value = r.remark || '';
+}
+
+function deleteCommunityRule(id) {
+    if (!confirm('确定删除该规则？')) return;
+    const body = new FormData(); body.append('action', 'delete_rule'); body.append('id', id);
+    apiFetch('../api/community.php', { method: 'POST', body }).then(r => r.json()).then(data => { if (data.code === 1) { showToast('删除成功'); loadCommunityOverview(); } else alert(data.msg || '删除失败'); });
+}
+
+function saveCommunityDiscount() {
+    const body = new FormData();
+    body.append('action', 'save_discount');
+    if (document.getElementById('discountId').value) body.append('id', document.getElementById('discountId').value);
+    ['trust_level:discountTrustLevel','product_id:discountProductId','discount_type:discountType','discount_value:discountValue','remark:discountRemark'].forEach(pair => { const [k,i]=pair.split(':'); body.append(k, document.getElementById(i).value); });
+    apiFetch('../api/community.php', { method: 'POST', body }).then(r => r.json()).then(data => { if (data.code === 1) { showToast('折扣已保存'); ['discountId','discountProductId','discountValue','discountRemark'].forEach(i => document.getElementById(i).value=''); document.getElementById('discountType').value='percent'; document.getElementById('discountTrustLevel').value='0'; loadCommunityOverview(); } else alert(data.msg || '保存失败'); });
+}
+
+function fillCommunityDiscount(id) {
+    const r = window.__communityDiscounts ? window.__communityDiscounts[id] : null; if (!r) return;
+    document.getElementById('discountId').value = r.id;
+    document.getElementById('discountTrustLevel').value = r.trust_level || 0;
+    document.getElementById('discountProductId').value = r.product_id || '';
+    document.getElementById('discountType').value = r.discount_type || 'percent';
+    document.getElementById('discountValue').value = r.discount_value || '';
+    document.getElementById('discountRemark').value = r.remark || '';
+}
+
+function deleteCommunityDiscount(id) {
+    if (!confirm('确定删除该折扣规则？')) return;
+    const body = new FormData(); body.append('action', 'delete_discount'); body.append('id', id);
+    apiFetch('../api/community.php', { method: 'POST', body }).then(r => r.json()).then(data => { if (data.code === 1) { showToast('删除成功'); loadCommunityOverview(); } else alert(data.msg || '删除失败'); });
+}
+
+function loadReportDashboard() {
+    Promise.all([
+        apiFetch('../api/dashboard.php?action=summary').then(r => r.json()),
+        apiFetch('../api/dashboard.php?action=hot_products').then(r => r.json()),
+        apiFetch('../api/dashboard.php?action=ticket_summary').then(r => r.json())
+    ]).then(([summary, hotProducts, tickets]) => {
+        if (summary.code === 1) {
+            document.getElementById('reportTodayIncome').textContent = parseFloat(summary.data.today_income || 0).toFixed(2);
+            document.getElementById('reportMonthIncome').textContent = parseFloat(summary.data.month_income || 0).toFixed(2);
+            document.getElementById('reportBalanceOrders').textContent = summary.data.balance_paid_orders || 0;
+            document.getElementById('reportEpayOrders').textContent = summary.data.epay_paid_orders || 0;
+            document.getElementById('reportExceptionOrders').textContent = summary.data.exception_orders || 0;
+            document.getElementById('reportBalanceTotal').textContent = parseFloat(summary.data.user_balance_total || 0).toFixed(2);
+        }
+        const hotEl = document.getElementById('reportHotProducts');
+        if (hotEl) {
+            hotEl.innerHTML = (hotProducts.code === 1 && hotProducts.data.length) ? hotProducts.data.map(item => `<tr><td>${escapeHtml(item.name)}</td><td>${item.order_count}</td><td>${item.paid_count}</td><td>${parseFloat(item.income || 0).toFixed(2)}</td></tr>`).join('') : '<tr><td colspan="4" class="empty">暂无数据</td></tr>';
+        }
+        const ticketEl = document.getElementById('reportTicketCategory');
+        if (ticketEl) {
+            ticketEl.innerHTML = (tickets.code === 1 && tickets.data.category_breakdown && tickets.data.category_breakdown.length) ? tickets.data.category_breakdown.map(item => `<tr><td>${escapeHtml(item.category)}</td><td>${item.total}</td></tr>`).join('') : '<tr><td colspan="2" class="empty">暂无数据</td></tr>';
+        }
+    });
+}
+
+function loadNotificationSettings() {
+    apiFetch('../api/settings.php?action=get_notification')
+        .then(r => r.json())
+        .then(data => {
+            if (data.code !== 1 || !data.data) return;
+            const d = data.data;
+            if (document.getElementById('cfgNotifEmail')) document.getElementById('cfgNotifEmail').checked = parseInt(d.notification_email_enabled || 0) === 1;
+            if (document.getElementById('cfgNotifWebhook')) document.getElementById('cfgNotifWebhook').checked = parseInt(d.notification_webhook_enabled || 0) === 1;
+            if (document.getElementById('cfgNotifWebhookUrl')) document.getElementById('cfgNotifWebhookUrl').value = d.notification_webhook_url || '';
+            if (document.getElementById('cfgSilencedOrderMode')) document.getElementById('cfgSilencedOrderMode').value = d.linuxdo_silenced_order_mode || 'review';
+        });
+}
+
+function saveNotificationSettings() {
+    const body = new FormData();
+    body.append('action', 'save_notification');
+    body.append('notification_email_enabled', document.getElementById('cfgNotifEmail').checked ? '1' : '0');
+    body.append('notification_webhook_enabled', document.getElementById('cfgNotifWebhook').checked ? '1' : '0');
+    body.append('notification_webhook_url', document.getElementById('cfgNotifWebhookUrl').value);
+    body.append('linuxdo_silenced_order_mode', document.getElementById('cfgSilencedOrderMode').value);
+    apiFetch('../api/settings.php', { method: 'POST', body }).then(r => r.json()).then(data => { if (data.code === 1) showToast('通知配置已保存'); else alert(data.msg || '保存失败'); });
+}
+
+
+function loadOrders(page = 1) {
+    adminOrderPagination.page = page;
+    const tbody = document.getElementById('orderTable');
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">加载中...</td></tr>';
+    apiFetch('../api/orders.php?action=all&page=' + page + '&page_size=' + adminOrderPagination.pageSize)
+        .then(r => r.json())
+        .then(data => {
+            if (data.code !== 1 || !data.data || !data.data.list) {
+                tbody.innerHTML = '<tr><td colspan="7" class="empty">加载失败</td></tr>';
+                return;
+            }
+            const list = data.data.list;
+            if (!list.length) {
+                tbody.innerHTML = '<tr><td colspan="7" class="empty">暂无订单</td></tr>';
+                return;
+            }
+            tbody.innerHTML = list.map(o => {
+                const payText = ['待支付', '已支付', '已退款', '已取消'][parseInt(o.status || 0)] || '未知';
+                const deliveryText = escapeHtml(o.delivery_status_text || o.delivery_status || '-');
+                return `<tr>
+                    <td><code>${escapeHtml(o.order_no)}</code></td>
+                    <td>${escapeHtml(o.product_name || '商品已删除')}<div style="font-size:12px;color:var(--text-muted)">${deliveryText}</div></td>
+                    <td>${escapeHtml(o.username || '-')}</td>
+                    <td>${parseFloat(o.price || 0).toFixed(2)}<div style="font-size:12px;color:var(--text-muted)">${escapeHtml(o.payment_method || '-')}</div></td>
+                    <td><span class="badge ${parseInt(o.status||0)===1?'on':(parseInt(o.status||0)===0?'wait':'off')}">${payText}</span></td>
+                    <td>${escapeHtml(o.created_at || '')}</td>
+                    <td><button class="action-btn edit" onclick="showOrderDetail('${escapeHtml(o.order_no)}')">查看</button></td>
+                </tr>`;
+            }).join('');
+        });
+}
+
+function showOrderDetail(orderNo) {
+    apiFetch('../api/orders.php?action=detail&order_no=' + encodeURIComponent(orderNo))
+        .then(r => r.json())
+        .then(data => {
+            if (data.code !== 1 || !data.data) { alert(data.msg || '获取订单详情失败'); return; }
+            const o = data.data;
+            const payText = ['待支付', '已支付', '已退款', '已取消'][parseInt(o.status || 0)] || '未知';
+            const deliveryText = escapeHtml(o.delivery_status_text || o.delivery_status || '-');
+            const statuses = {
+                pending: '待支付', paid_waiting: '待开通', provisioning: '处理中', delivered: '已交付', exception: '异常', refunded: '已退款', cancelled: '已取消'
+            };
+            document.getElementById('adminTicketTitle').textContent = '订单详情';
+            document.getElementById('adminTicketBody').innerHTML = `
+                <div style="display:grid;gap:12px">
+                    <div><strong>订单号：</strong>${escapeHtml(o.order_no)}</div>
+                    <div><strong>商品：</strong>${escapeHtml(o.product_name || '已删除')}</div>
+                    <div><strong>用户：</strong>${escapeHtml(o.username || '-')}</div>
+                    <div><strong>支付状态：</strong>${payText}</div>
+                    <div><strong>交付状态：</strong>${deliveryText}</div>
+                    <div><strong>金额：</strong>${parseFloat(o.price || 0).toFixed(2)} 积分（余额 ${parseFloat(o.balance_paid_amount || 0).toFixed(2)} / 外部 ${parseFloat(o.external_pay_amount || 0).toFixed(2)}）</div>
+                    <div><strong>支付方式：</strong>${escapeHtml(o.payment_method || '-')}</div>
+                    ${o.trade_no ? `<div><strong>交易号：</strong>${escapeHtml(o.trade_no)}</div>` : ''}
+                    ${o.delivery_note ? `<div><strong>交付备注：</strong><span style="white-space:pre-wrap">${escapeHtml(o.delivery_note)}</span></div>` : ''}
+                    ${o.delivery_info ? `<div><strong>交付信息：</strong><span style="white-space:pre-wrap">${escapeHtml(o.delivery_info)}</span></div>` : ''}
+                    ${o.delivery_error ? `<div><strong>异常说明：</strong><span style="white-space:pre-wrap">${escapeHtml(o.delivery_error)}</span></div>` : ''}
+                    <div><strong>创建时间：</strong>${escapeHtml(o.created_at || '')}</div>
+                    ${o.paid_at ? `<div><strong>支付时间：</strong>${escapeHtml(o.paid_at)}</div>` : ''}
+                    ${o.delivery_updated_at ? `<div><strong>交付更新时间：</strong>${escapeHtml(o.delivery_updated_at)}</div>` : ''}
+                    <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+                        <div class="form-group"><label>交付状态</label><select id="orderDeliveryStatus">${Object.keys(statuses).map(k => `<option value="${k}" ${o.delivery_status===k?'selected':''}>${statuses[k]}</option>`).join('')}</select></div>
+                        <div class="form-group"><label>交付信息</label><textarea id="orderDeliveryInfo" rows="4" placeholder="填写登录地址、面板地址、到期时间、补充说明等">${escapeHtml(o.delivery_info || '')}</textarea></div>
+                        <div class="form-group"><label>交付备注</label><textarea id="orderDeliveryNote" rows="2">${escapeHtml(o.delivery_note || '')}</textarea></div>
+                        <div class="form-group"><label>异常原因</label><textarea id="orderDeliveryError" rows="2">${escapeHtml(o.delivery_error || '')}</textarea></div>
+                        <button class="btn btn-primary" onclick="saveOrderDeliveryStatus('${escapeHtml(o.order_no)}')">保存交付状态</button>
+                    </div>
+                </div>`;
+            document.getElementById('adminTicketFoot').innerHTML = `<button class="btn btn-primary" onclick="closeAdminTicketDetail()">关闭</button>`;
+            document.getElementById('ticketDetailModal').classList.add('show');
+        });
+}
+
+function saveOrderDeliveryStatus(orderNo) {
+    const statusEl = document.getElementById('orderDeliveryStatus');
+    const info = (document.getElementById('orderDeliveryInfo').value || '').trim();
+    let status = statusEl.value;
+    if (info && ['pending', 'paid_waiting', 'provisioning'].includes(status)) {
+        status = 'delivered';
+        statusEl.value = status;
+    }
+    const body = new FormData();
+    body.append('action', 'update_delivery_status');
+    body.append('order_no', orderNo);
+    body.append('delivery_status', status);
+    body.append('delivery_info', info);
+    body.append('delivery_note', document.getElementById('orderDeliveryNote').value);
+    body.append('delivery_error', document.getElementById('orderDeliveryError').value);
+    apiFetch('../api/orders.php', { method: 'POST', body }).then(r => r.json()).then(data => { if (data.code === 1) { showToast('交付状态已更新'); loadOrders(); } else alert(data.msg || '更新失败'); });
+}
+
+function loadTickets() {
+    apiFetch('../api/tickets.php?action=all')
+        .then(r => r.json())
+        .then(data => {
+            const tbody = document.getElementById('ticketTable');
+            if (data.code !== 1 || !data.data || data.data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="empty">暂无工单</td></tr>';
+                return;
+            }
+            ticketCache = {};
+            data.data.forEach(t => { ticketCache[t.id] = t; });
+            const priorityMap = ['低','中','高','紧急'];
+            tbody.innerHTML = data.data.map(t => `
+                <tr>
+                    <td>#${t.id}</td>
+                    <td><span style="font-weight:600;color:var(--text-main)">${escapeHtml(t.title)}</span><div style="font-size:12px;color:var(--text-muted)">${escapeHtml(t.category || 'other')} · ${priorityMap[parseInt(t.priority||1)] || '中'}</div></td>
+                    <td>${escapeHtml(t.username || '-')}</td>
+                    <td>${t.order_no ? `<code style="color:var(--primary)">${escapeHtml(t.order_no)}</code>` : '-'}</td>
+                    <td><span class="badge ${t.status == 0 ? 'wait' : (t.status == 1 ? 'on' : 'off')}">${t.status == 0 ? '待回复' : (t.status == 1 ? '已回复' : '已关闭')}</span></td>
+                    <td style="color:var(--text-muted);font-size:12px">${escapeHtml(t.updated_at)}</td>
+                    <td><button class="action-btn edit" onclick="showAdminTicketDetail(${t.id})">查看</button></td>
+                </tr>`).join('');
+        });
 }

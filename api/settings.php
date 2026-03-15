@@ -2,13 +2,19 @@
 require_once __DIR__ . '/../includes/security.php';
 startSecureSession();
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/commerce.php';
 
 $action = requestValue('action', '');
 $pdo = getDB();
 
-$csrfActions = ['save', 'save_oauth', 'save_smtp', 'test_smtp'];
+$csrfActions = ['save', 'save_oauth', 'save_smtp', 'test_smtp', 'save_notification'];
 if (in_array($action, $csrfActions, true)) {
     requireCsrf();
+}
+
+function saveSetting(PDO $pdo, string $key, string $value): void {
+    $stmt = $pdo->prepare('INSERT INTO settings (key_name, key_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE key_value = VALUES(key_value)');
+    $stmt->execute([$key, $value]);
 }
 
 try {
@@ -28,9 +34,7 @@ try {
             checkAdmin($pdo);
             $keys = ['epay_pid', 'epay_key', 'notify_url', 'return_url'];
             foreach ($keys as $key) {
-                $value = normalizeString(requestValue($key, ''), 500);
-                $stmt = $pdo->prepare('INSERT INTO settings (key_name, key_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE key_value = ?');
-                $stmt->execute([$key, $value, $value]);
+                saveSetting($pdo, $key, normalizeString(requestValue($key, ''), 500));
             }
             logAudit($pdo, 'settings.save', ['keys' => $keys]);
             jsonResponse(1, '保存成功');
@@ -38,12 +42,11 @@ try {
 
         case 'get_oauth':
             checkAdmin($pdo);
-            $oauthConfig = [
+            jsonResponse(1, '', [
                 'client_id' => defined('LINUXDO_CLIENT_ID') ? LINUXDO_CLIENT_ID : '',
                 'client_secret' => defined('LINUXDO_CLIENT_SECRET') ? LINUXDO_CLIENT_SECRET : '',
-                'redirect_uri' => defined('LINUXDO_REDIRECT_URI') ? LINUXDO_REDIRECT_URI : ''
-            ];
-            jsonResponse(1, '', $oauthConfig);
+                'redirect_uri' => defined('LINUXDO_REDIRECT_URI') ? LINUXDO_REDIRECT_URI : '',
+            ]);
             break;
 
         case 'save_oauth':
@@ -53,23 +56,25 @@ try {
             $redirectUri = normalizeString(requestValue('redirect_uri', ''), 500);
 
             $configPath = __DIR__ . '/config.php';
-            $configContent = file_get_contents($configPath);
-            if ($configContent === false) {
+            $configContent = (string)file_get_contents($configPath);
+            if ($configContent === '') {
                 jsonResponse(0, '无法读取配置文件');
             }
 
             $patterns = [
                 "/define\\('LINUXDO_CLIENT_ID',\\s*'[^']*'\\);/" => "define('LINUXDO_CLIENT_ID', '" . addslashes($clientId) . "');",
                 "/define\\('LINUXDO_CLIENT_SECRET',\\s*'[^']*'\\);/" => "define('LINUXDO_CLIENT_SECRET', '" . addslashes($clientSecret) . "');",
-                "/define\\('LINUXDO_REDIRECT_URI',\\s*'[^']*'\\);/" => "define('LINUXDO_REDIRECT_URI', '" . addslashes($redirectUri) . "');"
+                "/define\\('LINUXDO_REDIRECT_URI',\\s*'[^']*'\\);/" => "define('LINUXDO_REDIRECT_URI', '" . addslashes($redirectUri) . "');",
             ];
-
             foreach ($patterns as $pattern => $replacement) {
-                $configContent = preg_replace($pattern, $replacement, $configContent);
+                $configContent = (string)preg_replace($pattern, $replacement, $configContent);
             }
 
             if (file_put_contents($configPath, $configContent, LOCK_EX) === false) {
                 jsonResponse(0, '无法写入配置文件，请检查文件权限');
+            }
+            if (function_exists('opcache_invalidate')) {
+                @opcache_invalidate($configPath, true);
             }
             logAudit($pdo, 'settings.save_oauth', ['client_id_set' => $clientId !== '', 'redirect_uri_set' => $redirectUri !== '']);
             jsonResponse(1, 'OAuth 配置保存成功');
@@ -90,12 +95,35 @@ try {
             checkAdmin($pdo);
             $smtpKeys = ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from', 'smtp_name', 'smtp_secure'];
             foreach ($smtpKeys as $key) {
-                $value = normalizeString(requestValue($key, ''), 500);
-                $stmt = $pdo->prepare('INSERT INTO settings (key_name, key_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE key_value = ?');
-                $stmt->execute([$key, $value, $value]);
+                saveSetting($pdo, $key, normalizeString(requestValue($key, ''), 500));
             }
             logAudit($pdo, 'settings.save_smtp', ['host' => requestValue('smtp_host', '')]);
             jsonResponse(1, 'SMTP配置保存成功');
+            break;
+
+        case 'get_notification':
+            checkAdmin($pdo);
+            jsonResponse(1, '', [
+                'notification_email_enabled' => commerceGetSetting($pdo, 'notification_email_enabled', '0'),
+                'notification_webhook_enabled' => commerceGetSetting($pdo, 'notification_webhook_enabled', '0'),
+                'notification_webhook_url' => commerceGetSetting($pdo, 'notification_webhook_url', ''),
+                'linuxdo_silenced_order_mode' => commerceGetSetting($pdo, 'linuxdo_silenced_order_mode', 'review'),
+            ]);
+            break;
+
+        case 'save_notification':
+            checkAdmin($pdo);
+            $items = [
+                'notification_email_enabled' => (string)(validateInt(requestValue('notification_email_enabled', 0), 0, 1) ?? 0),
+                'notification_webhook_enabled' => (string)(validateInt(requestValue('notification_webhook_enabled', 0), 0, 1) ?? 0),
+                'notification_webhook_url' => normalizeString(requestValue('notification_webhook_url', ''), 500),
+                'linuxdo_silenced_order_mode' => in_array(requestValue('linuxdo_silenced_order_mode', 'review'), ['review', 'block'], true) ? requestValue('linuxdo_silenced_order_mode', 'review') : 'review',
+            ];
+            foreach ($items as $key => $value) {
+                saveSetting($pdo, $key, $value);
+            }
+            logAudit($pdo, 'settings.save_notification', $items);
+            jsonResponse(1, '通知配置保存成功');
             break;
 
         case 'test_smtp':
@@ -143,7 +171,7 @@ try {
 
             $headers = "MIME-Version: 1.0\r\n";
             $headers .= "Content-type: text/html; charset=UTF-8\r\n";
-            $headers .= "From: " . ($smtp['smtp_name'] ?? 'VPS商城') . " <" . ($smtp['smtp_from'] ?? 'noreply@localhost') . ">\r\n";
+            $headers .= 'From: ' . ($smtp['smtp_name'] ?? 'VPS商城') . ' <' . ($smtp['smtp_from'] ?? 'noreply@localhost') . ">\r\n";
             if (@mail($email, $subject, $body, $headers)) {
                 jsonResponse(1, '测试邮件已发送（使用PHP mail函数）');
             }
@@ -157,4 +185,3 @@ try {
     logError($pdo, 'api.settings', $e->getMessage());
     jsonResponse(0, '服务器错误');
 }
-

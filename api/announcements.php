@@ -87,7 +87,7 @@ try {
             if ($title === '' || $content === '') {
                 jsonResponse(0, '标题和内容不能为空');
             }
-            if (mb_strlen($title, 'UTF-8') > 200) {
+            if (utf8Length($title) > 200) {
                 jsonResponse(0, '标题不能超过200字');
             }
             if ($publishAt !== '' && !isValidDateTime($publishAt)) {

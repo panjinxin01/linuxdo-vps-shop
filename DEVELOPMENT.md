@@ -1,6 +1,6 @@
 # 开发说明（DEVELOPMENT）
 
-最后更新：2026-02-24
+最后更新：2026-03-14
 
 本项目为 **PHP + MySQL + 静态前端页面** 的单体应用：
 
@@ -54,15 +54,20 @@ api/
   check_install.php    # 检查是否已安装（表结构 & 管理员）
   config.php           # 数据库/站点/OAuth 配置
   coupons.php          # 优惠券系统：validate/all/create/update/toggle/delete
+  community.php        # Linux DO 社区规则 / 白黑名单 / trust_level 折扣
+  credits.php          # 余额钱包 / 积分流水 / 后台调账
   install.php          # 安装向导 API（纯 JSON：get_config/test_db/save_config/generate_key/run_install）
   notifications.php    # 通知系统
   notify.php           # 支付异步回调
   oauth.php            # Linux DO Connect OAuth2
-  orders.php           # 订单系统
+  dashboard.php        # 统计报表接口
+  orders.php           # 订单系统（含余额支付 / 交付状态）
   pay.php              # 跳转支付（POST 表单）
-  products.php         # 商品（VPS）管理
+  products.php         # 商品（VPS）管理（支持模板与社区规则）
   settings.php         # 系统设置（epay + oauth 写入 config.php）
-  tickets.php          # 工单系统
+  templates.php        # 商品模板管理
+  tickets.php          # 工单系统增强版
+  upload.php           # 工单附件上传
   update_db.php        # 数据库维护：缺表创建/字段迁移/重置
 admin/
   index.html           # 后台主界面（含数据库更新提示弹窗）
@@ -74,7 +79,8 @@ admin/
 includes/
   db.php               # PDO 连接、jsonResponse、checkAdmin
   coupons.php          # 优惠券工具函数：校验、计算折扣、占用/释放
-  notifications.php    # 通知函数公共模块（createNotification）
+  notifications.php    # 通知函数公共模块（站内 + 邮件 + Webhook）
+  schema.php           # 安装 / 升级共用的数据库结构定义
   security.php         # 安全工具函数（CSRF、限流、审计、加密）
 
 css/   # 样式文件（含 install.css）
@@ -410,3 +416,42 @@ index.html             # 前台入口
 - 前端与后台功能完善（交互逻辑、响应式布局）
 
 详细更新内容请参阅 `CHANGELOG.md`。
+
+
+## 4.1 本次增量开发新增的核心表
+
+- `product_templates`：商品模板
+- `credit_transactions`：余额流水
+- `ticket_events`：工单事件时间线
+- `ticket_reply_templates`：工单回复模板
+- `linuxdo_user_access_rules`：Linux DO 用户白名单/黑名单
+- `trust_level_discounts`：信任等级折扣
+
+## 4.2 关键新增字段
+
+- `users.credit_balance / linuxdo_active / linuxdo_silenced`
+- `products.template_id / region / line_type / os_type / description / min_trust_level / risk_review_required / allow_whitelist_only`
+- `orders.payment_method / balance_paid_amount / external_pay_amount / delivery_status / delivery_note / delivery_error / delivery_updated_at / handled_admin_id / trust_discount_amount / trust_level_snapshot`
+- `tickets.category / priority / internal_note / verified_status / refund_allowed / refund_reason / handled_admin_id`
+
+## 4.3 关键接口
+
+- `api/credits.php`
+  - `summary`：当前用户余额摘要
+  - `my_transactions`：当前用户余额流水
+  - `admin_users`：后台用户余额列表
+  - `admin_transactions`：后台流水查询
+  - `admin_adjust`：后台手动加减积分
+- `api/templates.php`
+  - `list/create/update/delete/toggle/create_from_product`
+- `api/community.php`
+  - `overview/users/rules/save_rule/delete_rule/discounts/save_discount/delete_discount/save_settings`
+- `api/orders.php`
+  - `pay_balance`：余额支付
+  - `update_delivery_status`：后台推进交付状态
+
+## 4.4 迁移规范
+
+- 所有新表/字段/索引统一写入 `api/update_db.php`。
+- 新装与升级统一复用 `includes/schema.php`。
+- 默认配置项（通知/风控等）统一通过 `getProjectDefaultSettings()` 下发。

@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" id="mainCss" href="css/style.css">
+    <link rel="stylesheet" id="mainCss" href="css/style.css?v=20260315f">
 </head>
 <body>
     <!-- 侧边栏 -->
@@ -186,7 +186,7 @@
                 <div class="quick-actions">
                     <div class="quick-action-card" onclick="switchPage('instances')">
                         <div class="quick-action-icon">🛒</div>
-                        <div class="quick-action-text">购买实例</div>
+                        <div class="quick-action-text">我的实例</div>
                     </div>
     <div class="quick-action-card" onclick="switchPage('tickets')">
                         <div class="quick-action-icon">💬</div>
@@ -205,7 +205,7 @@
             <div class="container">
                 <div class="page-header">
                     <h2>可用实例</h2>
-                    <p>选择适合您需求的高性能VPS配置</p>
+                    <p>这里显示您已经拥有的实例与交付信息</p>
                 </div>
                 <div class="products" id="productList">
                     <div style="grid-column:1/-1;text-align:center;padding:60px 0;color:var(--text-muted)">
@@ -222,6 +222,20 @@
                 <div class="page-header">
                     <h2>我的订单</h2>
                     <p>管理您的VPS订单和服务</p>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-bottom:20px">
+                    <div class="card" style="padding:20px">
+                        <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px">我的余额</div>
+                        <div id="creditBalanceSummary" style="font-size:28px;font-weight:700;color:var(--primary)">--</div>
+                        <div id="creditBalanceHint" style="font-size:12px;color:var(--text-muted);margin-top:8px">登录后可使用余额支付订单</div>
+                    </div>
+                    <div class="card" style="padding:20px">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                            <div style="font-size:13px;color:var(--text-muted)">最近积分流水</div>
+                            <button class="btn btn-outline" style="padding:4px 10px;font-size:12px" onclick="loadCreditTransactions()">刷新</button>
+                        </div>
+                        <div id="creditTransactions" style="font-size:13px;color:var(--text-muted)">暂无流水</div>
+                    </div>
                 </div>
                 <div id="myOrders">
                     <div class="empty-state">
@@ -355,13 +369,19 @@
                     <div class="coupon-msg" id="couponMsg"></div>
                 </div>
 
+                <div id="buyBalanceBox" style="padding:12px;border:1px dashed var(--border);border-radius:10px;margin-bottom:16px;font-size:13px;color:var(--text-muted)">
+                    当前余额：<strong id="buyBalanceAmount">--</strong>
+                    <div style="margin-top:6px">支持「优惠券后再余额支付」，余额不足时可继续使用 EasyPay。</div>
+                </div>
+
                 <p style="font-size:13px;color:var(--text-muted);text-align:center;line-height:1.5">
-                    点击确认后将跳转到 Linux DO Credit 进行安全支付。<br>支付成功后自动开通服务。
+                    可选择余额支付或跳转 Linux DO Credit 进行外部支付。<br>支付成功后自动进入交付流程。
                 </p>
             </div>
             <div class="modal-foot">
                 <button class="btn btn-outline" style="flex:1" onclick="closeBuy()">取消</button>
-                <button class="btn btn-primary" style="flex:1" onclick="confirmBuy()">确认支付</button>
+                <button class="btn btn-outline" style="flex:1" onclick="confirmBuy('balance')">余额支付</button>
+                <button class="btn btn-primary" style="flex:1" onclick="confirmBuy('epay')">EasyPay 支付</button>
             </div>
         </div>
     </div>
@@ -399,6 +419,28 @@
                     <label>关联订单（可选）</label>
                     <select id="ticketOrder">
                         <option value="">不关联订单</option></select>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                    <div class="form-group">
+                        <label>工单分类</label>
+                        <select id="ticketCategory">
+                            <option value="login_issue">登录异常</option>
+                            <option value="credential_error">凭据错误</option>
+                            <option value="delivery_issue">发货异常</option>
+                            <option value="payment_issue">支付问题</option>
+                            <option value="refund_request">退款申请</option>
+                            <option value="other" selected>其他</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>优先级</label>
+                        <select id="ticketPriority">
+                            <option value="0">低</option>
+                            <option value="1" selected>中</option>
+                            <option value="2">高</option>
+                            <option value="3">紧急</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>问题描述 *</label>
@@ -439,6 +481,21 @@
             </div>
         </div>
     </div><!-- 公告详情弹窗 -->
+    <!-- 订单详情弹窗 -->
+    <div class="modal-bg" id="orderDetailModal">
+        <div class="modal" style="max-width:760px">
+            <div class="modal-head">
+                <h3 id="orderDetailTitle">订单详情</h3>
+                <button class="modal-close" onclick="closeOrderDetail()">&times;</button>
+            </div>
+            <div class="modal-body" id="orderDetailBody" style="max-height:70vh;overflow-y:auto">
+            </div>
+            <div class="modal-foot">
+                <button class="btn btn-primary" style="width:100%" onclick="closeOrderDetail()">关闭</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-bg" id="announcementModal">
         <div class="modal" style="max-width:600px">
             <div class="modal-head">
@@ -452,7 +509,7 @@
             </div>
         </div>
     </div>
-    <script src="js/main.js"></script>
+    <script src="js/main.js?v=20260315f"></script>
     <script>
         // 侧边栏控制
         function toggleSidebar() {document.body.classList.toggle('sidebar-collapsed');

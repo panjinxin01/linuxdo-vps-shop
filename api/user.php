@@ -60,13 +60,13 @@ try {
                 jsonResponse(1, '登录成功', ['username' => $admin['username'], 'role' => 'admin']);
             }
 
-            $stmt = $pdo->prepare('SELECT id, username, password FROM users WHERE username = ?');
+            $stmt = $pdo->prepare('SELECT id, username, password, credit_balance, linuxdo_id, linuxdo_username, linuxdo_trust_level, linuxdo_active, linuxdo_silenced FROM users WHERE username = ?');
             $stmt->execute([$username]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
-            if ($user && password_verify($password, $user['password'])) {
+            if ($user && password_verify($password, (string)$user['password'])) {
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['username'] = $user['username'];
-                jsonResponse(1, '登录成功', ['username' => $user['username'], 'role' => 'user']);
+                jsonResponse(1, '登录成功', ['username' => $user['username'], 'role' => 'user', 'user' => $user]);
             }
 
             jsonResponse(0, '用户名或密码错误');
@@ -82,7 +82,14 @@ try {
                 jsonResponse(1, '已登录', ['username' => $_SESSION['admin_name'], 'role' => 'admin']);
             }
             if (isset($_SESSION['user_id'])) {
-                jsonResponse(1, '已登录', ['username' => $_SESSION['username'], 'role' => 'user']);
+                $stmt = $pdo->prepare('SELECT id, username, email, credit_balance, linuxdo_id, linuxdo_username, linuxdo_name, linuxdo_trust_level, linuxdo_active, linuxdo_silenced, linuxdo_avatar FROM users WHERE id = ?');
+                $stmt->execute([(int)$_SESSION['user_id']]);
+                $user = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($user) {
+                    $_SESSION['username'] = $user['username'];
+                    jsonResponse(1, '已登录', ['username' => $user['username'], 'role' => 'user', 'user' => $user]);
+                }
+                unset($_SESSION['user_id'], $_SESSION['username']);
             }
             jsonResponse(0, '未登录');
             break;

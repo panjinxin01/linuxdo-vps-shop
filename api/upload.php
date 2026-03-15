@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../includes/security.php';
 startSecureSession();
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/commerce.php';
 
 $action = requestValue('action', '');
 $pdo = getDB();
@@ -154,6 +155,8 @@ try {
             ]);
 
             $attachmentId = (int)$pdo->lastInsertId();
+            commerceRecordTicketEvent($pdo, $ticketId, 'attachment_upload', '上传了附件：' . $_FILES['file']['name'], ['attachment_id' => $attachmentId], $isAdmin);
+            logAudit($pdo, 'attachment.upload', ['ticket_id' => $ticketId, 'name' => $_FILES['file']['name'], 'size' => (int)$_FILES['file']['size']], (string)$attachmentId);
             jsonResponse(1, '上传成功', [
                 'id' => $attachmentId,
                 'name' => $_FILES['file']['name'],

@@ -34,8 +34,11 @@ try {
                 $stmt = $pdo->prepare('SELECT price, status FROM products WHERE id = ?');
                 $stmt->execute([$productId]);
                 $row = $stmt->fetch(PDO::FETCH_ASSOC);
-                if (!$row || (int)$row['status'] !== 1) {
-                    jsonResponse(0, '商品不存在或已售出');
+                if (!$row) {
+                    jsonResponse(0, '商品不存在');
+                }
+                if ((int)$row['status'] !== 1) {
+                    jsonResponse(0, '商品已下架或暂不可购买');
                 }
                 $amount = (float)$row['price'];
             } else {

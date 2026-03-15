@@ -23,7 +23,7 @@ function initCsrfToken() {
 }
 
 function apiFetch(url, options = {}) {
-    const opts = { credentials: 'same-origin', ...options };
+    const opts = { credentials: 'same-origin', cache: 'no-store', ...options };
     const method = (opts.method || 'GET').toUpperCase();
     const ensureToken = (!csrfToken && method !== 'GET' && method !== 'HEAD') ? initCsrfToken() : Promise.resolve();
     return ensureToken.then(() => {
@@ -31,8 +31,12 @@ function apiFetch(url, options = {}) {
         if (csrfToken && !headers.has('X-CSRF-Token')) {
             headers.set('X-CSRF-Token', csrfToken);
         }
+        let requestUrl = url;
+        if (method === 'GET' && typeof requestUrl === 'string') {
+            requestUrl += (requestUrl.indexOf('?') >= 0 ? '&' : '?') + '_ts=' + Date.now();
+        }
         opts.headers = headers;
-        return window.fetch(url, opts);
+        return window.fetch(requestUrl, opts);
     });
 }
 
@@ -110,6 +114,47 @@ function showToast(msg) {
 }
 
 // HTML转义函数，防止XSS
+function parseDeliveryCredentials(text) {
+    const raw = String(text || '');
+    if (!raw) return {};
+    const lines = raw.split(/\r?\n/).map(function (line) { return line.trim(); }).filter(Boolean);
+    const result = {};
+    const patterns = [
+        { key: 'ip_address', regex: /^(?:ip|ip地址|ipv4|地址|host|主机)\s*[:：]\s*(.+)$/i },
+        { key: 'ssh_port', regex: /^(?:ssh端口|端口|port)\s*[:：]\s*(.+)$/i },
+        { key: 'ssh_user', regex: /^(?:ssh账号|ssh用户|用户名|账号|用户|user|username|login)\s*[:：]\s*(.+)$/i },
+        { key: 'ssh_password', regex: /^(?:ssh密码|密码|pass|password|pwd)\s*[:：]\s*(.+)$/i }
+    ];
+    lines.forEach(function (line) {
+        patterns.forEach(function (item) {
+            if (result[item.key]) return;
+            const match = line.match(item.regex);
+            if (match && match[1]) result[item.key] = match[1].trim();
+        });
+    });
+    return result;
+}
+
+function buildOrderCredentialView(order) {
+    const parsed = parseDeliveryCredentials(order.delivery_info || '');
+    const ip = order.ip_address || parsed.ip_address || '';
+    const port = String(order.ssh_port || parsed.ssh_port || '22');
+    const user = order.ssh_user || parsed.ssh_user || 'root';
+    const pass = order.ssh_password || parsed.ssh_password || '';
+    const hasCred = !!(ip || user || pass || (parsed.ssh_port || order.ssh_port));
+    if (!hasCred) {
+        return '<div style="margin-top:14px;padding:12px;border-radius:12px;background:rgba(255,255,255,0.04);color:var(--warning)">当前订单暂未写入连接信息</div>';
+    }
+    return `<div class="vps-info" style="margin-top:14px">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">连接信息</div>
+        <div class="vps-row"><span>IP地址</span><div class="vps-value"><code>${escapeHtml(ip)}</code><button class="copy-btn" data-copy="${escapeHtml(ip)}" onclick="copyFromData(this)">复制</button></div></div>
+        <div class="vps-row"><span>SSH端口</span><div class="vps-value"><code>${escapeHtml(port)}</code><button class="copy-btn" data-copy="${escapeHtml(port)}" onclick="copyFromData(this)">复制</button></div></div>
+        <div class="vps-row"><span>用户名</span><div class="vps-value"><code>${escapeHtml(user)}</code><button class="copy-btn" data-copy="${escapeHtml(user)}" onclick="copyFromData(this)">复制</button></div></div>
+        <div class="vps-row"><span>密码</span><div class="vps-value"><code>${escapeHtml(pass)}</code><button class="copy-btn" data-copy="${escapeHtml(pass)}" onclick="copyFromData(this)">复制</button></div></div>
+        <div class="vps-copy-all"><button class="btn btn-outline" style="width:100%;padding:8px;font-size:12px" data-ip="${escapeHtml(ip)}" data-port="${escapeHtml(port)}" data-user="${escapeHtml(user)}" data-pass="${escapeHtml(pass)}" onclick="copyAllVpsFromData(this)">📋 复制全部信息</button></div>
+    </div>`;
+}
+
 function escapeHtml(str) {
     if (str === null || str === undefined) return '';
     const div = document.createElement('div');
@@ -1063,8 +1108,7 @@ function showTicketDetail(id) {
             const ticket = ticketRes.data;
             const attachments = attachRes.code === 1 ? attachRes.data : [];
             let statusClass = ticket.status == 0 ? 'wait' : (ticket.status == 1 ? 'on' : 'off');
-            let statusText = ticket.status == 0 ? '待回复' : (ticket.status == 1 ? '已回复' : '已关闭');
-            document.getElementById('ticketDetailTitle').textContent = ticket.title;
+            let statusText = ticket.status == 0 ? '待回复' : (ticket.status == 1 ? '已回复' : '已关闭');document.getElementById('ticketDetailTitle').textContent = ticket.title;
             let repliesHtml = ticket.replies.map(r => `
                 <div class="ticket-reply ${r.user_id ? 'user' : 'admin'}">
                     <div class="reply-header">
@@ -1591,3 +1635,1166 @@ function markAllNotificationsReadPage() {
             }
         });
 }
+
+// ===== 增量增强：余额 / 交付状态 / 工单升级 =====
+function getCurrentUserName() {
+    if (!currentUser) return '';
+    return typeof currentUser === 'object' ? (currentUser.username || currentUser.linuxdo_username || currentUser.name || '') : currentUser;
+}
+
+function getCurrentBalance() {
+    if (!currentUser || typeof currentUser !== 'object') return 0;
+    return parseFloat(currentUser.credit_balance || 0) || 0;
+}
+
+function checkLogin() {
+    apiFetch('api/user.php?action=check')
+        .then(r => r.json())
+        .then(data => {
+            if (data.code === 1) {
+                currentUser = (data.data && data.data.user) ? data.data.user : { username: data.data.username || '' };
+                currentRole = data.data.role || 'user';
+                renderUserArea();
+                if (currentRole === 'user') {
+                    loadMyOrders();
+                    loadMyTickets();
+                    loadCreditSummary();
+                    loadCreditTransactions();
+                    initNotifications();
+                }
+            } else {
+                currentUser = null;
+                currentRole = null;
+                renderUserArea();
+                stopNotificationPolling();
+            }
+        });
+}
+
+function renderUserArea() {
+    const area = document.getElementById('userArea');
+    const sidebarUserArea = document.getElementById('sidebarUserArea');
+    const userNavSection = document.getElementById('userNavSection');
+    const username = getCurrentUserName();
+    const balance = getCurrentBalance();
+
+    if (currentUser) {
+        let adminBtn = currentRole === 'admin' ? '<a href="admin/index.html" class="nav-link" style="color:var(--primary)">返回后台</a>' : '';
+        area.innerHTML = `
+            <div class="flex items-center gap-4">
+                <span style="color:var(--text-light)">👤 ${escapeHtml(username)}</span>
+                ${currentRole === 'user' ? `<span style="font-size:12px;color:var(--primary)">余额 ${balance.toFixed(2)}</span>` : ''}
+                ${adminBtn}
+                <a href="#" class="nav-link" onclick="logout();return false;">退出</a>
+            </div>
+        `;
+        if (sidebarUserArea) {
+            sidebarUserArea.innerHTML = `
+                <div style="display:flex;align-items:center;gap:10px;padding:4px 0;">
+                    <div style="width:36px;height:36px;background:var(--primary-light);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--primary);font-weight:600;">${escapeHtml((username || '?').charAt(0).toUpperCase())}</div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-size:14px;font-weight:500;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(username)}</div>
+                        <div style="font-size:12px;color:var(--text-muted);">${currentRole === 'admin' ? '管理员' : `普通用户 · 余额 ${balance.toFixed(2)}`}</div>
+                    </div>
+                </div>
+            `;
+        }
+        if (userNavSection) userNavSection.style.display = currentRole === 'user' ? 'block' : 'none';
+    } else {
+        area.innerHTML = `
+            <div class="flex items-center gap-2">
+                <a href="#" class="nav-link" onclick="showLogin();return false;">登录</a>
+                <a href="#" class="btn btn-primary" style="padding: 6px 16px; font-size:13px" onclick="showRegister();return false;">注册</a>
+            </div>
+        `;
+        if (sidebarUserArea) {
+            sidebarUserArea.innerHTML = `<button class="btn btn-primary" style="width:100%;padding:10px;" onclick="showLogin()">登录 / 注册</button>`;
+        }
+        if (userNavSection) userNavSection.style.display = 'none';
+    }
+}
+
+function loadCreditSummary() {
+    if (!currentUser || currentRole !== 'user') return;
+    apiFetch('api/credits.php?action=summary')
+        .then(r => r.json())
+        .then(data => {
+            if (data.code !== 1 || !data.data) return;
+            if (typeof currentUser === 'object') currentUser.credit_balance = data.data.balance;
+            const amountEl = document.getElementById('creditBalanceSummary');
+            const hintEl = document.getElementById('creditBalanceHint');
+            const buyEl = document.getElementById('buyBalanceAmount');
+            if (amountEl) amountEl.textContent = (parseFloat(data.data.balance) || 0).toFixed(2) + ' 积分';
+            if (hintEl) hintEl.textContent = '最近变动：' + ((data.data.last_change_at || '暂无'));
+            if (buyEl) buyEl.textContent = (parseFloat(data.data.balance) || 0).toFixed(2) + ' 积分';
+            renderUserArea();
+        });
+}
+
+function loadCreditTransactions() {
+    if (!currentUser || currentRole !== 'user') return;
+    apiFetch('api/credits.php?action=my_transactions&page_size=5')
+        .then(r => r.json())
+        .then(data => {
+            const box = document.getElementById('creditTransactions');
+            if (!box) return;
+            if (data.code !== 1 || !data.data || !data.data.list || data.data.list.length === 0) {
+                box.innerHTML = '<div style="color:var(--text-muted)">暂无流水</div>';
+                return;
+            }
+            box.innerHTML = data.data.list.map(item => `
+                <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
+                    <div>
+                        <div style="color:var(--text-main)">${escapeHtml(item.type || 'adjust')}</div>
+                        <div style="color:var(--text-muted)">${escapeHtml(item.remark || '-')}</div>
+                    </div>
+                    <div style="text-align:right">
+                        <div style="color:${parseFloat(item.amount) >= 0 ? 'var(--success)' : 'var(--danger)'}">${parseFloat(item.amount) >= 0 ? '+' : ''}${parseFloat(item.amount).toFixed(2)}</div>
+                        <div style="color:var(--text-muted)">${escapeHtml(item.created_at || '')}</div>
+                    </div>
+                </div>
+            `).join('');
+        });
+}
+
+function loadProducts() {
+    apiFetch('api/products.php?action=list')
+        .then(r => r.json())
+        .then(data => {
+            const container = document.getElementById('productList');
+            const buyContainer = document.getElementById('buyProductList');
+            if (data.code !== 1 || !data.data || data.data.length === 0) {
+                const emptyHtml = '<p style="text-align:center;color:var(--text-muted);grid-column:1/-1;padding:40px;">暂无可用商品</p>';
+                if (container) container.innerHTML = emptyHtml;
+                if (buyContainer) buyContainer.innerHTML = emptyHtml;
+                return;
+            }
+            productCache = {};
+            data.data.forEach(p => { productCache[p.id] = p; });
+
+            const renderCard = p => {
+                const canBuy = p.can_buy !== false;
+                const buyText = canBuy ? '购买' : '受限';
+                const discount = parseFloat(p.trust_discount_amount || 0) > 0 ? `<div style="font-size:12px;color:var(--success);margin-top:6px">社区等级优惠：-${parseFloat(p.trust_discount_amount).toFixed(2)} (${escapeHtml(p.trust_discount_label || '')})</div>` : '';
+                const limitText = !canBuy && p.buy_block_reason ? `<div style="margin-top:10px;font-size:12px;color:var(--danger)">${escapeHtml(p.buy_block_reason)}</div>` : '';
+                return `
+                    <div class="card" data-id="${p.id}">
+                        <h3>${escapeHtml(p.name)}</h3>
+                        <div class="specs">
+                            <div class="spec"><small>CPU</small><div class="spec-value">${escapeHtml(p.cpu) || '-'}</div></div>
+                            <div class="spec"><small>内存</small><div class="spec-value">${escapeHtml(p.memory) || '-'}</div></div>
+                            <div class="spec"><small>硬盘</small><div class="spec-value">${escapeHtml(p.disk) || '-'}</div></div>
+                            <div class="spec"><small>带宽</small><div class="spec-value">${escapeHtml(p.bandwidth) || '-'}</div></div>
+                        </div>
+                        <div style="font-size:12px;color:var(--text-muted);line-height:1.6;margin-top:12px">地区：${escapeHtml(p.region || '-')} · 线路：${escapeHtml(p.line_type || '-')} · 系统：${escapeHtml(p.os_type || '-')}</div>
+                        ${discount}
+                        ${limitText}
+                        <div class="card-footer">
+                            <div>
+                                <div class="price">${parseFloat(p.price).toFixed(2)}<span>积分/月</span></div>
+                                ${parseFloat(p.base_price || p.price).toFixed(2) !== parseFloat(p.price).toFixed(2) ? `<div style="font-size:12px;color:var(--text-muted)">原价 ${parseFloat(p.base_price).toFixed(2)}</div>` : ''}
+                            </div>
+                            <div style="display:flex;gap:8px">
+                                <button class="btn btn-outline" onclick="showProductDetail(${p.id})">详情</button>
+                                <button class="btn ${canBuy ? 'btn-primary' : 'btn-outline'}" ${canBuy ? '' : 'disabled'} onclick="buyProductById(${p.id})">${buyText}</button>
+                            </div>
+                        </div>
+                    </div>`;
+            };
+            if (container) container.innerHTML = data.data.map(renderCard).join('');
+            if (buyContainer) buyContainer.innerHTML = data.data.map(renderCard).join('');
+            updateHomeStats();
+        })
+        .catch(() => {
+            const errorHtml = '<p style="color:var(--danger);text-align:center;padding:40px;">加载失败，请刷新重试</p>';
+            const container = document.getElementById('productList');
+            const buyContainer = document.getElementById('buyProductList');
+            if (container) container.innerHTML = errorHtml;
+            if (buyContainer) buyContainer.innerHTML = errorHtml;
+        });
+}
+
+function buyProduct(id, name, price) {
+    if (!currentUser) { showLogin(); return; }
+    const p = productCache[id] || { id, name, price };
+    if (p.can_buy === false) {
+        alert(p.buy_block_reason || '当前商品暂不可购买');
+        return;
+    }
+    selectedProduct = p;
+    currentCoupon = null;
+    const couponInput = document.getElementById('couponCode');
+    const couponMsg = document.getElementById('couponMsg');
+    if (couponInput) couponInput.value = '';
+    if (couponMsg) { couponMsg.textContent = ''; couponMsg.className = 'coupon-msg'; }
+    renderOrderSummary();
+    loadCreditSummary();
+    document.getElementById('buyModal').classList.add('show');
+}
+
+function renderOrderSummary() {
+    if (!selectedProduct) return;
+    const basePrice = parseFloat(selectedProduct.base_price || selectedProduct.price || 0) || 0;
+    const trustDiscount = parseFloat(selectedProduct.trust_discount_amount || 0) || 0;
+    const couponDiscount = currentCoupon ? (parseFloat(currentCoupon.discount || 0) || 0) : 0;
+    const payable = currentCoupon ? (parseFloat(currentCoupon.final || 0) || 0) : (parseFloat(selectedProduct.price || 0) || 0);
+    const balance = getCurrentBalance();
+    let html = `
+        <div class="summary-row"><span>商品名称</span><span style="color:var(--text-main)">${escapeHtml(selectedProduct.name || '')}</span></div>
+        <div class="summary-row"><span>购买时长</span><span style="color:var(--text-main)">1个月</span></div>
+        <div class="summary-row"><span>原价</span><span style="color:var(--text-main)">${basePrice.toFixed(2)} 积分</span></div>
+    `;
+    if (trustDiscount > 0) html += `<div class="summary-row discount-row"><span>社区等级优惠</span><span>-${trustDiscount.toFixed(2)} 积分</span></div>`;
+    if (couponDiscount > 0) html += `<div class="summary-row discount-row"><span>优惠券折扣</span><span>-${couponDiscount.toFixed(2)} 积分</span></div>`;
+    html += `
+        <div class="summary-row" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+            <span>应付积分</span>
+            <span class="final-price">${payable.toFixed(2)}</span>
+        </div>
+        <div class="summary-row"><span>当前余额</span><span style="color:${balance >= payable ? 'var(--success)' : 'var(--danger)'}">${balance.toFixed(2)} 积分</span></div>
+    `;
+    const orderSummary = document.getElementById('orderSummary');
+    if (orderSummary) orderSummary.innerHTML = html;
+}
+
+function confirmBuy(method = 'epay') {
+    if (!selectedProduct) return;
+    const body = new FormData();
+    body.append('action', 'create');
+    body.append('product_id', selectedProduct.id);
+    if (currentCoupon) body.append('coupon_code', currentCoupon.code);
+    apiFetch('api/orders.php', { method: 'POST', body })
+        .then(r => r.json())
+        .then(data => {
+            if (data.code !== 1) {
+                alert(data.msg || '创建订单失败');
+                return;
+            }
+            const orderNo = data.data.order_no;
+            if (method === 'balance') {
+                const payBody = new FormData();
+                payBody.append('action', 'pay_balance');
+                payBody.append('order_no', orderNo);
+                apiFetch('api/orders.php', { method: 'POST', body: payBody })
+                    .then(r => r.json())
+                    .then(payData => {
+                        if (payData.code === 1) {
+                            showToast('余额支付成功');
+                            closeBuy();
+                            loadCreditSummary();
+                            loadCreditTransactions();
+                            loadMyOrders();
+                            loadProducts();
+                            switchPage('orders');
+                        } else {
+                            alert(payData.msg || '余额支付失败');
+                        }
+                    });
+                return;
+            }
+            closeBuy();
+            window.location.href = 'api/pay.php?order_no=' + encodeURIComponent(orderNo);
+        });
+}
+
+function loadMyOrders(page = 1) {
+    orderPagination.page = page;
+    const container = document.getElementById('myOrders');
+    if (!container) return;
+    container.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px;">加载中...</p>';
+    apiFetch('api/orders.php?action=my&page=' + page + '&page_size=' + orderPagination.pageSize)
+        .then(r => r.json())
+        .then(data => {
+            if (data.code !== 1 || !data.data) {
+                container.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px;">' + (data.msg || '加载失败') + '</p>';
+                return;
+            }
+            if (!data.data.list || data.data.list.length === 0) {
+                container.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px;">暂无订单记录</p>';
+                return;
+            }
+            orderPagination.total = data.data.total;
+            orderPagination.totalPages = data.data.total_pages;
+            const orders = data.data.list;
+            cachedOrderList = orders;
+            updateManageInstances(orders);
+            const html = orders.map(o => {
+                const statusText = ['待支付', '已支付', '已退款', '已取消'][parseInt(o.status || 0)] || '未知';
+                const statusClass = o.status == 1 ? 'on' : (o.status == 0 ? 'wait' : 'off');
+                const deliveryText = escapeHtml(o.delivery_status_text || o.delivery_status || '-');
+                const payMethod = escapeHtml(o.payment_method || '-');
+                const createTicketBtn = `<button class="btn btn-outline" style="padding:4px 10px;font-size:12px" onclick="event.stopPropagation();showCreateTicket(${parseInt(o.id)});">发起工单</button>`;
+                const payBtn = o.status == 0 ? `<button class="btn btn-primary" style="padding:4px 10px;font-size:12px" onclick="event.stopPropagation();window.location.href='api/pay.php?order_no=${encodeURIComponent(o.order_no)}'">去支付</button>` : '';
+                const noteHtml = o.delivery_note ? `<div style="font-size:12px;color:var(--text-muted);margin-top:8px">备注：${escapeHtml(o.delivery_note)}</div>` : '';
+                return `
+                    <div class="order-item" onclick="showOrderDetail(${parseInt(o.id)})" style="cursor:pointer">
+                        <div class="order-header">
+                            <span style="font-weight:600">${escapeHtml(o.product_name || '商品已删除')}</span>
+                            <span class="badge ${statusClass}">${statusText}</span>
+                        </div>
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;font-size:13px;color:var(--text-muted)">
+                            <div>订单号：<code style="color:var(--text-light)">${escapeHtml(o.order_no)}</code></div>
+                            <div>应付：${parseFloat(o.price || 0).toFixed(2)} 积分</div>
+                            <div>支付方式：${payMethod}</div>
+                            <div>交付状态：${deliveryText}</div>
+                            <div>创建时间：${escapeHtml(o.created_at || '')}</div>
+                            <div>更新时间：${escapeHtml(o.delivery_updated_at || o.paid_at || o.created_at || '')}</div>
+                        </div>
+                        ${noteHtml}
+                        <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">${createTicketBtn}${payBtn}</div>
+                    </div>`;
+            }).join('') + (data.data.total_pages > 1 ? renderPagination(orderPagination.page, orderPagination.totalPages, 'loadMyOrders') : '');
+            container.innerHTML = html;
+        });
+}
+
+function showCreateTicket(orderId = null) {
+    if (!currentUser) { showLogin(); return; }
+    apiFetch('api/orders.php?action=my&page_size=100')
+        .then(r => r.json())
+        .then(data => {
+            const select = document.getElementById('ticketOrder');
+            if (!select) return;
+            select.innerHTML = '<option value="">不关联订单</option>';
+            if (data.code === 1 && data.data && data.data.list) {
+                data.data.list.forEach(o => {
+                    select.innerHTML += `<option value="${o.id}">${escapeHtml(o.order_no)} - ${escapeHtml(o.product_name || '商品已删除')}</option>`;
+                });
+            }
+            if (orderId) select.value = String(orderId);
+        });
+    document.getElementById('ticketTitle').value = '';
+    document.getElementById('ticketContent').value = '';
+    const category = document.getElementById('ticketCategory');
+    const priority = document.getElementById('ticketPriority');
+    if (category) category.value = 'other';
+    if (priority) priority.value = '1';
+    document.getElementById('ticketModal').classList.add('show');
+}
+
+function submitTicket() {
+    const title = document.getElementById('ticketTitle').value.trim();
+    const content = document.getElementById('ticketContent').value.trim();
+    const orderId = document.getElementById('ticketOrder').value;
+    const category = document.getElementById('ticketCategory') ? document.getElementById('ticketCategory').value : 'other';
+    const priority = document.getElementById('ticketPriority') ? document.getElementById('ticketPriority').value : '1';
+    if (!title || !content) { alert('请填写标题和问题描述'); return; }
+    const body = new FormData();
+    body.append('action', 'create');
+    body.append('title', title);
+    body.append('content', content);
+    body.append('category', category);
+    body.append('priority', priority);
+    if (orderId) body.append('order_id', orderId);
+    apiFetch('api/tickets.php', { method: 'POST', body })
+        .then(r => r.json())
+        .then(data => {
+            if (data.code === 1) {
+                showToast('工单提交成功');
+                closeTicketModal();
+                loadMyTickets();
+            } else {
+                alert(data.msg || '提交失败');
+            }
+        });
+}
+
+function loadMyTickets() {
+    apiFetch('api/tickets.php?action=my')
+        .then(r => r.json())
+        .then(data => {
+            const container = document.getElementById('myTickets');
+            if (!container) return;
+            if (data.code !== 1 || !data.data || data.data.length === 0) {
+                container.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px;">暂无工单记录</p>';
+                return;
+            }
+            container.innerHTML = data.data.map(t => {
+                const statusClass = t.status == 0 ? 'wait' : (t.status == 1 ? 'on' : 'off');
+                const statusText = t.status == 0 ? '待回复' : (t.status == 1 ? '已回复' : '已关闭');
+                const priorityMap = ['低', '中', '高', '紧急'];
+                return `
+                    <div class="order-item" onclick="showTicketDetail(${t.id})" style="cursor:pointer">
+                        <div class="order-header">
+                            <span style="font-weight:600">${escapeHtml(t.title)}</span>
+                            <span class="badge ${statusClass}">${statusText}</span>
+                        </div>
+                        <div style="font-size:13px;color:var(--text-muted);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+                            <div>工单ID：<code style="color:var(--text-light)">#${t.id}</code>${t.order_no ? `<span style="margin:0 8px">|</span>关联订单：${escapeHtml(t.order_no)}` : ''}</div>
+                            <div>分类：${escapeHtml(t.category || 'other')} · 优先级：${priorityMap[parseInt(t.priority || 1)] || '中'}</div>
+                            <div>${escapeHtml(t.updated_at)}</div>
+                        </div>
+                    </div>`;
+            }).join('');
+        });
+}
+
+function showTicketDetail(id) {
+    Promise.all([
+        apiFetch('api/tickets.php?action=detail&id=' + id).then(r => r.json()),
+        apiFetch('api/upload.php?action=list&ticket_id=' + id).then(r => r.json()).catch(() => ({ code: 0, data: [] }))
+    ]).then(([ticketRes, attachRes]) => {
+        if (ticketRes.code !== 1 || !ticketRes.data) {
+            alert('获取工单详情失败');
+            return;
+        }
+        const ticket = ticketRes.data;
+        const attachments = attachRes.code === 1 ? attachRes.data : [];
+        const statusClass = ticket.status == 0 ? 'wait' : (ticket.status == 1 ? 'on' : 'off');
+        const statusText = ticket.status == 0 ? '待回复' : (ticket.status == 1 ? '已回复' : '已关闭');
+        document.getElementById('ticketDetailTitle').textContent = ticket.title;
+        const repliesHtml = (ticket.replies || []).map(r => `
+            <div class="ticket-reply ${r.user_id ? 'user' : 'admin'}">
+                <div class="reply-header"><span class="reply-author">${r.user_id ? escapeHtml(r.username || '用户') : '客服'}</span><span class="reply-time">${escapeHtml(r.created_at)}</span></div>
+                <div class="reply-content">${escapeHtml(r.content)}</div>
+            </div>`).join('');
+        const eventsHtml = (ticket.events || []).length ? `<div style="margin:18px 0 10px;font-weight:600">处理时间线</div>` + ticket.events.map(evt => `<div style="padding:8px 0;border-bottom:1px dashed var(--border);font-size:12px;color:var(--text-muted)"><strong style="color:var(--text-main)">${escapeHtml(evt.event_type || 'event')}</strong> · ${escapeHtml(evt.content || '')}<div style="margin-top:4px">${escapeHtml(evt.created_at || '')}</div></div>`).join('') : '';
+        let attachHtml = '';
+        if (attachments.length > 0) {
+            attachHtml = `<div class="ticket-attachments"><div class="ticket-attachments-title">📎 附件 (${attachments.length})</div><div class="ticket-attachments-grid">` + attachments.map(a => {
+                const fileUrl = `api/upload.php?action=download&id=${a.id}`;
+                const fileName = escapeHtml(a.original_name || '附件');
+                if ((a.mime_type || '').startsWith('image/')) {
+                    return `<a class="ticket-attachment image" href="${fileUrl}" target="_blank"><img src="${fileUrl}" alt="${fileName}"><span class="ticket-attachment-name">${fileName}</span></a>`;
+                }
+                return `<a class="ticket-attachment file" href="${fileUrl}" target="_blank"><span class="ticket-attachment-icon">📄</span><span class="ticket-attachment-name">${fileName}</span></a>`;
+            }).join('') + '</div></div>';
+        }
+        document.getElementById('ticketDetailBody').innerHTML = `
+            <div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+                <span class="badge ${statusClass}" style="margin-right:12px">${statusText}</span>
+                ${ticket.order_no ? `<span style="color:var(--text-muted);font-size:13px">关联订单：${escapeHtml(ticket.order_no)}</span>` : ''}
+                <div style="margin-top:8px;font-size:12px;color:var(--text-muted)">分类：${escapeHtml(ticket.category || 'other')} · 优先级：${escapeHtml(String(ticket.priority ?? '1'))} · 更新时间：${escapeHtml(ticket.updated_at || '')}</div>
+            </div>
+            <div class="ticket-replies">${repliesHtml}</div>
+            ${eventsHtml}
+            ${attachHtml}
+            ${ticket.status != 2 ? `<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)"><textarea id="replyContent" rows="3" placeholder="输入回复内容..." style="width:100%;resize:vertical"></textarea><div style="margin-top:8px;display:flex;align-items:center;gap:10px"><input type="file" id="ticketFile" accept="image/*,.txt,.log,.pdf" style="font-size:12px"><button class="btn btn-outline" style="padding:4px 10px;font-size:12px" onclick="uploadUserTicketAttachment(${ticket.id})">上传</button></div></div>` : ''}
+        `;
+        document.getElementById('ticketDetailFoot').innerHTML = ticket.status != 2 ? `<button class="btn btn-outline" style="flex:1" onclick="closeTicket(${ticket.id})">关闭工单</button><button class="btn btn-primary" style="flex:1" onclick="replyTicket(${ticket.id})">发送回复</button>` : `<button class="btn btn-primary" style="width:100%" onclick="closeTicketDetail()">关闭</button>`;
+        document.getElementById('ticketDetailModal').classList.add('show');
+    });
+}
+
+function doAuth() {
+    const username = document.getElementById('authUser').value.trim();
+    const password = document.getElementById('authPass').value;
+    const email = document.getElementById('authEmail').value.trim();
+    if (!username || !password) { alert('请填写用户名和密码'); return; }
+    const action = isLoginMode ? 'login' : 'register';
+    const body = new FormData();
+    body.append('action', action);
+    body.append('username', username);
+    body.append('password', password);
+    if (!isLoginMode && email) body.append('email', email);
+    apiFetch('api/user.php', { method: 'POST', body })
+        .then(r => r.json())
+        .then(data => {
+            if (data.code !== 1) { alert(data.msg || '请求失败'); return; }
+            closeAuth();
+            if (!isLoginMode) { alert('注册成功，请登录'); showLogin(); return; }
+            if (data.data.role === 'admin') {
+                window.location.href = 'admin/index.html';
+                return;
+            }
+            currentUser = data.data.user || { username: data.data.username || username, credit_balance: data.data.credit_balance || 0 };
+            currentRole = 'user';
+            renderUserArea();
+            loadMyOrders();
+            loadMyTickets();
+            loadCreditSummary();
+            loadCreditTransactions();
+            initNotifications();
+        });
+}
+
+
+// ===== BUGFIX OVERRIDES 2026-03-15 =====
+function getCurrentUserName() {
+    if (!currentUser) return '';
+    if (typeof currentUser === 'object') return currentUser.username || currentUser.linuxdo_username || currentUser.name || '';
+    return String(currentUser);
+}
+
+function getCurrentBalance() {
+    if (!currentUser || typeof currentUser !== 'object') return 0;
+    return parseFloat(currentUser.credit_balance || 0) || 0;
+}
+
+function updateWelcomeCard() {
+    const greeting = document.getElementById('welcomeGreeting');
+    const avatar = document.getElementById('welcomeAvatar');
+    if (!greeting) return;
+    const hour = new Date().getHours();
+    let timeGreeting = '您好';
+    if (hour >= 5 && hour < 12) timeGreeting = '早上好';
+    else if (hour >= 12 && hour < 14) timeGreeting = '中午好';
+    else if (hour >= 14 && hour < 18) timeGreeting = '下午好';
+    else if (hour >= 18 && hour < 22) timeGreeting = '晚上好';
+    else timeGreeting = '夜深了';
+    const username = getCurrentUserName();
+    if (username) {
+        greeting.textContent = `${timeGreeting}！${username}`;
+        if (avatar) {
+            avatar.classList.add('has-user');
+            avatar.innerHTML = `<span style="font-size:24px;font-weight:600;">${escapeHtml(username.charAt(0).toUpperCase())}</span>`;
+        }
+    } else {
+        greeting.textContent = '欢迎访问';
+        if (avatar) {
+            avatar.classList.remove('has-user');
+            avatar.innerHTML = `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+        }
+    }
+}
+
+function renderAvailableInstances(orderList) {
+    const container = document.getElementById('productList');
+    if (!container) return;
+    if (!currentUser || currentRole !== 'user') {
+        container.innerHTML = '<div class="empty-state"><div class="empty-icon">🔐</div><p>登录后可查看您已拥有的实例</p><div style="margin-top:12px"><button class="btn btn-primary" onclick="showLogin()">立即登录</button></div></div>';
+        return;
+    }
+    const list = (orderList || cachedOrderList || []).filter(o => parseInt(o.status || 0) === 1);
+    if (!list.length) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-icon">🖥️</div><p>您还没有已拥有的实例</p><div style="margin-top:12px;color:var(--text-muted)">去“新建实例”页购买后，会在这里显示</div></div>';
+        return;
+    }
+    container.innerHTML = list.map(o => {
+        const deliveryText = escapeHtml(o.delivery_status_text || o.delivery_status || '-');
+        const statusClass = (o.delivery_status === 'delivered') ? 'on' : ((o.delivery_status === 'exception') ? 'off' : 'wait');
+        const hasCred = !!(o.ip_address || o.ssh_user || o.ssh_password);
+        return `
+            <div class="card" data-order-no="${escapeHtml(o.order_no || '')}">
+                <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;margin-bottom:12px">
+                    <div>
+                        <h3 style="margin-bottom:6px">${escapeHtml(o.product_name || '实例')}</h3>
+                        <div style="font-size:12px;color:var(--text-muted)">订单号：<code>${escapeHtml(o.order_no || '')}</code></div>
+                    </div>
+                    <span class="badge ${statusClass}">${deliveryText}</span>
+                </div>
+                <div class="specs">
+                    <div class="spec"><small>CPU</small><div class="spec-value">${escapeHtml(o.cpu || '-')}</div></div>
+                    <div class="spec"><small>内存</small><div class="spec-value">${escapeHtml(o.memory || '-')}</div></div>
+                    <div class="spec"><small>硬盘</small><div class="spec-value">${escapeHtml(o.disk || '-')}</div></div>
+                    <div class="spec"><small>带宽</small><div class="spec-value">${escapeHtml(o.bandwidth || '-')}</div></div>
+                </div>
+                <div style="font-size:13px;color:var(--text-muted);margin-top:14px;line-height:1.8">
+                    <div>交付状态：${deliveryText}</div>
+                    <div>创建时间：${escapeHtml(o.created_at || '')}</div>
+                    ${o.delivery_note ? `<div>备注：${escapeHtml(o.delivery_note)}</div>` : ''}
+                    ${hasCred ? `<div style="margin-top:8px;padding:10px;border-radius:10px;background:rgba(255,255,255,0.04)">
+                        <div>IP：<code>${escapeHtml(o.ip_address || '-')}</code></div>
+                        <div>端口：<code>${escapeHtml(String(o.ssh_port || '22'))}</code></div>
+                        <div>用户：<code>${escapeHtml(o.ssh_user || 'root')}</code></div>
+                    </div>` : '<div style="margin-top:8px;color:var(--warning)">实例凭据将在交付完成后显示</div>'}
+                </div>
+                <div class="card-footer" style="margin-top:14px">
+                    <div class="price">${parseFloat(o.price || 0).toFixed(2)}<span>积分</span></div>
+                    <div style="display:flex;gap:8px">
+                        ${hasCred ? `<button class="btn btn-outline" data-ip="${escapeHtml(o.ip_address || '')}" data-port="${escapeHtml(String(o.ssh_port || '22'))}" data-user="${escapeHtml(o.ssh_user || 'root')}" data-pass="${escapeHtml(o.ssh_password || '')}" onclick="copyAllVpsFromData(this)">复制全部</button>` : ''}
+                        <button class="btn btn-primary" onclick="showOrderDetail(${parseInt(o.id || 0)})">订单详情</button>
+                    </div>
+                </div>
+            </div>`;
+    }).join('');
+}
+
+function updateManageInstances(orderList) {
+    const card = document.getElementById('manageInstanceCard');
+    const tags = document.getElementById('manageInstanceTags');
+    if (!card || !tags) return;
+    const list = (orderList || cachedOrderList || []).filter(o => parseInt(o.status || 0) === 1);
+    if (!list.length) {
+        card.style.display = 'none';
+        const statInstances = document.getElementById('statInstances');
+        if (statInstances) statInstances.textContent = '0';
+        renderAvailableInstances([]);
+        return;
+    }
+    card.style.display = 'block';
+    tags.innerHTML = list.slice(0, 8).map(o => `
+        <span class="instance-tag" onclick="switchPage('instances')">
+            <span class="status-dot"></span>${escapeHtml(o.product_name || ('VPS-' + o.id))}
+        </span>`).join('');
+    const statInstances = document.getElementById('statInstances');
+    if (statInstances) statInstances.textContent = String(list.length);
+    renderAvailableInstances(list);
+}
+
+function renderUserArea() {
+    const area = document.getElementById('userArea');
+    const sidebarUserArea = document.getElementById('sidebarUserArea');
+    const userNavSection = document.getElementById('userNavSection');
+    const username = getCurrentUserName();
+    const balance = getCurrentBalance();
+    if (currentUser) {
+        const adminBtn = currentRole === 'admin' ? '<a href="admin/index.html" class="nav-link" style="color:var(--primary)">返回后台</a>' : '';
+        if (area) {
+            area.innerHTML = `
+                <div class="flex items-center gap-4">
+                    <span style="color:var(--text-light)">👤 ${escapeHtml(username)}</span>
+                    ${currentRole === 'user' ? `<span style="font-size:12px;color:var(--primary)">余额 ${balance.toFixed(2)}</span>` : ''}
+                    ${adminBtn}
+                    <a href="#" class="nav-link" onclick="logout();return false;">退出</a>
+                </div>`;
+        }
+        if (sidebarUserArea) {
+            sidebarUserArea.innerHTML = `
+                <div style="display:flex;align-items:center;gap:10px;padding:4px 0;">
+                    <div style="width:36px;height:36px;background:var(--primary-light);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--primary);font-weight:600;">${escapeHtml((username || '?').charAt(0).toUpperCase())}</div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-size:14px;font-weight:500;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(username)}</div>
+                        <div style="font-size:12px;color:var(--text-muted);">${currentRole === 'admin' ? '管理员' : `普通用户 · 余额 ${balance.toFixed(2)}`}</div>
+                    </div>
+                </div>`;
+        }
+        if (userNavSection) userNavSection.style.display = currentRole === 'user' ? 'block' : 'none';
+    } else {
+        if (area) {
+            area.innerHTML = `<div class="flex items-center gap-2"><a href="#" class="nav-link" onclick="showLogin();return false;">登录</a><a href="#" class="btn btn-primary" style="padding:6px 16px;font-size:13px" onclick="showRegister();return false;">注册</a></div>`;
+        }
+        if (sidebarUserArea) sidebarUserArea.innerHTML = `<button class="btn btn-primary" style="width:100%;padding:10px;" onclick="showLogin()">登录 / 注册</button>`;
+        if (userNavSection) userNavSection.style.display = 'none';
+    }
+    updateWelcomeCard();
+    updateHomeStats();
+}
+
+function checkLogin() {
+    apiFetch('api/user.php?action=check')
+        .then(r => r.json())
+        .then(data => {
+            if (data.code === 1) {
+                currentUser = (data.data && data.data.user) ? data.data.user : { username: data.data.username || '' };
+                currentRole = data.data.role || 'user';
+                renderUserArea();
+                if (currentRole === 'user') {
+                    loadMyOrders();
+                    loadMyTickets();
+                    loadCreditSummary();
+                    loadCreditTransactions();
+                    initNotifications();
+                } else {
+                    renderAvailableInstances([]);
+                }
+            } else {
+                currentUser = null;
+                currentRole = null;
+                cachedOrderList = [];
+                renderUserArea();
+                renderAvailableInstances([]);
+                stopNotificationPolling();
+            }
+        })
+        .catch(() => {
+            currentUser = null;
+            currentRole = null;
+            cachedOrderList = [];
+            renderUserArea();
+            renderAvailableInstances([]);
+        });
+}
+
+function loadProducts() {
+    apiFetch('api/products.php?action=list')
+        .then(r => r.json())
+        .then(data => {
+            const buyContainer = document.getElementById('buyProductList');
+            if (!buyContainer) return;
+            if (data.code !== 1 || !Array.isArray(data.data)) {
+                buyContainer.innerHTML = `<p style="color:var(--danger);text-align:center;padding:40px;">${escapeHtml(data.msg || '加载失败，请刷新重试')}</p>`;
+                return;
+            }
+            productCache = {};
+            data.data.forEach(p => { productCache[p.id] = p; });
+            if (!data.data.length) {
+                buyContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">📦</div><p>暂无可购买配置</p></div>';
+                return;
+            }
+            const renderCard = (p) => {
+                const canBuy = p.can_buy !== 0 && p.can_buy !== false;
+                const buyText = canBuy ? '立即购买' : (p.buy_block_reason || '暂不可购');
+                const trustDiscountHtml = parseFloat(p.trust_discount_amount || 0) > 0 ? `<div style="font-size:12px;color:var(--success);margin-top:6px">${escapeHtml(p.trust_discount_label || '社区等级优惠')}</div>` : '';
+                const templateHtml = p.template_name ? `<div style="font-size:12px;color:var(--text-muted);margin-top:6px">模板：${escapeHtml(p.template_name)}</div>` : '';
+                return `
+                    <div class="card buy-card" data-id="${p.id}">
+                        <h3>${escapeHtml(p.name || '')}</h3>
+                        <div class="specs">
+                            <div class="spec"><small>CPU</small><div class="spec-value">${escapeHtml(p.cpu || '-')}</div></div>
+                            <div class="spec"><small>内存</small><div class="spec-value">${escapeHtml(p.memory || '-')}</div></div>
+                            <div class="spec"><small>硬盘</small><div class="spec-value">${escapeHtml(p.disk || '-')}</div></div>
+                            <div class="spec"><small>带宽</small><div class="spec-value">${escapeHtml(p.bandwidth || '-')}</div></div>
+                        </div>
+                        <div style="font-size:13px;color:var(--text-muted);margin-top:12px;line-height:1.8">
+                            ${p.region ? `<div>地区：${escapeHtml(p.region)}</div>` : ''}
+                            ${p.line_type ? `<div>线路：${escapeHtml(p.line_type)}</div>` : ''}
+                            ${p.os_type ? `<div>系统：${escapeHtml(p.os_type)}</div>` : ''}
+                            ${p.min_trust_level ? `<div>最低信任等级：TL${escapeHtml(String(p.min_trust_level))}</div>` : ''}
+                            ${p.risk_review ? `<div style="color:var(--warning)">此商品可能进入人工审核</div>` : ''}
+                            ${p.buy_block_reason && !canBuy ? `<div style="color:var(--danger)">${escapeHtml(p.buy_block_reason)}</div>` : ''}
+                            ${templateHtml}
+                            ${trustDiscountHtml}
+                        </div>
+                        <div class="card-footer">
+                            <div>
+                                <div class="price">${parseFloat(p.price || 0).toFixed(2)}<span>积分/月</span></div>
+                                ${parseFloat(p.base_price || p.price || 0) > parseFloat(p.price || 0) ? `<div style="font-size:12px;color:var(--text-muted)">原价 ${parseFloat(p.base_price).toFixed(2)}</div>` : ''}
+                            </div>
+                            <div style="display:flex;gap:8px">
+                                <button class="btn btn-outline" onclick="showProductDetail(${p.id})">详情</button>
+                                <button class="btn ${canBuy ? 'btn-primary' : 'btn-outline'}" ${canBuy ? '' : 'disabled'} onclick="buyProductById(${p.id})">${escapeHtml(buyText)}</button>
+                            </div>
+                        </div>
+                    </div>`;
+            };
+            buyContainer.innerHTML = data.data.map(renderCard).join('');
+        })
+        .catch(() => {
+            const buyContainer = document.getElementById('buyProductList');
+            if (buyContainer) buyContainer.innerHTML = '<p style="color:var(--danger);text-align:center;padding:40px;">加载失败，请刷新重试</p>';
+        });
+}
+
+function loadMyOrders(page = 1) {
+    orderPagination.page = page;
+    const container = document.getElementById('myOrders');
+    if (container) container.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px;">加载中...</p>';
+    apiFetch('api/orders.php?action=my&page=' + page + '&page_size=' + orderPagination.pageSize)
+        .then(r => r.json())
+        .then(data => {
+            if (data.code !== 1 || !data.data) {
+                if (container) container.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px;">' + escapeHtml(data.msg || '加载失败') + '</p>';
+                renderAvailableInstances([]);
+                return;
+            }
+            orderPagination.total = parseInt(data.data.total || 0);
+            orderPagination.totalPages = parseInt(data.data.total_pages || 0);
+            const orders = Array.isArray(data.data.list) ? data.data.list : [];
+            cachedOrderList = orders;
+            updateManageInstances(orders);
+            if (!container) return;
+            if (!orders.length) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>暂无订单记录</p></div>';
+                return;
+            }
+            const payMethodMap = { pending: '待支付', balance: '余额支付', epay: 'EasyPay' };
+            const deliveryMap = { pending: '待支付', paid_waiting: '待开通', provisioning: '处理中', delivered: '已交付', exception: '异常', refunded: '已退款', cancelled: '已取消' };
+            const html = orders.map(o => {
+                const numericStatus = parseInt(o.status || 0);
+                const statusText = ['待支付', '已支付', '已退款', '已取消'][numericStatus] || '未知';
+                const statusClass = numericStatus === 1 ? 'on' : (numericStatus === 0 ? 'wait' : 'off');
+                const deliveryKey = o.delivery_status || ((numericStatus === 1) ? 'paid_waiting' : (numericStatus === 0 ? 'pending' : (numericStatus === 2 ? 'refunded' : 'cancelled')));
+                const deliveryText = escapeHtml(o.delivery_status_text || deliveryMap[deliveryKey] || deliveryKey);
+                const rawPayMethod = o.payment_method || ((numericStatus === 1 && parseFloat(o.balance_paid_amount || 0) > 0) ? 'balance' : ((numericStatus === 1) ? 'epay' : 'pending'));
+                const payMethod = escapeHtml(payMethodMap[rawPayMethod] || rawPayMethod || '-');
+                const createTicketBtn = `<button class="btn btn-outline" style="padding:4px 10px;font-size:12px" onclick="event.stopPropagation();showCreateTicket(${parseInt(o.id)});">发起工单</button>`;
+                const payBtn = numericStatus === 0 ? `<button class="btn btn-primary" style="padding:4px 10px;font-size:12px" onclick="event.stopPropagation();window.location.href='api/pay.php?order_no=${encodeURIComponent(o.order_no)}'">去支付</button>` : '';
+                return `
+                    <div class="order-item" onclick="showOrderDetail(${parseInt(o.id)})" style="cursor:pointer">
+                        <div class="order-header">
+                            <span style="font-weight:600">${escapeHtml(o.product_name || '商品已删除')}</span>
+                            <span class="badge ${statusClass}">${statusText}</span>
+                        </div>
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;font-size:13px;color:var(--text-muted)">
+                            <div>订单号：<code style="color:var(--text-light)">${escapeHtml(o.order_no || '')}</code></div>
+                            <div>应付：${parseFloat(o.price || 0).toFixed(2)} 积分</div>
+                            <div>支付方式：${payMethod}</div>
+                            <div>交付状态：${deliveryText}</div>
+                            <div>创建时间：${escapeHtml(o.created_at || '')}</div>
+                            <div>更新时间：${escapeHtml(o.delivery_updated_at || o.paid_at || o.created_at || '')}</div>
+                        </div>
+                        ${o.delivery_note ? `<div style="font-size:12px;color:var(--text-muted);margin-top:8px">备注：${escapeHtml(o.delivery_note)}</div>` : ''}
+                        ${o.delivery_error ? `<div style="font-size:12px;color:var(--danger);margin-top:8px">异常说明：${escapeHtml(o.delivery_error)}</div>` : ''}
+                        <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">${createTicketBtn}${payBtn}</div>
+                    </div>`;
+            }).join('') + (orderPagination.totalPages > 1 ? renderPagination(orderPagination.page, orderPagination.totalPages, 'loadMyOrders') : '');
+            container.innerHTML = html;
+        })
+        .catch(() => {
+            if (container) container.innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><p>加载失败</p></div>';
+            renderAvailableInstances([]);
+        });
+}
+
+function doAuth() {
+    const username = document.getElementById('authUser').value.trim();
+    const password = document.getElementById('authPass').value;
+    const email = document.getElementById('authEmail').value.trim();
+    if (!username || !password) {
+        alert('请填写用户名和密码');
+        return;
+    }
+    const action = isLoginMode ? 'login' : 'register';
+    const body = new FormData();
+    body.append('action', action);
+    body.append('username', username);
+    body.append('password', password);
+    if (!isLoginMode && email) body.append('email', email);
+    apiFetch('api/user.php', { method: 'POST', body })
+        .then(r => r.json())
+        .then(data => {
+            if (data.code !== 1) {
+                alert(data.msg || '操作失败');
+                return;
+            }
+            closeAuth();
+            if (isLoginMode) {
+                if (data.data.role === 'admin') {
+                    window.location.href = 'admin/index.html';
+                    return;
+                }
+                currentUser = (data.data && data.data.user) ? data.data.user : { username: data.data.username || username, credit_balance: data.data.credit_balance || 0 };
+                currentRole = 'user';
+                renderUserArea();
+                loadMyOrders();
+                loadMyTickets();
+                loadCreditSummary();
+                loadCreditTransactions();
+                initNotifications();
+            } else {
+                alert('注册成功，请登录');
+                showLogin();
+            }
+        });
+}
+
+function logout() {
+    apiFetch('api/user.php', { method: 'POST', body: new URLSearchParams({ action: 'logout' }) })
+        .then(() => {
+            currentUser = null;
+            currentRole = null;
+            cachedOrderList = [];
+            stopNotificationPolling();
+            renderUserArea();
+            renderAvailableInstances([]);
+            const orderEl = document.getElementById('myOrders');
+            const ticketEl = document.getElementById('myTickets');
+            const creditEl = document.getElementById('creditTransactions');
+            if (orderEl) orderEl.innerHTML = '';
+            if (ticketEl) ticketEl.innerHTML = '';
+            if (creditEl) creditEl.innerHTML = '暂无流水';
+            initCsrfToken();
+        });
+}
+
+
+// ===== FINAL STABILITY PATCH 2026-03-15B =====
+function normalizeCurrentUserValue(value) {
+    if (!value) return null;
+    if (typeof value === 'object') return value;
+    return { username: String(value), credit_balance: 0 };
+}
+
+window.addEventListener('pageshow', function (event) {
+    if (!event.persisted) return;
+    currentUser = normalizeCurrentUserValue(currentUser);
+    initCsrfToken();
+    checkLogin();
+    loadProducts();
+    if (currentRole === 'user' || currentUser) {
+        loadMyOrders();
+        loadCreditSummary();
+        loadCreditTransactions();
+    }
+});
+
+const __origGetCurrentUserName = getCurrentUserName;
+getCurrentUserName = function () {
+    currentUser = normalizeCurrentUserValue(currentUser);
+    return __origGetCurrentUserName();
+};
+
+const __origRenderUserArea = renderUserArea;
+renderUserArea = function () {
+    currentUser = normalizeCurrentUserValue(currentUser);
+    return __origRenderUserArea();
+};
+
+const __origUpdateWelcomeCard = updateWelcomeCard;
+updateWelcomeCard = function () {
+    currentUser = normalizeCurrentUserValue(currentUser);
+    return __origUpdateWelcomeCard();
+};
+
+// ===== HOTFIX 2026-03-15C =====
+function normalizeCurrentUserValueDeep(value) {
+    if (!value) return null;
+    if (typeof value === 'string') return { username: value, credit_balance: 0 };
+    if (typeof value === 'object') {
+        if (value.user && typeof value.user === 'object') return normalizeCurrentUserValueDeep(value.user);
+        if (value.username && typeof value.username === 'object') return normalizeCurrentUserValueDeep(value.username);
+        return value;
+    }
+    return { username: String(value), credit_balance: 0 };
+}
+
+function safeUserNameFrom(value) {
+    const u = normalizeCurrentUserValueDeep(value);
+    if (!u) return '';
+    const candidates = [u.username, u.linuxdo_username, u.name, u.linuxdo_name];
+    for (let i = 0; i < candidates.length; i++) {
+        const item = candidates[i];
+        if (typeof item === 'string' && item.trim() !== '') return item.trim();
+    }
+    return '';
+}
+
+getCurrentUserName = function () {
+    currentUser = normalizeCurrentUserValueDeep(currentUser);
+    return safeUserNameFrom(currentUser);
+};
+
+updateWelcomeCard = function () {
+    currentUser = normalizeCurrentUserValueDeep(currentUser);
+    const greeting = document.getElementById('welcomeGreeting');
+    const avatar = document.getElementById('welcomeAvatar');
+    if (!greeting) return;
+    const hour = new Date().getHours();
+    let timeGreeting = '您好';
+    if (hour >= 5 && hour < 12) timeGreeting = '早上好';
+    else if (hour >= 12 && hour < 14) timeGreeting = '中午好';
+    else if (hour >= 14 && hour < 18) timeGreeting = '下午好';
+    else if (hour >= 18 && hour < 22) timeGreeting = '晚上好';
+    else timeGreeting = '夜深了';
+    const username = safeUserNameFrom(currentUser);
+    greeting.textContent = username ? (timeGreeting + '！' + username) : '欢迎访问';
+    if (!avatar) return;
+    if (username) {
+        avatar.classList.add('has-user');
+        avatar.innerHTML = '<span style="font-size:24px;font-weight:600;">' + escapeHtml(username.charAt(0).toUpperCase()) + '</span>';
+    } else {
+        avatar.classList.remove('has-user');
+        avatar.innerHTML = '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+    }
+};
+
+function getDisplayProductName(order) {
+    return order.product_name || order.product_name_snapshot || (order.product_id ? ('商品#' + order.product_id) : '历史订单');
+}
+
+function getOrderSpecHtml(order) {
+    const specPairs = [
+        ['CPU', order.cpu],
+        ['内存', order.memory],
+        ['硬盘', order.disk],
+        ['带宽', order.bandwidth],
+        ['地区', order.region],
+        ['线路', order.line_type],
+        ['系统', order.os_type]
+    ].filter(function (row) { return row[1]; });
+    if (!specPairs.length) {
+        return '<div style="margin-top:12px;padding:12px;border-radius:12px;background:rgba(255,255,255,0.04);color:var(--text-muted)">该订单暂未记录规格快照。常见原因是下单时数据库还没补齐快照字段，或原商品已被删除。部署本次修复后，先在后台执行一次数据库更新，之后新订单会自动保留规格与连接快照。</div>';
+    }
+    return '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:14px">' + specPairs.map(function (row) {
+        return '<div style="padding:12px;border-radius:12px;background:rgba(255,255,255,0.04)"><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">' + row[0] + '</div><div style="font-weight:600;color:var(--text-main)">' + escapeHtml(String(row[1])) + '</div></div>';
+    }).join('') + '</div>';
+}
+
+renderAvailableInstances = function (orderList) {
+    const container = document.getElementById('productList');
+    if (!container) return;
+    if (!currentUser || currentRole !== 'user') {
+        container.innerHTML = '<div class="empty-state"><div class="empty-icon">🔐</div><p>登录后可查看您已拥有的实例</p><div style="margin-top:12px"><button class="btn btn-primary" onclick="showLogin()">立即登录</button></div></div>';
+        return;
+    }
+    const list = (orderList || cachedOrderList || []).filter(function (o) {
+        const status = parseInt(o.status || 0);
+        const delivery = String(o.delivery_status || '');
+        return status === 1 && delivery !== 'refunded' && delivery !== 'cancelled';
+    });
+    if (!list.length) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-icon">🖥️</div><p>您还没有已拥有的实例</p><div style="margin-top:12px;color:var(--text-muted)">去“新建实例”页购买后，会在这里显示</div></div>';
+        return;
+    }
+    container.innerHTML = list.map(function (o) {
+        const deliveryText = escapeHtml(o.delivery_status_text || o.delivery_status || '-');
+        const statusClass = (o.delivery_status === 'delivered') ? 'on' : ((o.delivery_status === 'exception') ? 'off' : 'wait');
+        const hasCred = !!(o.ip_address || o.ssh_user || o.ssh_password);
+        return `
+            <div class="card" data-order-no="${escapeHtml(o.order_no || '')}">
+                <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;margin-bottom:12px">
+                    <div>
+                        <h3 style="margin-bottom:6px">${escapeHtml(getDisplayProductName(o))}</h3>
+                        <div style="font-size:12px;color:var(--text-muted)">订单号：<code>${escapeHtml(o.order_no || '')}</code></div>
+                    </div>
+                    <span class="badge ${statusClass}">${deliveryText}</span>
+                </div>
+                <div class="specs">
+                    <div class="spec"><small>CPU</small><div class="spec-value">${escapeHtml(o.cpu || '-')}</div></div>
+                    <div class="spec"><small>内存</small><div class="spec-value">${escapeHtml(o.memory || '-')}</div></div>
+                    <div class="spec"><small>硬盘</small><div class="spec-value">${escapeHtml(o.disk || '-')}</div></div>
+                    <div class="spec"><small>带宽</small><div class="spec-value">${escapeHtml(o.bandwidth || '-')}</div></div>
+                </div>
+                <div style="font-size:13px;color:var(--text-muted);margin-top:14px;line-height:1.8">
+                    <div>交付状态：${deliveryText}</div>
+                    <div>创建时间：${escapeHtml(o.created_at || '')}</div>
+                    ${o.delivery_note ? `<div>备注：${escapeHtml(o.delivery_note)}</div>` : ''}
+                    ${hasCred ? `<div style="margin-top:8px;padding:10px;border-radius:10px;background:rgba(255,255,255,0.04)">
+                        <div>IP：<code>${escapeHtml(o.ip_address || '-')}</code></div>
+                        <div>端口：<code>${escapeHtml(String(o.ssh_port || '22'))}</code></div>
+                        <div>用户：<code>${escapeHtml(o.ssh_user || 'root')}</code></div>
+                    </div>` : '<div style="margin-top:8px;color:var(--warning)">实例凭据将在交付完成后显示</div>'}
+                </div>
+                <div class="card-footer" style="margin-top:14px">
+                    <div class="price">${parseFloat(o.price || 0).toFixed(2)}<span>积分</span></div>
+                    <div style="display:flex;gap:8px">
+                        ${hasCred ? `<button class="btn btn-outline" data-ip="${escapeHtml(o.ip_address || '')}" data-port="${escapeHtml(String(o.ssh_port || '22'))}" data-user="${escapeHtml(o.ssh_user || 'root')}" data-pass="${escapeHtml(o.ssh_password || '')}" onclick="copyAllVpsFromData(this)">复制全部</button>` : ''}
+                        <button class="btn btn-primary" onclick="showOrderDetail(${parseInt(o.id || 0)})">订单详情</button>
+                    </div>
+                </div>
+            </div>`;
+    }).join('');
+};
+
+loadMyOrders = function (page = 1) {
+    orderPagination.page = page;
+    const container = document.getElementById('myOrders');
+    if (container) container.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px;">加载中...</p>';
+    apiFetch('api/orders.php?action=my&page=' + page + '&page_size=' + orderPagination.pageSize)
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.code !== 1 || !data.data) {
+                if (container) container.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px;">' + escapeHtml(data.msg || '加载失败') + '</p>';
+                renderAvailableInstances([]);
+                return;
+            }
+            orderPagination.total = parseInt(data.data.total || 0);
+            orderPagination.totalPages = parseInt(data.data.total_pages || 0);
+            const orders = Array.isArray(data.data.list) ? data.data.list : [];
+            cachedOrderList = orders;
+            updateManageInstances(orders);
+            if (!container) return;
+            if (!orders.length) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>暂无订单记录</p></div>';
+                return;
+            }
+            const payMethodMap = { pending: '待支付', balance: '余额支付', epay: 'EasyPay' };
+            const deliveryMap = { pending: '待支付', paid_waiting: '待开通', provisioning: '处理中', delivered: '已交付', exception: '异常', refunded: '已退款', cancelled: '已取消' };
+            const html = orders.map(function (o) {
+                const numericStatus = parseInt(o.status || 0);
+                const statusText = ['待支付', '已支付', '已退款', '已取消'][numericStatus] || '未知';
+                const statusClass = numericStatus === 1 ? 'on' : (numericStatus === 0 ? 'wait' : 'off');
+                const deliveryKey = o.delivery_status || ((numericStatus === 1) ? 'paid_waiting' : (numericStatus === 0 ? 'pending' : (numericStatus === 2 ? 'refunded' : 'cancelled')));
+                const deliveryText = escapeHtml(o.delivery_status_text || deliveryMap[deliveryKey] || deliveryKey);
+                const rawPayMethod = o.payment_method || ((numericStatus === 1 && parseFloat(o.balance_paid_amount || 0) > 0) ? 'balance' : ((numericStatus === 1) ? 'epay' : 'pending'));
+                const payMethod = escapeHtml(payMethodMap[rawPayMethod] || rawPayMethod || '-');
+                const title = escapeHtml(getDisplayProductName(o));
+                const createTicketBtn = `<button class="btn btn-outline" style="padding:4px 10px;font-size:12px" onclick="event.stopPropagation();showCreateTicket(${parseInt(o.id)});">发起工单</button>`;
+                const payBtn = numericStatus === 0 ? `<button class="btn btn-primary" style="padding:4px 10px;font-size:12px" onclick="event.stopPropagation();window.location.href='api/pay.php?order_no=${encodeURIComponent(o.order_no)}'">去支付</button>` : '';
+                return `
+                    <div class="order-item" onclick="showOrderDetail(${parseInt(o.id)})" style="cursor:pointer">
+                        <div class="order-header">
+                            <span style="font-weight:600">${title}</span>
+                            <span class="badge ${statusClass}">${statusText}</span>
+                        </div>
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;font-size:13px;color:var(--text-muted)">
+                            <div>订单号：<code style="color:var(--text-light)">${escapeHtml(o.order_no || '')}</code></div>
+                            <div>应付：${parseFloat(o.price || 0).toFixed(2)} 积分</div>
+                            <div>支付方式：${payMethod}</div>
+                            <div>交付状态：${deliveryText}</div>
+                            <div>创建时间：${escapeHtml(o.created_at || '')}</div>
+                            <div>更新时间：${escapeHtml(o.delivery_updated_at || o.paid_at || o.created_at || '')}</div>
+                        </div>
+                        ${(o.cpu || o.memory || o.disk || o.bandwidth || o.region || o.line_type || o.os_type) ? getOrderSpecHtml(o) : ''}
+                        ${o.delivery_note ? `<div style="font-size:12px;color:var(--text-muted);margin-top:8px">备注：${escapeHtml(o.delivery_note)}</div>` : ''}
+                        ${o.delivery_error ? `<div style="font-size:12px;color:var(--danger);margin-top:8px">异常说明：${escapeHtml(o.delivery_error)}</div>` : ''}
+                        <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">${createTicketBtn}${payBtn}</div>
+                    </div>`;
+            }).join('') + (orderPagination.totalPages > 1 ? renderPagination(orderPagination.page, orderPagination.totalPages, 'loadMyOrders') : '');
+            container.innerHTML = html;
+        })
+        .catch(function () {
+            if (container) container.innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><p>加载失败</p></div>';
+            renderAvailableInstances([]);
+        });
+};
+
+function closeOrderDetail() {
+    const modal = document.getElementById('orderDetailModal');
+    if (modal) modal.classList.remove('show');
+}
+
+showOrderDetail = function (orderId) {
+    const order = (cachedOrderList || []).find(function (item) { return parseInt(item.id || 0) === parseInt(orderId || 0); });
+    if (!order || !order.order_no) {
+        switchPage('orders');
+        return;
+    }
+    apiFetch('api/orders.php?action=query&order_no=' + encodeURIComponent(order.order_no))
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.code !== 1 || !data.data) {
+                alert(data.msg || '获取订单详情失败');
+                return;
+            }
+            const o = data.data;
+            const numericStatus = parseInt(o.status || 0);
+            const statusText = ['待支付', '已支付', '已退款', '已取消'][numericStatus] || '未知';
+            const deliveryText = escapeHtml(o.delivery_status_text || o.delivery_status || '-');
+            const payMethodMap = { pending: '待支付', balance: '余额支付', epay: 'EasyPay' };
+            const rawPayMethod = o.payment_method || ((numericStatus === 1 && parseFloat(o.balance_paid_amount || 0) > 0) ? 'balance' : ((numericStatus === 1) ? 'epay' : 'pending'));
+            const payMethod = escapeHtml(payMethodMap[rawPayMethod] || rawPayMethod || '-');
+            const body = document.getElementById('orderDetailBody');
+            const title = document.getElementById('orderDetailTitle');
+            if (!body || !title) return;
+            title.textContent = '订单详情 · ' + getDisplayProductName(o);
+            body.innerHTML = `
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;font-size:13px;color:var(--text-muted)">
+                    <div>订单号：<code style="color:var(--text-light)">${escapeHtml(o.order_no || '')}</code></div>
+                    <div>订单状态：${escapeHtml(statusText)}</div>
+                    <div>支付方式：${payMethod}</div>
+                    <div>交付状态：${deliveryText}</div>
+                    <div>创建时间：${escapeHtml(o.created_at || '')}</div>
+                    <div>更新时间：${escapeHtml(o.delivery_updated_at || o.paid_at || o.created_at || '')}</div>
+                </div>
+                ${getOrderSpecHtml(o)}
+                ${o.description ? `<div style="margin-top:14px;padding:12px;border-radius:12px;background:rgba(255,255,255,0.04)"><div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">商品说明</div><div style="line-height:1.7;color:var(--text-main);white-space:pre-wrap">${escapeHtml(o.description)}</div></div>` : ''}
+                ${o.extra_info ? `<div style="margin-top:14px;padding:12px;border-radius:12px;background:rgba(255,255,255,0.04)"><div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">配置信息</div><div style="line-height:1.7;color:var(--text-main);white-space:pre-wrap">${escapeHtml(o.extra_info)}</div></div>` : ''}
+                ${o.delivery_info ? `<div style="margin-top:14px;padding:12px;border-radius:12px;background:rgba(255,255,255,0.04)"><div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">交付信息</div><div style="line-height:1.7;color:var(--text-main);white-space:pre-wrap">${escapeHtml(o.delivery_info)}</div></div>` : ''}
+                ${o.delivery_note ? `<div style="margin-top:14px;padding:12px;border-radius:12px;background:rgba(255,255,255,0.04)"><div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">交付备注</div><div style="line-height:1.7;color:var(--text-main);white-space:pre-wrap">${escapeHtml(o.delivery_note)}</div></div>` : ''}
+                ${o.delivery_error ? `<div style="margin-top:14px;padding:12px;border-radius:12px;background:rgba(255,255,255,0.04)"><div style="font-size:12px;color:var(--danger);margin-bottom:6px">异常说明</div><div style="line-height:1.7;color:var(--text-main);white-space:pre-wrap">${escapeHtml(o.delivery_error)}</div></div>` : ''}
+                ${buildOrderCredentialView(o)}
+            `;
+            const modal = document.getElementById('orderDetailModal');
+            if (modal) modal.classList.add('show');
+        })
+        .catch(function () {
+            alert('获取订单详情失败');
+        });
+};
+
+checkLogin = function () {
+    apiFetch('api/user.php?action=check')
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.code === 1) {
+                currentUser = normalizeCurrentUserValueDeep((data.data && data.data.user) ? data.data.user : { username: data.data.username || '' });
+                currentRole = data.data.role || 'user';
+                renderUserArea();
+                if (currentRole === 'user') {
+                    loadMyOrders();
+                    loadMyTickets();
+                    loadCreditSummary();
+                    loadCreditTransactions();
+                    initNotifications();
+                } else {
+                    renderAvailableInstances([]);
+                }
+            } else {
+                currentUser = null;
+                currentRole = null;
+                cachedOrderList = [];
+                renderUserArea();
+                renderAvailableInstances([]);
+                stopNotificationPolling();
+            }
+        })
+        .catch(function () {
+            currentUser = null;
+            currentRole = null;
+            cachedOrderList = [];
+            renderUserArea();
+            renderAvailableInstances([]);
+        });
+};

@@ -29,8 +29,12 @@ switch ($action) {
     case 'callback':
         header('Content-Type: text/html; charset=utf-8');
         $state = (string)requestValue('state', '');
-        if ($state === '' || $state !== ($_SESSION['oauth_state'] ?? '')) {
-            outputError('安全验证失败，请重试');
+        $expectedState = (string)($_SESSION['oauth_state'] ?? '');
+        if ($state === '' || $state !== $expectedState) {
+            if (!empty($_SESSION['user_id'])) {
+                outputSuccess((string)($_SESSION['username'] ?? '用户'), false);
+            }
+            outputError('安全验证失败，请重新发起登录');
         }
         unset($_SESSION['oauth_state']);
 
@@ -76,46 +80,37 @@ function getAccessToken(string $code): ?array {
         'grant_type' => 'authorization_code'
     ];
 
-    $ch = curl_init(LINUXDO_TOKEN_URL);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Content-Type: application/x-www-form-urlencoded',
-        'Accept: application/json'
+    $response = httpRequest(LINUXDO_TOKEN_URL, [
+        'method' => 'POST',
+        'data' => $data,
+        'headers' => [
+            'Content-Type' => 'application/x-www-form-urlencoded',
+            'Accept' => 'application/json'
+        ],
+        'timeout' => 30,
+        'ssl_verify_peer' => true
     ]);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-
-    $response = curl_exec($ch);
-    $error = curl_error($ch);
-    curl_close($ch);
-
-    if ($error) {
+    if (!$response['ok']) {
         return null;
     }
-    $decoded = json_decode((string)$response, true);
+    $decoded = json_decode((string)$response['body'], true);
     return is_array($decoded) ? $decoded : null;
 }
 
 function getUserInfo(string $accessToken): ?array {
-    $ch = curl_init(LINUXDO_USER_URL);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Authorization: Bearer ' . $accessToken,
-        'Accept: application/json'
+    $response = httpRequest(LINUXDO_USER_URL, [
+        'method' => 'GET',
+        'headers' => [
+            'Authorization' => 'Bearer ' . $accessToken,
+            'Accept' => 'application/json'
+        ],
+        'timeout' => 30,
+        'ssl_verify_peer' => true
     ]);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-
-    $response = curl_exec($ch);
-    $error = curl_error($ch);
-    curl_close($ch);
-
-    if ($error) {
+    if (!$response['ok']) {
         return null;
     }
-    $decoded = json_decode((string)$response, true);
+    $decoded = json_decode((string)$response['body'], true);
     return is_array($decoded) ? $decoded : null;
 }
 
@@ -125,6 +120,8 @@ function handleUserLogin(array $userInfo): array {
     $username = (string)($userInfo['username'] ?? '');
     $name = (string)($userInfo['name'] ?? $username);
     $trustLevel = (int)($userInfo['trust_level'] ?? 0);
+    $active = array_key_exists('active', $userInfo) ? (int)((bool)$userInfo['active']) : 1;
+    $silenced = array_key_exists('silenced', $userInfo) ? (int)((bool)$userInfo['silenced']) : 0;
     $avatar = '';
     if (!empty($userInfo['avatar_template'])) {
         $avatar = str_replace('{size}', '120', (string)$userInfo['avatar_template']);
@@ -138,8 +135,8 @@ function handleUserLogin(array $userInfo): array {
     $existingUser = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($existingUser) {
-        $stmt = $pdo->prepare('UPDATE users SET linuxdo_username = ?, linuxdo_name = ?, linuxdo_trust_level = ?, linuxdo_avatar = ?, updated_at = NOW() WHERE id = ?');
-        $stmt->execute([$username, $name, $trustLevel, $avatar, $existingUser['id']]);
+        $stmt = $pdo->prepare('UPDATE users SET linuxdo_username = ?, linuxdo_name = ?, linuxdo_trust_level = ?, linuxdo_active = ?, linuxdo_silenced = ?, linuxdo_avatar = ?, updated_at = NOW() WHERE id = ?');
+        $stmt->execute([$username, $name, $trustLevel, $active, $silenced, $avatar, $existingUser['id']]);
         $_SESSION['user_id'] = $existingUser['id'];
         $_SESSION['username'] = $existingUser['username'];
         return [
@@ -156,8 +153,8 @@ function handleUserLogin(array $userInfo): array {
         $finalUsername = $finalUsername . '_ld' . $linuxdoId;
     }
 
-    $stmt = $pdo->prepare('INSERT INTO users (username, linuxdo_id, linuxdo_username, linuxdo_name, linuxdo_trust_level, linuxdo_avatar, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())');
-    $stmt->execute([$finalUsername, $linuxdoId, $username, $name, $trustLevel, $avatar]);
+    $stmt = $pdo->prepare('INSERT INTO users (username, linuxdo_id, linuxdo_username, linuxdo_name, linuxdo_trust_level, linuxdo_active, linuxdo_silenced, linuxdo_avatar, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())');
+    $stmt->execute([$finalUsername, $linuxdoId, $username, $name, $trustLevel, $active, $silenced, $avatar]);
     $userId = (int)$pdo->lastInsertId();
 
     $_SESSION['user_id'] = $userId;
@@ -231,7 +228,10 @@ function outputError(string $message): void {
         <div class="error-icon">😥</div>
         <h2>登录失败</h2>
         <p>{$safeMessage}</p>
-        <a href="../index.html" class="btn">返回首页</a>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+            <a href="../api/oauth.php?action=login" class="btn">重新登录</a>
+            <a href="../index.html" class="btn" style="background:#718096;">返回首页</a>
+        </div>
     </div>
 </body>
 </html>

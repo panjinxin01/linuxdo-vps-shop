@@ -30,13 +30,69 @@ function ordersHasColumn(PDO $pdo, string $column): bool {
         return $cache[$column];
     }
     try {
-        $stmt = $pdo->prepare('SHOW COLUMNS FROM `orders` LIKE ?');
-        $stmt->execute([$column]);
-        $cache[$column] = (bool)$stmt->fetchColumn();
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?');
+        $stmt->execute(['orders', $column]);
+        $cache[$column] = ((int)$stmt->fetchColumn() > 0);
     } catch (Throwable $e) {
-        $cache[$column] = false;
+        try {
+            $stmt = $pdo->query('SHOW COLUMNS FROM `orders`');
+            $cache[$column] = false;
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                if (isset($row['Field']) && (string)$row['Field'] === $column) {
+                    $cache[$column] = true;
+                    break;
+                }
+            }
+        } catch (Throwable $inner) {
+            $cache[$column] = false;
+        }
     }
     return $cache[$column];
+}
+
+
+function ensurePaymentRequestTable(PDO $pdo): void {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `payment_requests` (
+        `id` INT AUTO_INCREMENT PRIMARY KEY,
+        `order_no` VARCHAR(50) NOT NULL,
+        `external_order_no` VARCHAR(80) NOT NULL,
+        `user_id` INT NOT NULL,
+        `trade_no` VARCHAR(100) DEFAULT NULL,
+        `status` TINYINT NOT NULL DEFAULT 0,
+        `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        `paid_at` DATETIME DEFAULT NULL,
+        UNIQUE KEY `uniq_payment_requests_external` (`external_order_no`),
+        INDEX `idx_payment_requests_order` (`order_no`),
+        INDEX `idx_payment_requests_user_status` (`user_id`, `status`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+function createExternalOrderNo(string $orderNo): string {
+    $base = preg_replace('/[^A-Za-z0-9]/', '', $orderNo);
+    $base = substr($base !== '' ? $base : 'VPS', 0, 28);
+    try {
+        $suffix = strtoupper(bin2hex(random_bytes(3)));
+    } catch (Throwable $e) {
+        $suffix = strtoupper(substr(md5(uniqid('', true)), 0, 6));
+    }
+    return $base . 'P' . date('ymdHis') . $suffix;
+}
+
+function reserveExternalOrderNo(PDO $pdo, string $orderNo, int $userId): string {
+    ensurePaymentRequestTable($pdo);
+    for ($i = 0; $i < 5; $i++) {
+        $externalOrderNo = createExternalOrderNo($orderNo);
+        try {
+            $stmt = $pdo->prepare('INSERT INTO payment_requests (order_no, external_order_no, user_id, status, created_at) VALUES (?, ?, ?, 0, NOW())');
+            $stmt->execute([$orderNo, $externalOrderNo, $userId]);
+            return $externalOrderNo;
+        } catch (Throwable $e) {
+            if ($i === 4) {
+                throw $e;
+            }
+        }
+    }
+    throw new RuntimeException('reserve external order no failed');
 }
 
 if (empty($_SESSION['user_id'])) {
@@ -89,10 +145,6 @@ try {
                 $updateSql .= ' WHERE order_no = ? AND status = 0';
                 $pdo->prepare($updateSql)->execute([$orderNo]);
                 releaseCouponByOrder($pdo, $orderNo);
-                if (!empty($fresh['product_id'])) {
-                    $pdo->prepare('UPDATE products SET status = 1 WHERE id = ?')
-                        ->execute([(int)$fresh['product_id']]);
-                }
                 $pdo->commit();
                 exit('订单已过期，请重新下单');
             }
@@ -114,10 +166,16 @@ if ($pid === '' || $key === '') {
     exit('支付未配置，请联系管理员');
 }
 
+try {
+    $externalOrderNo = reserveExternalOrderNo($pdo, (string)$order['order_no'], (int)$_SESSION['user_id']);
+} catch (Throwable $e) {
+    exit('支付请求初始化失败，请刷新后重试');
+}
+
 $params = [
     'pid' => $pid,
     'type' => 'epay',
-    'out_trade_no' => $order['order_no'],
+    'out_trade_no' => $externalOrderNo,
     'name' => ($order['product_name'] ?: '商品') . ' - 1个月',
     'money' => $order['price'],
     'notify_url' => $notifyUrl,
