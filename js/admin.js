@@ -587,6 +587,7 @@ balance = 退回站内余额`,
     .then((data) => {
       alert(data.msg || (data.code === 1 ? "退款成功" : "退款失败"));
       if (data.code === 1) {
+        closeAdminTicketDetail();
         loadOrders();
         loadStats();
       }

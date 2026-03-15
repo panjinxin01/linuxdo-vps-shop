@@ -460,6 +460,14 @@ function commerceRefundOrder(PDO $pdo, array $order, string $refundTarget = 'ori
 
     try {
         $pdo->beginTransaction();
+        // 事务内重新锁定订单，防止并发重复退款
+        $lockStmt = $pdo->prepare('SELECT status FROM orders WHERE order_no = ? FOR UPDATE');
+        $lockStmt->execute([$orderNo]);
+        $lockedOrder = $lockStmt->fetch(PDO::FETCH_ASSOC);
+        if (!$lockedOrder || (int)$lockedOrder['status'] !== 1) {
+            $pdo->rollBack();
+            throw new RuntimeException('订单已退款或状态已变更，无法重复退款');
+        }
         if ($refundToBalanceAmount > 0) {
             commerceAdjustBalance($pdo, (int)$order['user_id'], 'refund', $refundToBalanceAmount, [
                 'related_order_id' => (int)$order['id'],

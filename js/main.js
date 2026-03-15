@@ -412,9 +412,21 @@ function updateManageInstances(orderList) {
 }
 // 显示订单详情
 function showOrderDetail(id) {
-  const order = (cachedOrderList || []).find(function (item) {
+  // 先从缓存检查状态，退款/取消的订单直接拦截
+  const cached = (cachedOrderList || []).find(function (item) {
     return parseInt(item.id || 0) === parseInt(id || 0);
   });
+  if (cached) {
+    const cachedStatus = parseInt(cached.status || 0);
+    const cachedDelivery = String(cached.delivery_status || "");
+    if (cachedStatus === 2 || cachedDelivery === "refunded") {
+      return alert("当前订单已退款，不可查看详情");
+    }
+    if (cachedStatus === 3 || cachedDelivery === "cancelled") {
+      return alert("当前订单已取消，不可查看详情");
+    }
+  }
+  const order = cached;
   const url =
     order && order.order_no
       ? "api/orders.php?action=detail&order_no=" +
@@ -2206,5 +2218,13 @@ function credentialCopyAllowedFromDom(btn) {
   );
   if (!wrap) return true;
   const text = (wrap.textContent || "").replace(/\s+/g, " ");
-  return text.indexOf("已退款") === -1 && text.indexOf("已取消") === -1;
+  if (text.indexOf("已退款") !== -1) {
+    alert("当前订单已退款，不可复制连接信息");
+    return false;
+  }
+  if (text.indexOf("已取消") !== -1) {
+    alert("当前订单已取消，不可复制连接信息");
+    return false;
+  }
+  return true;
 }
