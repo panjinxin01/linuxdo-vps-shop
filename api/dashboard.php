@@ -7,11 +7,6 @@ require_once __DIR__ . '/../includes/commerce.php';
 $pdo = getDB();
 checkAdmin($pdo);
 $action = requestValue('action', 'summary');
-
-function tableExistsDash(PDO $pdo, string $table): bool {
-    return securityTableExists($pdo, $table);
-}
-
 function scalar(PDO $pdo, string $sql, $default = 0) {
     try {
         $value = $pdo->query($sql)->fetchColumn();
@@ -35,11 +30,11 @@ try {
                 'balance_paid_orders' => commerceColumnExists($pdo, 'orders', 'payment_method') ? (int)scalar($pdo, "SELECT COUNT(*) FROM orders WHERE status = 1 AND payment_method = 'balance'", 0) : 0,
                 'epay_paid_orders' => commerceColumnExists($pdo, 'orders', 'payment_method') ? (int)scalar($pdo, "SELECT COUNT(*) FROM orders WHERE status = 1 AND payment_method = 'epay'", 0) : 0,
                 'exception_orders' => commerceColumnExists($pdo, 'orders', 'delivery_status') ? (int)scalar($pdo, "SELECT COUNT(*) FROM orders WHERE delivery_status = 'exception'", 0) : 0,
-                'ticket_total' => tableExistsDash($pdo, 'tickets') ? (int)scalar($pdo, 'SELECT COUNT(*) FROM tickets', 0) : 0,
-                'ticket_pending' => tableExistsDash($pdo, 'tickets') ? (int)scalar($pdo, 'SELECT COUNT(*) FROM tickets WHERE status = 0', 0) : 0,
+                'ticket_total' => commerceTableExists($pdo, 'tickets') ? (int)scalar($pdo, 'SELECT COUNT(*) FROM tickets', 0) : 0,
+                'ticket_pending' => commerceTableExists($pdo, 'tickets') ? (int)scalar($pdo, 'SELECT COUNT(*) FROM tickets WHERE status = 0', 0) : 0,
                 'user_balance_total' => commerceColumnExists($pdo, 'users', 'credit_balance') ? (float)scalar($pdo, 'SELECT COALESCE(SUM(credit_balance),0) FROM users', 0) : 0,
-                'credit_total_in' => tableExistsDash($pdo, 'credit_transactions') ? (float)scalar($pdo, "SELECT COALESCE(SUM(amount),0) FROM credit_transactions WHERE amount > 0", 0) : 0,
-                'credit_total_out' => tableExistsDash($pdo, 'credit_transactions') ? (float)scalar($pdo, "SELECT COALESCE(SUM(ABS(amount)),0) FROM credit_transactions WHERE amount < 0", 0) : 0,
+                'credit_total_in' => commerceTableExists($pdo, 'credit_transactions') ? (float)scalar($pdo, "SELECT COALESCE(SUM(amount),0) FROM credit_transactions WHERE amount > 0", 0) : 0,
+                'credit_total_out' => commerceTableExists($pdo, 'credit_transactions') ? (float)scalar($pdo, "SELECT COALESCE(SUM(ABS(amount)),0) FROM credit_transactions WHERE amount < 0", 0) : 0,
                 'products_total' => (int)scalar($pdo, 'SELECT COUNT(*) FROM products', 0),
                 'users_total' => (int)scalar($pdo, 'SELECT COUNT(*) FROM users', 0),
             ];
@@ -79,13 +74,13 @@ try {
 
         case 'ticket_summary':
             $data = [
-                'total' => tableExistsDash($pdo, 'tickets') ? (int)scalar($pdo, 'SELECT COUNT(*) FROM tickets', 0) : 0,
-                'pending' => tableExistsDash($pdo, 'tickets') ? (int)scalar($pdo, 'SELECT COUNT(*) FROM tickets WHERE status = 0', 0) : 0,
-                'replied' => tableExistsDash($pdo, 'tickets') ? (int)scalar($pdo, 'SELECT COUNT(*) FROM tickets WHERE status = 1', 0) : 0,
-                'closed' => tableExistsDash($pdo, 'tickets') ? (int)scalar($pdo, 'SELECT COUNT(*) FROM tickets WHERE status = 2', 0) : 0,
+                'total' => commerceTableExists($pdo, 'tickets') ? (int)scalar($pdo, 'SELECT COUNT(*) FROM tickets', 0) : 0,
+                'pending' => commerceTableExists($pdo, 'tickets') ? (int)scalar($pdo, 'SELECT COUNT(*) FROM tickets WHERE status = 0', 0) : 0,
+                'replied' => commerceTableExists($pdo, 'tickets') ? (int)scalar($pdo, 'SELECT COUNT(*) FROM tickets WHERE status = 1', 0) : 0,
+                'closed' => commerceTableExists($pdo, 'tickets') ? (int)scalar($pdo, 'SELECT COUNT(*) FROM tickets WHERE status = 2', 0) : 0,
                 'category_breakdown' => [],
             ];
-            if (tableExistsDash($pdo, 'tickets') && commerceColumnExists($pdo, 'tickets', 'category')) {
+            if (commerceTableExists($pdo, 'tickets') && commerceColumnExists($pdo, 'tickets', 'category')) {
                 $stmt = $pdo->query('SELECT category, COUNT(*) AS total FROM tickets GROUP BY category ORDER BY total DESC');
                 $data['category_breakdown'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
             }
@@ -95,8 +90,8 @@ try {
         case 'recent':
             $limit = validateInt(requestValue('limit', 10), 1, 50) ?? 10;
             $orders = $pdo->query('SELECT order_no, status, delivery_status, price, created_at FROM orders ORDER BY id DESC LIMIT ' . (int)$limit)->fetchAll(PDO::FETCH_ASSOC);
-            $tickets = tableExistsDash($pdo, 'tickets') ? $pdo->query('SELECT id, title, status, category, updated_at FROM tickets ORDER BY id DESC LIMIT ' . (int)$limit)->fetchAll(PDO::FETCH_ASSOC) : [];
-            $credits = tableExistsDash($pdo, 'credit_transactions') ? $pdo->query('SELECT id, user_id, type, amount, created_at FROM credit_transactions ORDER BY id DESC LIMIT ' . (int)$limit)->fetchAll(PDO::FETCH_ASSOC) : [];
+            $tickets = commerceTableExists($pdo, 'tickets') ? $pdo->query('SELECT id, title, status, category, updated_at FROM tickets ORDER BY id DESC LIMIT ' . (int)$limit)->fetchAll(PDO::FETCH_ASSOC) : [];
+            $credits = commerceTableExists($pdo, 'credit_transactions') ? $pdo->query('SELECT id, user_id, type, amount, created_at FROM credit_transactions ORDER BY id DESC LIMIT ' . (int)$limit)->fetchAll(PDO::FETCH_ASSOC) : [];
             jsonResponse(1, '', [
                 'orders' => $orders,
                 'tickets' => $tickets,

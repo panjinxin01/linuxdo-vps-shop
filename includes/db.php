@@ -166,6 +166,22 @@ function getDB(): PDO {
     return $pdo;
 }
 
+function paginateParams(int $defaultSize = 20, int $maxSize = 100): array {
+    $page = validateInt(requestValue('page', 1), 1) ?? 1;
+    $pageSize = validateInt(requestValue('page_size', $defaultSize), 1, $maxSize) ?? $defaultSize;
+    return ['page' => $page, 'page_size' => $pageSize, 'offset' => ($page - 1) * $pageSize];
+}
+
+function paginateResponse(array $list, int $total, array $paginate): array {
+    return [
+        'list' => $list,
+        'total' => $total,
+        'page' => $paginate['page'],
+        'page_size' => $paginate['page_size'],
+        'total_pages' => $paginate['page_size'] > 0 ? (int)ceil($total / $paginate['page_size']) : 0,
+    ];
+}
+
 function checkAdmin(?PDO $pdo = null, bool $requireSuper = false): void {
     if (empty($_SESSION['admin_id'])) {
         jsonResponse(0, '请先登录后台');

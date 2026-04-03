@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../includes/security.php';
 startSecureSession();
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/notifications.php';
 
 $action = requestValue('action', '');
 $pdo = getDB();
@@ -18,42 +19,6 @@ function generateToken(int $length = 32): string {
     } catch (Throwable $e) {
         return bin2hex(uniqid('', true));
     }
-}
-
-function sendEmail(PDO $pdo, string $to, string $subject, string $body): bool {
-    $stmt = $pdo->query("SELECT key_name, key_value FROM settings WHERE key_name LIKE 'smtp_%'");
-    $smtp = [];
-    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $smtp[$row['key_name']] = $row['key_value'];
-    }
-
-    if (!empty($smtp['smtp_host']) && class_exists('PHPMailer\\PHPMailer\\PHPMailer')) {
-        try {
-            $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
-            $mail->isSMTP();
-            $mail->Host = $smtp['smtp_host'];
-            $mail->SMTPAuth = true;
-            $mail->Username = $smtp['smtp_user'] ?? '';
-            $mail->Password = $smtp['smtp_pass'] ?? '';
-            $mail->SMTPSecure = $smtp['smtp_secure'] ?? 'tls';
-            $mail->Port = (int)($smtp['smtp_port'] ?? 587);
-            $mail->CharSet = 'UTF-8';
-            $mail->setFrom($smtp['smtp_from'] ?? $smtp['smtp_user'], $smtp['smtp_name'] ?? SITE_NAME);
-            $mail->addAddress($to);
-            $mail->isHTML(true);
-            $mail->Subject = $subject;
-            $mail->Body = $body;
-            return $mail->send();
-        } catch (Throwable $e) {
-            logError($pdo, 'email.smtp', $e->getMessage(), ['to' => $to]);
-            return false;
-        }
-    }
-
-    $headers = "MIME-Version: 1.0\r\n";
-    $headers .= "Content-type: text/html; charset=UTF-8\r\n";
-    $headers .= "From: " . (defined('SITE_NAME') ? SITE_NAME : 'VPS商城') . " <noreply@" . ($_SERVER['HTTP_HOST'] ?? 'localhost') . ">\r\n";
-    return @mail($to, $subject, $body, $headers);
 }
 
 try {
@@ -99,7 +64,7 @@ try {
                 </div>
             ";
 
-            $sent = sendEmail($pdo, $email, $subject, $body);
+            $sent = sendSmtpEmail($pdo, $email, $subject, $body);
             if (!$sent) {
                 logError($pdo, 'password.reset_email', 'Failed to send reset email', ['email' => $email]);
             }
@@ -181,7 +146,7 @@ try {
                 </div>
             ";
 
-            $sent = sendEmail($pdo, $user['email'], $subject, $body);
+            $sent = sendSmtpEmail($pdo, $user['email'], $subject, $body);
             if (!$sent) {
                 logError($pdo, 'email.verify_send', 'Failed to send verification email', ['email' => $user['email']]);
                 jsonResponse(0, '发送验证邮件失败，请稍后重试');

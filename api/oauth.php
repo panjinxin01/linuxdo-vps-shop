@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../includes/security.php';
 startSecureSession();
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/commerce.php';
 
 $action = requestValue('action', '');
 
@@ -130,13 +131,36 @@ function handleUserLogin(array $userInfo): array {
         }
     }
 
-    $stmt = $pdo->prepare('SELECT id, username FROM users WHERE linuxdo_id = ?');
-    $stmt->execute([$linuxdoId]);
+    $hasLinuxdoId = commerceColumnExists($pdo, 'users', 'linuxdo_id');
+    $lookupSql = $hasLinuxdoId ? 'SELECT id, username FROM users WHERE linuxdo_id = ?' : 'SELECT id, username FROM users WHERE username = ?';
+    $stmt = $pdo->prepare($lookupSql);
+    $stmt->execute([$hasLinuxdoId ? $linuxdoId : ($username !== '' ? $username : ('user_' . $linuxdoId))]);
     $existingUser = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($existingUser) {
-        $stmt = $pdo->prepare('UPDATE users SET linuxdo_username = ?, linuxdo_name = ?, linuxdo_trust_level = ?, linuxdo_active = ?, linuxdo_silenced = ?, linuxdo_avatar = ?, updated_at = NOW() WHERE id = ?');
-        $stmt->execute([$username, $name, $trustLevel, $active, $silenced, $avatar, $existingUser['id']]);
+        $setParts = [];
+        $params = [];
+        foreach ([
+            'linuxdo_username' => $username,
+            'linuxdo_name' => $name,
+            'linuxdo_trust_level' => $trustLevel,
+            'linuxdo_active' => $active,
+            'linuxdo_silenced' => $silenced,
+            'linuxdo_avatar' => $avatar,
+        ] as $column => $value) {
+            if (commerceColumnExists($pdo, 'users', $column)) {
+                $setParts[] = $column . ' = ?';
+                $params[] = $value;
+            }
+        }
+        if (commerceColumnExists($pdo, 'users', 'updated_at')) {
+            $setParts[] = 'updated_at = NOW()';
+        }
+        if ($setParts) {
+            $params[] = $existingUser['id'];
+            $stmt = $pdo->prepare('UPDATE users SET ' . implode(', ', $setParts) . ' WHERE id = ?');
+            $stmt->execute($params);
+        }
         $_SESSION['user_id'] = $existingUser['id'];
         $_SESSION['username'] = $existingUser['username'];
         return [
@@ -153,8 +177,27 @@ function handleUserLogin(array $userInfo): array {
         $finalUsername = $finalUsername . '_ld' . $linuxdoId;
     }
 
-    $stmt = $pdo->prepare('INSERT INTO users (username, linuxdo_id, linuxdo_username, linuxdo_name, linuxdo_trust_level, linuxdo_active, linuxdo_silenced, linuxdo_avatar, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())');
-    $stmt->execute([$finalUsername, $linuxdoId, $username, $name, $trustLevel, $active, $silenced, $avatar]);
+    $columns = ['username'];
+    $values = [$finalUsername];
+    foreach ([
+        'linuxdo_id' => $linuxdoId,
+        'linuxdo_username' => $username,
+        'linuxdo_name' => $name,
+        'linuxdo_trust_level' => $trustLevel,
+        'linuxdo_active' => $active,
+        'linuxdo_silenced' => $silenced,
+        'linuxdo_avatar' => $avatar,
+    ] as $column => $value) {
+        if (commerceColumnExists($pdo, 'users', $column)) {
+            $columns[] = $column;
+            $values[] = $value;
+        }
+    }
+    $hasUpdatedAt = commerceColumnExists($pdo, 'users', 'updated_at');
+    $sqlCols = implode(', ', $columns) . ', created_at' . ($hasUpdatedAt ? ', updated_at' : '');
+    $sqlVals = implode(', ', array_fill(0, count($values), '?')) . ', NOW()' . ($hasUpdatedAt ? ', NOW()' : '');
+    $stmt = $pdo->prepare('INSERT INTO users (' . $sqlCols . ') VALUES (' . $sqlVals . ')');
+    $stmt->execute($values);
     $userId = (int)$pdo->lastInsertId();
 
     $_SESSION['user_id'] = $userId;

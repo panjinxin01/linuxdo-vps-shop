@@ -132,50 +132,12 @@ try {
             if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 jsonResponse(0, '请输入有效的邮箱地址');
             }
-
-            $stmt = $pdo->query("SELECT key_name, key_value FROM settings WHERE key_name LIKE 'smtp_%'");
-            $smtp = [];
-            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                $smtp[$row['key_name']] = $row['key_value'];
-            }
-
-            if (empty($smtp['smtp_host'])) {
-                jsonResponse(0, '请先配置SMTP服务器');
-            }
-
             $subject = (defined('SITE_NAME') ? SITE_NAME : 'VPS商城') . ' - SMTP测试';
             $body = '<div style="font-family:Arial,sans-serif;padding:20px"><h2>SMTP配置测试成功</h2><p>如果您收到这封邮件，说明SMTP配置正确。</p><p style="color:#666">发送时间：' . date('Y-m-d H:i:s') . '</p></div>';
-
-            if (class_exists('PHPMailer\\PHPMailer\\PHPMailer')) {
-                try {
-                    $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
-                    $mail->isSMTP();
-                    $mail->Host = $smtp['smtp_host'];
-                    $mail->SMTPAuth = true;
-                    $mail->Username = $smtp['smtp_user'] ?? '';
-                    $mail->Password = $smtp['smtp_pass'] ?? '';
-                    $mail->SMTPSecure = $smtp['smtp_secure'] ?? 'tls';
-                    $mail->Port = (int)($smtp['smtp_port'] ?? 587);
-                    $mail->CharSet = 'UTF-8';
-                    $mail->setFrom($smtp['smtp_from'] ?? $smtp['smtp_user'], $smtp['smtp_name'] ?? 'VPS商城');
-                    $mail->addAddress($email);
-                    $mail->isHTML(true);
-                    $mail->Subject = $subject;
-                    $mail->Body = $body;
-                    $mail->send();
-                    jsonResponse(1, '测试邮件已发送到' . $email);
-                } catch (Throwable $e) {
-                    jsonResponse(0, '发送失败: ' . $e->getMessage());
-                }
+            if (sendSmtpEmail($pdo, $email, $subject, $body)) {
+                jsonResponse(1, '测试邮件已发送到' . $email);
             }
-
-            $headers = "MIME-Version: 1.0\r\n";
-            $headers .= "Content-type: text/html; charset=UTF-8\r\n";
-            $headers .= 'From: ' . ($smtp['smtp_name'] ?? 'VPS商城') . ' <' . ($smtp['smtp_from'] ?? 'noreply@localhost') . ">\r\n";
-            if (@mail($email, $subject, $body, $headers)) {
-                jsonResponse(1, '测试邮件已发送（使用PHP mail函数）');
-            }
-            jsonResponse(0, '发送失败，建议安装PHPMailer库');
+            jsonResponse(0, '发送失败，请检查SMTP配置');
             break;
 
         default:

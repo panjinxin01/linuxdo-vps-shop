@@ -65,10 +65,9 @@ function productEffectiveRow(PDO $pdo, array $product, ?array $currentUser = nul
     return $product;
 }
 
-
 function productSelectSql(PDO $pdo, bool $withTemplate = true): string {
     $fields = ['p.*'];
-    if ($withTemplate && commerceTableExists($pdo, 'product_templates')) {
+    if ($withTemplate && commerceTableExists($pdo, 'product_templates') && commerceColumnExists($pdo, 'products', 'template_id')) {
         $fields[] = 't.name AS template_name';
         $join = ' LEFT JOIN product_templates t ON p.template_id = t.id';
     } else {
@@ -76,6 +75,34 @@ function productSelectSql(PDO $pdo, bool $withTemplate = true): string {
     }
     $orderBy = commerceColumnExists($pdo, 'products', 'sort_order') ? ' ORDER BY p.sort_order DESC, p.id DESC' : ' ORDER BY p.id DESC';
     return 'SELECT ' . implode(', ', $fields) . ' FROM products p' . $join . $orderBy;
+}
+
+function productOptionalAssignments(PDO $pdo, array $data, bool $encryptPassword = true): array {
+    $pairs = [];
+    $map = [
+        'cpu' => $data['cpu'],
+        'memory' => $data['memory'],
+        'disk' => $data['disk'],
+        'bandwidth' => $data['bandwidth'],
+        'region' => $data['region'],
+        'line_type' => $data['line_type'],
+        'os_type' => $data['os_type'],
+        'description' => $data['description'],
+        'extra_info' => $data['extra_info'],
+        'template_id' => $data['template_id'] ?: null,
+        'min_trust_level' => $data['min_trust_level'],
+        'risk_review_required' => $data['risk_review_required'],
+        'allow_whitelist_only' => $data['allow_whitelist_only'],
+    ];
+    foreach ($map as $column => $value) {
+        if (commerceColumnExists($pdo, 'products', $column)) {
+            $pairs[$column] = $value;
+        }
+    }
+    if (commerceColumnExists($pdo, 'products', 'ssh_password')) {
+        $pairs['ssh_password'] = $encryptPassword ? encryptSensitive($data['ssh_password']) : $data['ssh_password'];
+    }
+    return $pairs;
 }
 
 try {
@@ -116,14 +143,19 @@ try {
             if ($data['name'] === '' || $data['price'] === null || $data['ip_address'] === '' || $data['ssh_password'] === '') {
                 jsonResponse(0, '名称、价格、IP、密码必填');
             }
-            $encryptedPassword = encryptSensitive($data['ssh_password']);
-            $stmt = $pdo->prepare('INSERT INTO products (name, cpu, memory, disk, bandwidth, region, line_type, os_type, description, price, ip_address, ssh_port, ssh_user, ssh_password, extra_info, template_id, min_trust_level, risk_review_required, allow_whitelist_only, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())');
-            $stmt->execute([
-                $data['name'], $data['cpu'], $data['memory'], $data['disk'], $data['bandwidth'],
-                $data['region'], $data['line_type'], $data['os_type'], $data['description'], round($data['price'], 2),
-                $data['ip_address'], $data['ssh_port'], $data['ssh_user'], $encryptedPassword, $data['extra_info'],
-                $data['template_id'] ?: null, $data['min_trust_level'], $data['risk_review_required'], $data['allow_whitelist_only'], $data['status']
-            ]);
+            $columns = ['name', 'price', 'ip_address', 'ssh_port', 'ssh_user', 'status'];
+            $values = [$data['name'], round($data['price'], 2), $data['ip_address'], $data['ssh_port'], $data['ssh_user'], $data['status']];
+            $optional = productOptionalAssignments($pdo, $data, true);
+            foreach ($optional as $column => $value) {
+                if (!in_array($column, ['name', 'price', 'ip_address', 'ssh_port', 'ssh_user', 'status'], true)) {
+                    $columns[] = $column;
+                    $values[] = $value;
+                }
+            }
+            $placeholderSql = implode(', ', array_fill(0, count($values), '?'));
+            $columnSql = implode(', ', $columns);
+            $stmt = $pdo->prepare('INSERT INTO products (' . $columnSql . ', created_at) VALUES (' . $placeholderSql . ', NOW())');
+            $stmt->execute($values);
             $id = (int)$pdo->lastInsertId();
             logAudit($pdo, 'product.add', ['name' => $data['name'], 'price' => $data['price'], 'template_id' => $data['template_id']], (string)$id);
             jsonResponse(1, '添加成功', ['id' => $id]);
@@ -139,14 +171,18 @@ try {
             if ($data['name'] === '' || $data['price'] === null || $data['ip_address'] === '' || $data['ssh_password'] === '') {
                 jsonResponse(0, '名称、价格、IP、密码必填');
             }
-            $encryptedPassword = encryptSensitive($data['ssh_password']);
-            $stmt = $pdo->prepare('UPDATE products SET name=?, cpu=?, memory=?, disk=?, bandwidth=?, region=?, line_type=?, os_type=?, description=?, price=?, ip_address=?, ssh_port=?, ssh_user=?, ssh_password=?, extra_info=?, template_id=?, min_trust_level=?, risk_review_required=?, allow_whitelist_only=?, status=? WHERE id=?');
-            $stmt->execute([
-                $data['name'], $data['cpu'], $data['memory'], $data['disk'], $data['bandwidth'],
-                $data['region'], $data['line_type'], $data['os_type'], $data['description'], round($data['price'], 2),
-                $data['ip_address'], $data['ssh_port'], $data['ssh_user'], $encryptedPassword, $data['extra_info'],
-                $data['template_id'] ?: null, $data['min_trust_level'], $data['risk_review_required'], $data['allow_whitelist_only'], $data['status'], $id
-            ]);
+            $setParts = ['name=?', 'price=?', 'ip_address=?', 'ssh_port=?', 'ssh_user=?', 'status=?'];
+            $params = [$data['name'], round($data['price'], 2), $data['ip_address'], $data['ssh_port'], $data['ssh_user'], $data['status']];
+            $optional = productOptionalAssignments($pdo, $data, true);
+            foreach ($optional as $column => $value) {
+                if (!in_array($column, ['name', 'price', 'ip_address', 'ssh_port', 'ssh_user', 'status'], true)) {
+                    $setParts[] = $column . '=?';
+                    $params[] = $value;
+                }
+            }
+            $params[] = $id;
+            $stmt = $pdo->prepare('UPDATE products SET ' . implode(', ', $setParts) . ' WHERE id=?');
+            $stmt->execute($params);
             logAudit($pdo, 'product.edit', ['name' => $data['name'], 'price' => $data['price'], 'template_id' => $data['template_id']], (string)$id);
             jsonResponse(1, '修改成功');
             break;

@@ -19,31 +19,6 @@ function makeSign(array $params, string $key): string {
     return md5($str);
 }
 
-function ordersHasColumn(PDO $pdo, string $column): bool {
-    static $cache = [];
-    if (array_key_exists($column, $cache)) {
-        return $cache[$column];
-    }
-    try {
-        $stmt = $pdo->prepare('SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?');
-        $stmt->execute(['orders', $column]);
-        $cache[$column] = ((int)$stmt->fetchColumn() > 0);
-    } catch (Throwable $e) {
-        try {
-            $stmt = $pdo->query('SHOW COLUMNS FROM `orders`');
-            $cache[$column] = false;
-            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                if (isset($row['Field']) && (string)$row['Field'] === $column) {
-                    $cache[$column] = true;
-                    break;
-                }
-            }
-        } catch (Throwable $inner) {
-            $cache[$column] = false;
-        }
-    }
-    return $cache[$column];
-}
 
 
 function createExternalOrderNo(string $orderNo): string {
@@ -115,10 +90,10 @@ try {
             $freshCreated = strtotime((string)$fresh['created_at']);
             if ($freshCreated && $freshCreated < time() - 15 * 60) {
                 $updateSql = 'UPDATE orders SET status = 3';
-                if (ordersHasColumn($pdo, 'cancel_reason')) {
+                if (commerceColumnExists($pdo, 'orders', 'cancel_reason')) {
                     $updateSql .= ", cancel_reason = 'timeout'";
                 }
-                if (ordersHasColumn($pdo, 'cancelled_at')) {
+                if (commerceColumnExists($pdo, 'orders', 'cancelled_at')) {
                     $updateSql .= ', cancelled_at = NOW()';
                 }
                 $updateSql .= ' WHERE order_no = ? AND status = 0';

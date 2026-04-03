@@ -13,20 +13,14 @@ if (in_array($action, $csrfActions, true)) {
     requireCsrf();
 }
 
-function notificationsEnabled(PDO $pdo): bool {
-    return securityTableExists($pdo, 'notifications');
-}
-
 try {
     switch ($action) {
         case 'list':
             checkUser();
-            if (!notificationsEnabled($pdo)) {
+            if (!commerceTableExists($pdo, 'notifications')) {
                 jsonResponse(1, '', ['list' => [], 'total' => 0, 'unread' => 0]);
             }
-            $page = validateInt(requestValue('page', 1), 1) ?? 1;
-            $pageSize = validateInt(requestValue('page_size', 20), 1, 50) ?? 20;
-            $offset = ($page - 1) * $pageSize;
+            $pg = paginateParams(20, 50);
             $onlyUnread = requestValue('only_unread', '') === '1';
             $userId = (int)$_SESSION['user_id'];
 
@@ -45,23 +39,18 @@ try {
             $sql .= ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
             $stmt = $pdo->prepare($sql);
             $stmt->bindValue(1, $userId, PDO::PARAM_INT);
-            $stmt->bindValue(2, $pageSize, PDO::PARAM_INT);
-            $stmt->bindValue(3, $offset, PDO::PARAM_INT);
+            $stmt->bindValue(2, $pg['page_size'], PDO::PARAM_INT);
+            $stmt->bindValue(3, $pg['offset'], PDO::PARAM_INT);
             $stmt->execute();
-            $list = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            jsonResponse(1, '', [
-                'list' => $list,
-                'total' => $total,
-                'unread' => $unread,
-                'page' => $page,
-                'page_size' => $pageSize
-            ]);
+            $result = paginateResponse($stmt->fetchAll(PDO::FETCH_ASSOC), $total, $pg);
+            $result['unread'] = $unread;
+            jsonResponse(1, '', $result);
             break;
 
         case 'unread_count':
             checkUser();
-            if (!notificationsEnabled($pdo)) {
+            if (!commerceTableExists($pdo, 'notifications')) {
                 jsonResponse(1, '', ['count' => 0]);
             }
             $stmt = $pdo->prepare('SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0');
@@ -71,7 +60,7 @@ try {
 
         case 'mark_read':
             checkUser();
-            if (!notificationsEnabled($pdo)) {
+            if (!commerceTableExists($pdo, 'notifications')) {
                 jsonResponse(0, '通知功能未启用');
             }
             $id = validateInt(requestValue('id', null), 1);
@@ -85,7 +74,7 @@ try {
 
         case 'mark_all_read':
             checkUser();
-            if (!notificationsEnabled($pdo)) {
+            if (!commerceTableExists($pdo, 'notifications')) {
                 jsonResponse(0, '通知功能未启用');
             }
             $stmt = $pdo->prepare('UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0');
@@ -96,7 +85,7 @@ try {
 
         case 'delete':
             checkUser();
-            if (!notificationsEnabled($pdo)) {
+            if (!commerceTableExists($pdo, 'notifications')) {
                 jsonResponse(0, '通知功能未启用');
             }
             $id = validateInt(requestValue('id', null), 1);
@@ -110,7 +99,7 @@ try {
 
         case 'send':
             checkAdmin($pdo);
-            if (!notificationsEnabled($pdo)) {
+            if (!commerceTableExists($pdo, 'notifications')) {
                 jsonResponse(0, '通知功能未启用，请先执行数据库更新');
             }
             $title = normalizeString(requestValue('title', ''), 200);
@@ -138,25 +127,16 @@ try {
 
         case 'admin_list':
             checkAdmin($pdo);
-            if (!notificationsEnabled($pdo)) {
+            if (!commerceTableExists($pdo, 'notifications')) {
                 jsonResponse(1, '', ['list' => [], 'total' => 0]);
             }
-            $page = validateInt(requestValue('page', 1), 1) ?? 1;
-            $pageSize = validateInt(requestValue('page_size', 50), 1, 100) ?? 50;
-            $offset = ($page - 1) * $pageSize;
+            $pg = paginateParams(50);
             $total = (int)$pdo->query('SELECT COUNT(*) FROM notifications')->fetchColumn();
-            $sql = 'SELECT n.*, u.username FROM notifications n LEFT JOIN users u ON n.user_id = u.id ORDER BY n.created_at DESC LIMIT ? OFFSET ?';
-            $stmt = $pdo->prepare($sql);
-            $stmt->bindValue(1, $pageSize, PDO::PARAM_INT);
-            $stmt->bindValue(2, $offset, PDO::PARAM_INT);
+            $stmt = $pdo->prepare('SELECT n.*, u.username FROM notifications n LEFT JOIN users u ON n.user_id = u.id ORDER BY n.created_at DESC LIMIT ? OFFSET ?');
+            $stmt->bindValue(1, $pg['page_size'], PDO::PARAM_INT);
+            $stmt->bindValue(2, $pg['offset'], PDO::PARAM_INT);
             $stmt->execute();
-            $list = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            jsonResponse(1, '', [
-                'list' => $list,
-                'total' => $total,
-                'page' => $page,
-                'page_size' => $pageSize
-            ]);
+            jsonResponse(1, '', paginateResponse($stmt->fetchAll(PDO::FETCH_ASSOC), $total, $pg));
             break;
 
         default:

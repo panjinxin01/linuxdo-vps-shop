@@ -7,6 +7,7 @@ require_once __DIR__ . '/../includes/security.php';
 startSecureSession();
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/commerce.php';
 require_once __DIR__ . '/../includes/schema.php';
 
 $pdo = getDB();
@@ -18,29 +19,6 @@ if (in_array($action, $csrfActions, true)) {
     requireCsrf();
 }
 
-function updTableExists(PDO $pdo, string $table): bool {
-    return securityTableExists($pdo, $table);
-}
-
-function updColumnExists(PDO $pdo, string $table, string $column): bool {
-    try {
-        $stmt = $pdo->prepare('SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?');
-        $stmt->execute([$table, $column]);
-        return (int)$stmt->fetchColumn() > 0;
-    } catch (Throwable $e) {
-        try {
-            $safeTable = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
-            $stmt = $pdo->query("SHOW COLUMNS FROM `{$safeTable}`");
-            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                if (isset($row['Field']) && (string)$row['Field'] === $column) {
-                    return true;
-                }
-            }
-        } catch (Throwable $inner) {
-        }
-        return false;
-    }
-}
 
 
 function updIsIgnorableSchemaError(Throwable $e, string $kind = 'column'): bool {
@@ -70,7 +48,7 @@ function updBuildCompatibleColumnDefinitions(PDO $pdo, string $table, string $de
 
     if (preg_match('/\s+AFTER\s+`([^`]+)`/i', $definitionSql, $m)) {
         $afterCol = $m[1];
-        if (!updColumnExists($pdo, $table, $afterCol)) {
+        if (!commerceColumnExists($pdo, $table, $afterCol)) {
             $push(preg_replace('/\s+AFTER\s+`[^`]+`/i', '', $definitionSql));
         }
     }
@@ -93,7 +71,7 @@ function updBuildCompatibleColumnDefinitions(PDO $pdo, string $table, string $de
 }
 
 function updEnsureColumn(PDO $pdo, string $table, string $column, string $definitionSql, array &$migrated, array &$errors): void {
-    if (!updTableExists($pdo, $table) || updColumnExists($pdo, $table, $column)) {
+    if (!commerceTableExists($pdo, $table) || commerceColumnExists($pdo, $table, $column)) {
         return;
     }
 
@@ -110,7 +88,7 @@ function updEnsureColumn(PDO $pdo, string $table, string $column, string $defini
             }
             $lastError = $e;
         }
-        if (updColumnExists($pdo, $table, $column)) {
+        if (commerceColumnExists($pdo, $table, $column)) {
             $migrated[] = "{$table}.{$column}(verified)";
             return;
         }
@@ -140,7 +118,7 @@ function updIndexExists(PDO $pdo, string $table, string $indexName): bool {
 }
 
 function updEnsureIndex(PDO $pdo, string $table, string $indexName, string $definition, array &$migrated, array &$errors): void {
-    if (!updTableExists($pdo, $table) || updIndexExists($pdo, $table, $indexName)) {
+    if (!commerceTableExists($pdo, $table) || updIndexExists($pdo, $table, $indexName)) {
         return;
     }
     try {
@@ -156,7 +134,7 @@ function updEnsureIndex(PDO $pdo, string $table, string $indexName, string $defi
 }
 
 function updEnsureUnique(PDO $pdo, string $table, string $indexName, string $definition, array &$migrated, array &$errors): void {
-    if (!updTableExists($pdo, $table) || updIndexExists($pdo, $table, $indexName)) {
+    if (!commerceTableExists($pdo, $table) || updIndexExists($pdo, $table, $indexName)) {
         return;
     }
     try {
@@ -172,7 +150,7 @@ function updEnsureUnique(PDO $pdo, string $table, string $indexName, string $def
 }
 
 function updSeedSettings(PDO $pdo): void {
-    if (!updTableExists($pdo, 'settings')) {
+    if (!commerceTableExists($pdo, 'settings')) {
         return;
     }
     $stmt = $pdo->prepare('INSERT INTO settings (key_name, key_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE key_value = COALESCE(NULLIF(key_value, ""), VALUES(key_value))');
@@ -182,28 +160,28 @@ function updSeedSettings(PDO $pdo): void {
 }
 
 function updBackfillData(PDO $pdo, array &$migrated): void {
-    if (updTableExists($pdo, 'users') && updColumnExists($pdo, 'users', 'credit_balance')) {
+    if (commerceTableExists($pdo, 'users') && commerceColumnExists($pdo, 'users', 'credit_balance')) {
         $pdo->exec('UPDATE users SET credit_balance = 0 WHERE credit_balance IS NULL');
     }
 
-    if (updTableExists($pdo, 'orders')) {
-        if (updColumnExists($pdo, 'orders', 'original_price')) {
+    if (commerceTableExists($pdo, 'orders')) {
+        if (commerceColumnExists($pdo, 'orders', 'original_price')) {
             $pdo->exec('UPDATE orders SET original_price = price WHERE original_price IS NULL');
         }
-        if (updColumnExists($pdo, 'orders', 'trust_discount_amount')) {
+        if (commerceColumnExists($pdo, 'orders', 'trust_discount_amount')) {
             $pdo->exec('UPDATE orders SET trust_discount_amount = 0 WHERE trust_discount_amount IS NULL');
         }
-        if (updColumnExists($pdo, 'orders', 'coupon_discount')) {
+        if (commerceColumnExists($pdo, 'orders', 'coupon_discount')) {
             $pdo->exec('UPDATE orders SET coupon_discount = 0 WHERE coupon_discount IS NULL');
         }
-        if (updColumnExists($pdo, 'orders', 'balance_paid_amount')) {
+        if (commerceColumnExists($pdo, 'orders', 'balance_paid_amount')) {
             $pdo->exec('UPDATE orders SET balance_paid_amount = 0 WHERE balance_paid_amount IS NULL');
         }
-        if (updColumnExists($pdo, 'orders', 'external_pay_amount')) {
+        if (commerceColumnExists($pdo, 'orders', 'external_pay_amount')) {
             $pdo->exec("UPDATE orders SET external_pay_amount = price WHERE external_pay_amount IS NULL AND (payment_method = 'epay' OR trade_no IS NOT NULL)");
             $pdo->exec("UPDATE orders SET external_pay_amount = 0 WHERE external_pay_amount IS NULL");
         }
-        if (updTableExists($pdo, 'products')) {
+        if (commerceTableExists($pdo, 'products')) {
             $snapshotMap = [
                 'product_name_snapshot' => 'name',
                 'cpu_snapshot' => 'cpu',
@@ -221,12 +199,12 @@ function updBackfillData(PDO $pdo, array &$migrated): void {
                 'ssh_password_snapshot' => 'ssh_password',
             ];
             foreach ($snapshotMap as $orderCol => $productCol) {
-                if (updColumnExists($pdo, 'orders', $orderCol) && updColumnExists($pdo, 'products', $productCol)) {
+                if (commerceColumnExists($pdo, 'orders', $orderCol) && commerceColumnExists($pdo, 'products', $productCol)) {
                     $pdo->exec("UPDATE orders o INNER JOIN products p ON o.product_id = p.id SET o.`{$orderCol}` = p.`{$productCol}` WHERE (o.`{$orderCol}` IS NULL OR o.`{$orderCol}` = '')");
                 }
             }
         }
-        if (updColumnExists($pdo, 'orders', 'payment_method')) {
+        if (commerceColumnExists($pdo, 'orders', 'payment_method')) {
             $pdo->exec("UPDATE orders SET payment_method = CASE
                 WHEN payment_method IS NOT NULL AND payment_method <> '' THEN payment_method
                 WHEN status = 1 AND trade_no IS NOT NULL AND trade_no <> '' THEN 'epay'
@@ -234,7 +212,7 @@ function updBackfillData(PDO $pdo, array &$migrated): void {
                 ELSE 'pending'
             END");
         }
-        if (updColumnExists($pdo, 'orders', 'delivery_status')) {
+        if (commerceColumnExists($pdo, 'orders', 'delivery_status')) {
             $pdo->exec("UPDATE orders SET delivery_status = CASE
                 WHEN status = 2 THEN 'refunded'
                 WHEN status = 3 THEN 'cancelled'
@@ -243,14 +221,14 @@ function updBackfillData(PDO $pdo, array &$migrated): void {
                 ELSE 'pending'
             END WHERE delivery_status IS NULL OR delivery_status = ''");
         }
-        if (updColumnExists($pdo, 'orders', 'delivery_updated_at')) {
+        if (commerceColumnExists($pdo, 'orders', 'delivery_updated_at')) {
             $pdo->exec('UPDATE orders SET delivery_updated_at = COALESCE(delivery_updated_at, paid_at, created_at)');
         }
-        if (updColumnExists($pdo, 'orders', 'delivery_info')) {
-            $hasIp = updColumnExists($pdo, 'orders', 'ip_address_snapshot');
-            $hasPort = updColumnExists($pdo, 'orders', 'ssh_port_snapshot');
-            $hasUser = updColumnExists($pdo, 'orders', 'ssh_user_snapshot');
-            $hasPass = updColumnExists($pdo, 'orders', 'ssh_password_snapshot');
+        if (commerceColumnExists($pdo, 'orders', 'delivery_info')) {
+            $hasIp = commerceColumnExists($pdo, 'orders', 'ip_address_snapshot');
+            $hasPort = commerceColumnExists($pdo, 'orders', 'ssh_port_snapshot');
+            $hasUser = commerceColumnExists($pdo, 'orders', 'ssh_user_snapshot');
+            $hasPass = commerceColumnExists($pdo, 'orders', 'ssh_password_snapshot');
             if ($hasIp || $hasPort || $hasUser || $hasPass) {
                 $rows = $pdo->query('SELECT id, delivery_info'
                     . ($hasIp ? ', ip_address_snapshot' : ', NULL AS ip_address_snapshot')
@@ -290,16 +268,16 @@ function updBackfillData(PDO $pdo, array &$migrated): void {
         }
     }
 
-    if (updTableExists($pdo, 'tickets')) {
-        if (updColumnExists($pdo, 'tickets', 'category')) {
+    if (commerceTableExists($pdo, 'tickets')) {
+        if (commerceColumnExists($pdo, 'tickets', 'category')) {
             $pdo->exec("UPDATE tickets SET category = 'other' WHERE category IS NULL OR category = ''");
         }
-        if (updColumnExists($pdo, 'tickets', 'priority')) {
+        if (commerceColumnExists($pdo, 'tickets', 'priority')) {
             $pdo->exec('UPDATE tickets SET priority = 1 WHERE priority IS NULL');
         }
     }
 
-    if (updTableExists($pdo, 'admins') && updColumnExists($pdo, 'admins', 'role')) {
+    if (commerceTableExists($pdo, 'admins') && commerceColumnExists($pdo, 'admins', 'role')) {
         $superCount = (int)$pdo->query("SELECT COUNT(*) FROM admins WHERE role = 'super'")->fetchColumn();
         if ($superCount === 0) {
             $firstId = (int)$pdo->query('SELECT MIN(id) FROM admins')->fetchColumn();
@@ -331,7 +309,7 @@ function updCollectMissingCriticalColumns(PDO $pdo): array {
     foreach (updCriticalColumnMap() as $table => $columns) {
         $columnStatus[$table] = [];
         foreach ($columns as $column) {
-            $exists = updTableExists($pdo, $table) && updColumnExists($pdo, $table, $column);
+            $exists = commerceTableExists($pdo, $table) && commerceColumnExists($pdo, $table, $column);
             $columnStatus[$table][$column] = $exists;
             if (!$exists) {
                 $missingColumns[] = $table . '.' . $column;
@@ -373,7 +351,7 @@ function updMigrate(PDO $pdo): array {
     updEnsureIndex($pdo, 'users', 'idx_users_balance', '`credit_balance`', $migrated, $errors);
     updEnsureIndex($pdo, 'users', 'idx_users_linuxdo', '`linuxdo_id`', $migrated, $errors);
     updEnsureUnique($pdo, 'users', 'uniq_users_linuxdo_id', '`linuxdo_id`', $migrated, $errors);
-    if (updTableExists($pdo, 'users') && updColumnExists($pdo, 'users', 'password')) {
+    if (commerceTableExists($pdo, 'users') && commerceColumnExists($pdo, 'users', 'password')) {
         try {
             $pdo->exec('ALTER TABLE `users` MODIFY COLUMN `password` VARCHAR(255) DEFAULT NULL');
         } catch (Throwable $e) {
@@ -394,7 +372,7 @@ function updMigrate(PDO $pdo): array {
     updEnsureIndex($pdo, 'products', 'idx_products_status_sort', '`status`, `sort_order`', $migrated, $errors);
     updEnsureIndex($pdo, 'products', 'idx_products_template', '`template_id`', $migrated, $errors);
     updEnsureIndex($pdo, 'products', 'idx_products_trust', '`min_trust_level`, `allow_whitelist_only`', $migrated, $errors);
-    if (updTableExists($pdo, 'products') && updColumnExists($pdo, 'products', 'ssh_password')) {
+    if (commerceTableExists($pdo, 'products') && commerceColumnExists($pdo, 'products', 'ssh_password')) {
         try {
             $pdo->exec('ALTER TABLE `products` MODIFY COLUMN `ssh_password` VARCHAR(255) NOT NULL');
         } catch (Throwable $e) {
@@ -515,10 +493,10 @@ try {
         case 'reset':
             $adminData = [];
             $settingsData = [];
-            if (updTableExists($pdo, 'admins')) {
+            if (commerceTableExists($pdo, 'admins')) {
                 $adminData = $pdo->query('SELECT * FROM admins')->fetchAll(PDO::FETCH_ASSOC);
             }
-            if (updTableExists($pdo, 'settings')) {
+            if (commerceTableExists($pdo, 'settings')) {
                 $settingsData = $pdo->query('SELECT * FROM settings')->fetchAll(PDO::FETCH_ASSOC);
             }
 

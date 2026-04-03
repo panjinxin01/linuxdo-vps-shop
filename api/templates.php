@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../includes/security.php';
 startSecureSession();
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/commerce.php';
 
 $action = requestValue('action', 'list');
 $pdo = getDB();
@@ -31,6 +32,9 @@ function tplData(): array {
 try {
     switch ($action) {
         case 'list':
+            if (!commerceTableExists($pdo, 'product_templates')) {
+                jsonResponse(1, 'ok', []);
+            }
             $onlyActive = requestValue('only_active', '0') === '1';
             $sql = 'SELECT * FROM product_templates';
             if ($onlyActive) {
@@ -43,6 +47,9 @@ try {
 
         case 'create':
             checkAdmin($pdo);
+            if (!commerceTableExists($pdo, 'product_templates')) {
+                jsonResponse(0, '数据库未升级，请先执行数据库更新');
+            }
             $data = tplData();
             if ($data['name'] === '') {
                 jsonResponse(0, '模板名称不能为空');
@@ -56,6 +63,9 @@ try {
 
         case 'update':
             checkAdmin($pdo);
+            if (!commerceTableExists($pdo, 'product_templates')) {
+                jsonResponse(0, '数据库未升级，请先执行数据库更新');
+            }
             $id = validateInt(requestValue('id', null), 1);
             if (!$id) {
                 jsonResponse(0, '模板ID无效');
@@ -72,14 +82,19 @@ try {
 
         case 'delete':
             checkAdmin($pdo);
+            if (!commerceTableExists($pdo, 'product_templates')) {
+                jsonResponse(0, '数据库未升级，请先执行数据库更新');
+            }
             $id = validateInt(requestValue('id', null), 1);
             if (!$id) {
                 jsonResponse(0, '模板ID无效');
             }
-            $stmt = $pdo->prepare('SELECT COUNT(*) FROM products WHERE template_id = ?');
-            $stmt->execute([$id]);
-            if ((int)$stmt->fetchColumn() > 0) {
-                jsonResponse(0, '仍有商品在使用该模板，请先解除关联');
+            if (commerceColumnExists($pdo, 'products', 'template_id')) {
+                $stmt = $pdo->prepare('SELECT COUNT(*) FROM products WHERE template_id = ?');
+                $stmt->execute([$id]);
+                if ((int)$stmt->fetchColumn() > 0) {
+                    jsonResponse(0, '仍有商品在使用该模板，请先解除关联');
+                }
             }
             $stmt = $pdo->prepare('DELETE FROM product_templates WHERE id = ?');
             $stmt->execute([$id]);
@@ -89,6 +104,9 @@ try {
 
         case 'toggle':
             checkAdmin($pdo);
+            if (!commerceTableExists($pdo, 'product_templates')) {
+                jsonResponse(0, '数据库未升级，请先执行数据库更新');
+            }
             $id = validateInt(requestValue('id', null), 1);
             $status = validateInt(requestValue('status', 1), 0, 1);
             if (!$id || $status === null) {
@@ -102,6 +120,9 @@ try {
 
         case 'create_from_product':
             checkAdmin($pdo);
+            if (!commerceTableExists($pdo, 'product_templates')) {
+                jsonResponse(0, '数据库未升级，请先执行数据库更新');
+            }
             $productId = validateInt(requestValue('product_id', null), 1);
             if (!$productId) {
                 jsonResponse(0, '商品ID无效');
@@ -126,7 +147,9 @@ try {
                 $product['extra_info'] ?? '',
             ]);
             $templateId = (int)$pdo->lastInsertId();
-            $pdo->prepare('UPDATE products SET template_id = ? WHERE id = ?')->execute([$templateId, $productId]);
+            if (commerceColumnExists($pdo, 'products', 'template_id')) {
+                $pdo->prepare('UPDATE products SET template_id = ? WHERE id = ?')->execute([$templateId, $productId]);
+            }
             logAudit($pdo, 'template.create_from_product', ['product_id' => $productId], (string)$templateId);
             jsonResponse(1, '已从商品生成模板', ['template_id' => $templateId]);
             break;

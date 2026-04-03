@@ -26,25 +26,25 @@ try {
                 'income_total' => 0.0,
                 'expense_total' => 0.0,
                 'transaction_count' => 0,
+                'last_change_at' => null,
             ];
             if (commerceTableExists($pdo, 'credit_transactions')) {
-                $stmt = $pdo->prepare('SELECT COUNT(*) AS cnt, COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) AS income_total, COALESCE(SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END), 0) AS expense_total FROM credit_transactions WHERE user_id = ?');
+                $stmt = $pdo->prepare('SELECT COUNT(*) AS cnt, COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) AS income_total, COALESCE(SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END), 0) AS expense_total, MAX(created_at) AS last_change_at FROM credit_transactions WHERE user_id = ?');
                 $stmt->execute([(int)$user['id']]);
                 $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
                 $summary['transaction_count'] = (int)($row['cnt'] ?? 0);
                 $summary['income_total'] = round((float)($row['income_total'] ?? 0), 2);
                 $summary['expense_total'] = round((float)($row['expense_total'] ?? 0), 2);
+                $summary['last_change_at'] = $row['last_change_at'] ?? null;
             }
             jsonResponse(1, 'ok', $summary);
             break;
 
         case 'my_transactions':
             checkUser();
-            $page = validateInt(requestValue('page', 1), 1) ?? 1;
-            $pageSize = validateInt(requestValue('page_size', 20), 1, 100) ?? 20;
-            $offset = ($page - 1) * $pageSize;
+            $pg = paginateParams();
             if (!commerceTableExists($pdo, 'credit_transactions')) {
-                jsonResponse(1, 'ok', ['list' => [], 'total' => 0, 'page' => $page, 'page_size' => $pageSize]);
+                jsonResponse(1, 'ok', paginateResponse([], 0, $pg));
             }
             $userId = (int)$_SESSION['user_id'];
             $stmt = $pdo->prepare('SELECT COUNT(*) FROM credit_transactions WHERE user_id = ?');
@@ -52,54 +52,61 @@ try {
             $total = (int)$stmt->fetchColumn();
             $stmt = $pdo->prepare('SELECT * FROM credit_transactions WHERE user_id = ? ORDER BY id DESC LIMIT ? OFFSET ?');
             $stmt->bindValue(1, $userId, PDO::PARAM_INT);
-            $stmt->bindValue(2, $pageSize, PDO::PARAM_INT);
-            $stmt->bindValue(3, $offset, PDO::PARAM_INT);
+            $stmt->bindValue(2, $pg['page_size'], PDO::PARAM_INT);
+            $stmt->bindValue(3, $pg['offset'], PDO::PARAM_INT);
             $stmt->execute();
-            jsonResponse(1, 'ok', [
-                'list' => $stmt->fetchAll(PDO::FETCH_ASSOC),
-                'total' => $total,
-                'page' => $page,
-                'page_size' => $pageSize,
-                'total_pages' => $pageSize > 0 ? (int)ceil($total / $pageSize) : 0,
-            ]);
+            jsonResponse(1, 'ok', paginateResponse($stmt->fetchAll(PDO::FETCH_ASSOC), $total, $pg));
             break;
 
         case 'admin_users':
             checkAdmin($pdo);
             $keyword = normalizeString(requestValue('keyword', ''), 100);
-            $page = validateInt(requestValue('page', 1), 1) ?? 1;
-            $pageSize = validateInt(requestValue('page_size', 20), 1, 100) ?? 20;
-            $offset = ($page - 1) * $pageSize;
+            $pg = paginateParams();
             $where = '1=1';
             $params = [];
             if ($keyword !== '') {
-                $where .= ' AND (u.username LIKE ? OR u.linuxdo_username LIKE ? OR CAST(u.id AS CHAR) = ? OR CAST(u.linuxdo_id AS CHAR) = ?)';
+                $conditions = ['u.username LIKE ?', 'CAST(u.id AS CHAR) = ?'];
                 $kw = '%' . $keyword . '%';
-                $params = [$kw, $kw, $keyword, $keyword];
+                $params = [$kw, $keyword];
+                if (commerceColumnExists($pdo, 'users', 'linuxdo_username')) {
+                    $conditions[] = 'u.linuxdo_username LIKE ?';
+                    $params[] = $kw;
+                }
+                if (commerceColumnExists($pdo, 'users', 'linuxdo_id')) {
+                    $conditions[] = 'CAST(u.linuxdo_id AS CHAR) = ?';
+                    $params[] = $keyword;
+                }
+                $where .= ' AND (' . implode(' OR ', $conditions) . ')';
             }
-            $sqlCount = 'SELECT COUNT(*) FROM users u WHERE ' . $where;
-            $stmt = $pdo->prepare($sqlCount);
+            $stmt = $pdo->prepare('SELECT COUNT(*) FROM users u WHERE ' . $where);
             $stmt->execute($params);
             $total = (int)$stmt->fetchColumn();
-            $sql = 'SELECT u.id, u.username, u.email, u.credit_balance, u.linuxdo_id, u.linuxdo_username, u.linuxdo_name, u.linuxdo_trust_level, u.linuxdo_active, u.linuxdo_silenced, u.created_at,
-                    (SELECT COUNT(*) FROM orders o WHERE o.user_id = u.id AND o.status = 1) AS paid_orders,
-                    (SELECT COUNT(*) FROM credit_transactions ct WHERE ct.user_id = u.id) AS tx_count
-                    FROM users u WHERE ' . $where . ' ORDER BY u.credit_balance DESC, u.id DESC LIMIT ? OFFSET ?';
+            $fields = [
+                'u.id',
+                'u.username',
+                commerceColumnExists($pdo, 'users', 'email') ? 'u.email' : 'NULL AS email',
+                commerceColumnExists($pdo, 'users', 'credit_balance') ? 'u.credit_balance' : '0 AS credit_balance',
+                commerceColumnExists($pdo, 'users', 'linuxdo_id') ? 'u.linuxdo_id' : 'NULL AS linuxdo_id',
+                commerceColumnExists($pdo, 'users', 'linuxdo_username') ? 'u.linuxdo_username' : 'NULL AS linuxdo_username',
+                commerceColumnExists($pdo, 'users', 'linuxdo_name') ? 'u.linuxdo_name' : 'NULL AS linuxdo_name',
+                commerceColumnExists($pdo, 'users', 'linuxdo_trust_level') ? 'u.linuxdo_trust_level' : '0 AS linuxdo_trust_level',
+                commerceColumnExists($pdo, 'users', 'linuxdo_active') ? 'u.linuxdo_active' : '1 AS linuxdo_active',
+                commerceColumnExists($pdo, 'users', 'linuxdo_silenced') ? 'u.linuxdo_silenced' : '0 AS linuxdo_silenced',
+                'u.created_at',
+                '(SELECT COUNT(*) FROM orders o WHERE o.user_id = u.id AND o.status = 1) AS paid_orders',
+                commerceTableExists($pdo, 'credit_transactions') ? '(SELECT COUNT(*) FROM credit_transactions ct WHERE ct.user_id = u.id) AS tx_count' : '0 AS tx_count',
+            ];
+            $orderBy = commerceColumnExists($pdo, 'users', 'credit_balance') ? ' ORDER BY u.credit_balance DESC, u.id DESC' : ' ORDER BY u.id DESC';
+            $sql = 'SELECT ' . implode(', ', $fields) . ' FROM users u WHERE ' . $where . $orderBy . ' LIMIT ? OFFSET ?';
             $stmt = $pdo->prepare($sql);
             $bind = 1;
             foreach ($params as $value) {
                 $stmt->bindValue($bind++, $value);
             }
-            $stmt->bindValue($bind++, $pageSize, PDO::PARAM_INT);
-            $stmt->bindValue($bind++, $offset, PDO::PARAM_INT);
+            $stmt->bindValue($bind++, $pg['page_size'], PDO::PARAM_INT);
+            $stmt->bindValue($bind++, $pg['offset'], PDO::PARAM_INT);
             $stmt->execute();
-            jsonResponse(1, 'ok', [
-                'list' => $stmt->fetchAll(PDO::FETCH_ASSOC),
-                'total' => $total,
-                'page' => $page,
-                'page_size' => $pageSize,
-                'total_pages' => $pageSize > 0 ? (int)ceil($total / $pageSize) : 0,
-            ]);
+            jsonResponse(1, 'ok', paginateResponse($stmt->fetchAll(PDO::FETCH_ASSOC), $total, $pg));
             break;
 
         case 'admin_transactions':
@@ -108,9 +115,7 @@ try {
                 jsonResponse(1, 'ok', []);
             }
             $userId = validateInt(requestValue('user_id', null), 1);
-            $page = validateInt(requestValue('page', 1), 1) ?? 1;
-            $pageSize = validateInt(requestValue('page_size', 50), 1, 100) ?? 50;
-            $offset = ($page - 1) * $pageSize;
+            $pg = paginateParams(50);
             if (!$userId) {
                 jsonResponse(0, '用户ID无效');
             }
@@ -119,20 +124,17 @@ try {
             $total = (int)$stmt->fetchColumn();
             $stmt = $pdo->prepare('SELECT ct.*, u.username, a.username AS operator_name FROM credit_transactions ct LEFT JOIN users u ON ct.user_id = u.id LEFT JOIN admins a ON ct.operator_admin_id = a.id WHERE ct.user_id = ? ORDER BY ct.id DESC LIMIT ? OFFSET ?');
             $stmt->bindValue(1, $userId, PDO::PARAM_INT);
-            $stmt->bindValue(2, $pageSize, PDO::PARAM_INT);
-            $stmt->bindValue(3, $offset, PDO::PARAM_INT);
+            $stmt->bindValue(2, $pg['page_size'], PDO::PARAM_INT);
+            $stmt->bindValue(3, $pg['offset'], PDO::PARAM_INT);
             $stmt->execute();
-            jsonResponse(1, 'ok', [
-                'list' => $stmt->fetchAll(PDO::FETCH_ASSOC),
-                'total' => $total,
-                'page' => $page,
-                'page_size' => $pageSize,
-                'total_pages' => $pageSize > 0 ? (int)ceil($total / $pageSize) : 0,
-            ]);
+            jsonResponse(1, 'ok', paginateResponse($stmt->fetchAll(PDO::FETCH_ASSOC), $total, $pg));
             break;
 
         case 'admin_adjust':
             checkAdmin($pdo);
+            if (!commerceColumnExists($pdo, 'users', 'credit_balance')) {
+                jsonResponse(0, '数据库未升级，缺少余额字段，请先执行数据库更新');
+            }
             $userId = validateInt(requestValue('user_id', null), 1);
             $amount = validateFloat(requestValue('amount', null));
             $remark = normalizeString(requestValue('remark', ''), 255);

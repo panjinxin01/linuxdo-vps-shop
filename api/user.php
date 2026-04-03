@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../includes/security.php';
 startSecureSession();
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/commerce.php';
 
 $action = requestValue('action', '');
 $pdo = getDB();
@@ -9,6 +10,18 @@ $pdo = getDB();
 $csrfActions = ['register', 'login', 'logout'];
 if (in_array($action, $csrfActions, true)) {
     requireCsrf();
+}
+
+function userSelectFields(PDO $pdo, array $map): string {
+    $fields = [];
+    foreach ($map as $column => $fallback) {
+        if (commerceColumnExists($pdo, 'users', $column)) {
+            $fields[] = $column;
+        } else {
+            $fields[] = $fallback . ' AS ' . $column;
+        }
+    }
+    return implode(', ', $fields);
 }
 
 try {
@@ -37,8 +50,14 @@ try {
             }
 
             $hash = password_hash($password, PASSWORD_DEFAULT);
-            $stmt = $pdo->prepare('INSERT INTO users (username, password, email) VALUES (?, ?, ?)');
-            $stmt->execute([$username, $hash, $email]);
+            $columns = ['username', 'password'];
+            $values = [$username, $hash];
+            if (commerceColumnExists($pdo, 'users', 'email')) {
+                $columns[] = 'email';
+                $values[] = $email;
+            }
+            $stmt = $pdo->prepare('INSERT INTO users (' . implode(', ', $columns) . ') VALUES (' . implode(', ', array_fill(0, count($values), '?')) . ')');
+            $stmt->execute($values);
             jsonResponse(1, '注册成功');
             break;
 
@@ -60,7 +79,18 @@ try {
                 jsonResponse(1, '登录成功', ['username' => $admin['username'], 'role' => 'admin']);
             }
 
-            $stmt = $pdo->prepare('SELECT id, username, password, credit_balance, linuxdo_id, linuxdo_username, linuxdo_trust_level, linuxdo_active, linuxdo_silenced FROM users WHERE username = ?');
+            $fieldSql = userSelectFields($pdo, [
+                'id' => '0',
+                'username' => 'NULL',
+                'password' => 'NULL',
+                'credit_balance' => '0',
+                'linuxdo_id' => 'NULL',
+                'linuxdo_username' => 'NULL',
+                'linuxdo_trust_level' => '0',
+                'linuxdo_active' => '1',
+                'linuxdo_silenced' => '0',
+            ]);
+            $stmt = $pdo->prepare('SELECT ' . $fieldSql . ' FROM users WHERE username = ?');
             $stmt->execute([$username]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
             if ($user && password_verify($password, (string)$user['password'])) {
@@ -82,7 +112,20 @@ try {
                 jsonResponse(1, '已登录', ['username' => $_SESSION['admin_name'], 'role' => 'admin']);
             }
             if (isset($_SESSION['user_id'])) {
-                $stmt = $pdo->prepare('SELECT id, username, email, credit_balance, linuxdo_id, linuxdo_username, linuxdo_name, linuxdo_trust_level, linuxdo_active, linuxdo_silenced, linuxdo_avatar FROM users WHERE id = ?');
+                $fieldSql = userSelectFields($pdo, [
+                    'id' => '0',
+                    'username' => 'NULL',
+                    'email' => 'NULL',
+                    'credit_balance' => '0',
+                    'linuxdo_id' => 'NULL',
+                    'linuxdo_username' => 'NULL',
+                    'linuxdo_name' => 'NULL',
+                    'linuxdo_trust_level' => '0',
+                    'linuxdo_active' => '1',
+                    'linuxdo_silenced' => '0',
+                    'linuxdo_avatar' => 'NULL',
+                ]);
+                $stmt = $pdo->prepare('SELECT ' . $fieldSql . ' FROM users WHERE id = ?');
                 $stmt->execute([(int)$_SESSION['user_id']]);
                 $user = $stmt->fetch(PDO::FETCH_ASSOC);
                 if ($user) {
@@ -101,4 +144,3 @@ try {
     logError($pdo, 'api.user', $e->getMessage());
     jsonResponse(0, '服务器错误');
 }
-

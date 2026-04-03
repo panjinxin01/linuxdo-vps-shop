@@ -33,13 +33,6 @@ function supportsCoupons(PDO $pdo): bool {
     return ordersHasCouponColumns($pdo) && commerceTableExists($pdo, 'coupons') && commerceTableExists($pdo, 'coupon_usages');
 }
 
-function fillOrderCredentialsVisibility(array &$order): void {
-    commercePrepareOrderForOutput($order, true);
-}
-
-function fillAdminOrderOutput(array &$order): void {
-    commercePrepareOrderForOutput($order, false);
-}
 
 function autoCancelExpiredOrders(PDO $pdo): void {
     try {
@@ -108,6 +101,21 @@ function buildOrderFieldSelect(PDO $pdo, string $orderColumn, string $productCol
         return "p.`{$productColumn}` AS `{$alias}`";
     }
     return "NULL AS `{$alias}`";
+}
+
+function buildPendingOrderResponse(array $order, array $product): array {
+    return [
+        'order_id' => (int)$order['id'],
+        'order_no' => $order['order_no'],
+        'price' => round((float)$order['price'], 2),
+        'original_price' => round((float)($order['original_price'] ?? $order['price']), 2),
+        'trust_discount_amount' => round((float)($order['trust_discount_amount'] ?? 0), 2),
+        'coupon_discount' => round((float)($order['coupon_discount'] ?? 0), 2),
+        'coupon_code' => $order['coupon_code'] ?? null,
+        'product_name' => $product['name'],
+        'risk_review' => 0,
+        'reused_order' => 1,
+    ];
 }
 
 function buildOrderSelectSql(bool $forAdmin = false): string {
@@ -191,18 +199,7 @@ try {
                         $createdTs = strtotime((string)($existingPendingOrder['created_at'] ?? ''));
                         if ($createdTs && $createdTs >= time() - 15 * 60) {
                             $pdo->commit();
-                            jsonResponse(1, '已为您恢复待支付订单', [
-                                'order_id' => (int)$existingPendingOrder['id'],
-                                'order_no' => $existingPendingOrder['order_no'],
-                                'price' => round((float)$existingPendingOrder['price'], 2),
-                                'original_price' => round((float)($existingPendingOrder['original_price'] ?? $existingPendingOrder['price']), 2),
-                                'trust_discount_amount' => round((float)($existingPendingOrder['trust_discount_amount'] ?? 0), 2),
-                                'coupon_discount' => round((float)($existingPendingOrder['coupon_discount'] ?? 0), 2),
-                                'coupon_code' => $existingPendingOrder['coupon_code'] ?? null,
-                                'product_name' => $product['name'],
-                                'risk_review' => 0,
-                                'reused_order' => 1,
-                            ]);
+                            jsonResponse(1, '已为您恢复待支付订单', buildPendingOrderResponse($existingPendingOrder, $product));
                         }
                     }
                     $pdo->rollBack();
@@ -213,18 +210,7 @@ try {
                     $createdTs = strtotime((string)($existingPendingOrder['created_at'] ?? ''));
                     if ($createdTs && $createdTs >= time() - 15 * 60) {
                         $pdo->commit();
-                        jsonResponse(1, '您已有待支付订单，已直接跳转支付', [
-                            'order_id' => (int)$existingPendingOrder['id'],
-                            'order_no' => $existingPendingOrder['order_no'],
-                            'price' => round((float)$existingPendingOrder['price'], 2),
-                            'original_price' => round((float)($existingPendingOrder['original_price'] ?? $existingPendingOrder['price']), 2),
-                            'trust_discount_amount' => round((float)($existingPendingOrder['trust_discount_amount'] ?? 0), 2),
-                            'coupon_discount' => round((float)($existingPendingOrder['coupon_discount'] ?? 0), 2),
-                            'coupon_code' => $existingPendingOrder['coupon_code'] ?? null,
-                            'product_name' => $product['name'],
-                            'risk_review' => 0,
-                            'reused_order' => 1,
-                        ]);
+                        jsonResponse(1, '您已有待支付订单，已直接跳转支付', buildPendingOrderResponse($existingPendingOrder, $product));
                     }
                 }
                 $user = commerceGetUserById($pdo, (int)$_SESSION['user_id']);
@@ -394,21 +380,19 @@ try {
 
         case 'my':
             checkUser();
-            $page = validateInt(requestValue('page', 1), 1) ?? 1;
-            $pageSize = validateInt(requestValue('page_size', 5), 1, 50) ?? 5;
-            $offset = ($page - 1) * $pageSize;
+            $pg = paginateParams(5, 50);
             $stmt = $pdo->prepare('SELECT COUNT(*) FROM orders WHERE user_id = ?');
             $stmt->execute([(int)$_SESSION['user_id']]);
             $total = (int)$stmt->fetchColumn();
-            $sql = buildOrderSelectSql(false) . " WHERE o.user_id = ? ORDER BY o.id DESC LIMIT {$pageSize} OFFSET {$offset}";
+            $sql = buildOrderSelectSql(false) . " WHERE o.user_id = ? ORDER BY o.id DESC LIMIT {$pg['page_size']} OFFSET {$pg['offset']}";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([(int)$_SESSION['user_id']]);
             $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
             foreach ($orders as &$order) {
-                fillOrderCredentialsVisibility($order);
+                commercePrepareOrderForOutput($order, true);
             }
             unset($order);
-            jsonResponse(1, '', ['list' => $orders, 'total' => $total, 'page' => $page, 'page_size' => $pageSize, 'total_pages' => $pageSize > 0 ? (int)ceil($total / $pageSize) : 0]);
+            jsonResponse(1, '', paginateResponse($orders, $total, $pg));
             break;
 
         case 'query':
@@ -423,15 +407,13 @@ try {
             if (!$order) {
                 jsonResponse(0, '订单不存在');
             }
-            fillOrderCredentialsVisibility($order);
+            commercePrepareOrderForOutput($order, true);
             jsonResponse(1, '', $order);
             break;
 
         case 'all':
             checkAdmin($pdo);
-            $page = validateInt(requestValue('page', 1), 1) ?? 1;
-            $pageSize = validateInt(requestValue('page_size', 20), 1, 100) ?? 20;
-            $offset = ($page - 1) * $pageSize;
+            $pg = paginateParams();
             $status = requestValue('status', '');
             $delivery = normalizeString(requestValue('delivery_status', ''), 20);
             $where = '1=1';
@@ -447,15 +429,15 @@ try {
             $stmt = $pdo->prepare('SELECT COUNT(*) FROM orders o WHERE ' . $where);
             $stmt->execute($params);
             $total = (int)$stmt->fetchColumn();
-            $sql = buildOrderSelectSql(true) . ' WHERE ' . $where . " ORDER BY o.id DESC LIMIT {$pageSize} OFFSET {$offset}";
+            $sql = buildOrderSelectSql(true) . ' WHERE ' . $where . " ORDER BY o.id DESC LIMIT {$pg['page_size']} OFFSET {$pg['offset']}";
             $stmt = $pdo->prepare($sql);
             $stmt->execute($params);
             $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
             foreach ($orders as &$order) {
-                fillAdminOrderOutput($order);
+                commercePrepareOrderForOutput($order, false);
             }
             unset($order);
-            jsonResponse(1, '', ['list' => $orders, 'total' => $total, 'page' => $page, 'page_size' => $pageSize, 'total_pages' => $pageSize > 0 ? (int)ceil($total / $pageSize) : 0]);
+            jsonResponse(1, '', paginateResponse($orders, $total, $pg));
             break;
 
         case 'list':
@@ -649,7 +631,7 @@ try {
             }
             try {
                 $pdo->beginTransaction();
-                if (!commerceUpdateOrderDelivery($pdo, $orderNo, 'delivered', $deliveryInfo)) {
+                if (!commerceUpdateOrderDelivery($pdo, $orderNo, 'delivered', '')) {
                     if ($pdo->inTransaction()) {
                         $pdo->rollBack();
                     }
@@ -681,8 +663,8 @@ try {
             if (!commerceColumnExists($pdo, 'orders', 'delivery_info')) {
                 jsonResponse(0, '数据库未升级，请先执行数据库更新');
             }
-            $stmt = $pdo->prepare('UPDATE orders SET delivery_info = ?, delivery_note = ?, delivery_updated_at = NOW() WHERE order_no = ?');
-            $stmt->execute([$deliveryInfo, $deliveryInfo, $orderNo]);
+            $stmt = $pdo->prepare('UPDATE orders SET delivery_info = ?, delivery_updated_at = NOW() WHERE order_no = ?');
+            $stmt->execute([$deliveryInfo !== '' ? $deliveryInfo : null, $orderNo]);
             if ($stmt->rowCount() === 0) {
                 jsonResponse(0, '订单不存在');
             }
@@ -715,9 +697,9 @@ try {
                 jsonResponse(0, '订单不存在');
             }
             if ($isAdmin) {
-                fillAdminOrderOutput($order);
+                commercePrepareOrderForOutput($order, false);
             } else {
-                fillOrderCredentialsVisibility($order);
+                commercePrepareOrderForOutput($order, true);
             }
             jsonResponse(1, '', $order);
             break;

@@ -72,11 +72,13 @@ try {
     $stmt->execute([$orderNo]);
     $order = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$order) {
+        markPaymentRequestPaid($pdo, $externalOrderNo, $tradeNo);
         $pdo->commit();
         echo 'success';
         exit;
     }
     if ((int)$order['status'] === 1 || (int)$order['status'] !== 0) {
+        markPaymentRequestPaid($pdo, $externalOrderNo, $tradeNo ?: (string)($order['trade_no'] ?? ''));
         $pdo->commit();
         echo 'success';
         exit;

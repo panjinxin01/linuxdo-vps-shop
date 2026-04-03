@@ -83,24 +83,13 @@ try {
         case 'all':
             checkAdmin($pdo);
             ensureCouponTables($pdo);
-            $page = validateInt(requestValue('page', 1), 1) ?? 1;
-            $pageSize = validateInt(requestValue('page_size', 20), 1, 100) ?? 20;
-            $offset = ($page - 1) * $pageSize;
-
+            $pg = paginateParams();
             $total = (int)$pdo->query('SELECT COUNT(*) FROM coupons')->fetchColumn();
             $stmt = $pdo->prepare('SELECT * FROM coupons ORDER BY id DESC LIMIT ? OFFSET ?');
-            $stmt->bindValue(1, $pageSize, PDO::PARAM_INT);
-            $stmt->bindValue(2, $offset, PDO::PARAM_INT);
+            $stmt->bindValue(1, $pg['page_size'], PDO::PARAM_INT);
+            $stmt->bindValue(2, $pg['offset'], PDO::PARAM_INT);
             $stmt->execute();
-            $list = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            jsonResponse(1, 'ok', [
-                'list' => $list,
-                'total' => $total,
-                'page' => $page,
-                'page_size' => $pageSize,
-                'total_pages' => $pageSize > 0 ? ceil($total / $pageSize) : 0
-            ]);
+            jsonResponse(1, 'ok', paginateResponse($stmt->fetchAll(PDO::FETCH_ASSOC), $total, $pg));
             break;
 
         case 'create':

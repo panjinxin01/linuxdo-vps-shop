@@ -20,46 +20,59 @@ try {
                 'linuxdo_silenced_order_mode' => commerceGetSetting($pdo, 'linuxdo_silenced_order_mode', 'review'),
             ];
             $stats = [
-                'oauth_users' => (int)$pdo->query('SELECT COUNT(*) FROM users WHERE linuxdo_id IS NOT NULL')->fetchColumn(),
-                'silenced_users' => (int)$pdo->query('SELECT COUNT(*) FROM users WHERE COALESCE(linuxdo_silenced,0) = 1')->fetchColumn(),
-                'inactive_users' => (int)$pdo->query('SELECT COUNT(*) FROM users WHERE COALESCE(linuxdo_active,1) = 0')->fetchColumn(),
-                'trust0' => (int)$pdo->query('SELECT COUNT(*) FROM users WHERE COALESCE(linuxdo_trust_level,0) = 0')->fetchColumn(),
-                'trust3plus' => (int)$pdo->query('SELECT COUNT(*) FROM users WHERE COALESCE(linuxdo_trust_level,0) >= 3')->fetchColumn(),
+                'oauth_users' => commerceColumnExists($pdo, 'users', 'linuxdo_id') ? (int)$pdo->query('SELECT COUNT(*) FROM users WHERE linuxdo_id IS NOT NULL')->fetchColumn() : 0,
+                'silenced_users' => commerceColumnExists($pdo, 'users', 'linuxdo_silenced') ? (int)$pdo->query('SELECT COUNT(*) FROM users WHERE COALESCE(linuxdo_silenced,0) = 1')->fetchColumn() : 0,
+                'inactive_users' => commerceColumnExists($pdo, 'users', 'linuxdo_active') ? (int)$pdo->query('SELECT COUNT(*) FROM users WHERE COALESCE(linuxdo_active,1) = 0')->fetchColumn() : 0,
+                'trust0' => commerceColumnExists($pdo, 'users', 'linuxdo_trust_level') ? (int)$pdo->query('SELECT COUNT(*) FROM users WHERE COALESCE(linuxdo_trust_level,0) = 0')->fetchColumn() : 0,
+                'trust3plus' => commerceColumnExists($pdo, 'users', 'linuxdo_trust_level') ? (int)$pdo->query('SELECT COUNT(*) FROM users WHERE COALESCE(linuxdo_trust_level,0) >= 3')->fetchColumn() : 0,
             ];
             jsonResponse(1, 'ok', ['settings' => $settings, 'stats' => $stats]);
             break;
 
         case 'users':
             checkAdmin($pdo);
-            $page = validateInt(requestValue('page', 1), 1) ?? 1;
-            $pageSize = validateInt(requestValue('page_size', 20), 1, 100) ?? 20;
-            $offset = ($page - 1) * $pageSize;
+            $pg = paginateParams();
             $keyword = normalizeString(requestValue('keyword', ''), 100);
             $where = '1=1';
             $params = [];
             if ($keyword !== '') {
-                $where .= ' AND (username LIKE ? OR linuxdo_username LIKE ? OR linuxdo_name LIKE ? OR CAST(linuxdo_id AS CHAR) = ?)';
+                $conditions = ['username LIKE ?'];
                 $kw = '%' . $keyword . '%';
-                $params = [$kw, $kw, $kw, $keyword];
+                $params[] = $kw;
+                if (commerceColumnExists($pdo, 'users', 'linuxdo_username')) {
+                    $conditions[] = 'linuxdo_username LIKE ?';
+                    $params[] = $kw;
+                }
+                if (commerceColumnExists($pdo, 'users', 'linuxdo_name')) {
+                    $conditions[] = 'linuxdo_name LIKE ?';
+                    $params[] = $kw;
+                }
+                if (commerceColumnExists($pdo, 'users', 'linuxdo_id')) {
+                    $conditions[] = 'CAST(linuxdo_id AS CHAR) = ?';
+                    $params[] = $keyword;
+                }
+                $where .= ' AND (' . implode(' OR ', $conditions) . ')';
             }
             $stmt = $pdo->prepare('SELECT COUNT(*) FROM users WHERE ' . $where);
             $stmt->execute($params);
             $total = (int)$stmt->fetchColumn();
-            $stmt = $pdo->prepare('SELECT id, username, linuxdo_id, linuxdo_username, linuxdo_name, linuxdo_trust_level, linuxdo_active, linuxdo_silenced, credit_balance, created_at FROM users WHERE ' . $where . ' ORDER BY id DESC LIMIT ? OFFSET ?');
+            $fields = ['id', 'username', 'created_at'];
+            $fields[] = commerceColumnExists($pdo, 'users', 'linuxdo_id') ? 'linuxdo_id' : 'NULL AS linuxdo_id';
+            $fields[] = commerceColumnExists($pdo, 'users', 'linuxdo_username') ? 'linuxdo_username' : 'NULL AS linuxdo_username';
+            $fields[] = commerceColumnExists($pdo, 'users', 'linuxdo_name') ? 'linuxdo_name' : 'NULL AS linuxdo_name';
+            $fields[] = commerceColumnExists($pdo, 'users', 'linuxdo_trust_level') ? 'linuxdo_trust_level' : '0 AS linuxdo_trust_level';
+            $fields[] = commerceColumnExists($pdo, 'users', 'linuxdo_active') ? 'linuxdo_active' : '1 AS linuxdo_active';
+            $fields[] = commerceColumnExists($pdo, 'users', 'linuxdo_silenced') ? 'linuxdo_silenced' : '0 AS linuxdo_silenced';
+            $fields[] = commerceColumnExists($pdo, 'users', 'credit_balance') ? 'credit_balance' : '0 AS credit_balance';
+            $stmt = $pdo->prepare('SELECT ' . implode(', ', $fields) . ' FROM users WHERE ' . $where . ' ORDER BY id DESC LIMIT ? OFFSET ?');
             $i = 1;
             foreach ($params as $param) {
                 $stmt->bindValue($i++, $param);
             }
-            $stmt->bindValue($i++, $pageSize, PDO::PARAM_INT);
-            $stmt->bindValue($i++, $offset, PDO::PARAM_INT);
+            $stmt->bindValue($i++, $pg['page_size'], PDO::PARAM_INT);
+            $stmt->bindValue($i++, $pg['offset'], PDO::PARAM_INT);
             $stmt->execute();
-            jsonResponse(1, 'ok', [
-                'list' => $stmt->fetchAll(PDO::FETCH_ASSOC),
-                'total' => $total,
-                'page' => $page,
-                'page_size' => $pageSize,
-                'total_pages' => $pageSize > 0 ? (int)ceil($total / $pageSize) : 0,
-            ]);
+            jsonResponse(1, 'ok', paginateResponse($stmt->fetchAll(PDO::FETCH_ASSOC), $total, $pg));
             break;
 
         case 'rules':
@@ -73,12 +86,15 @@ try {
 
         case 'save_rule':
             checkAdmin($pdo);
+            if (!commerceTableExists($pdo, 'linuxdo_user_access_rules')) {
+                jsonResponse(0, '数据库未升级，请先执行数据库更新');
+            }
             $id = validateInt(requestValue('id', 0), 0) ?? 0;
             $ruleType = normalizeString(requestValue('rule_type', 'whitelist'), 20);
             $productId = validateInt(requestValue('product_id', 0), 0) ?? 0;
             $linuxdoId = validateInt(requestValue('linuxdo_id', 0), 0) ?? 0;
             $userId = validateInt(requestValue('user_id', 0), 0) ?? 0;
-            $reason = normalizeString(requestValue('reason', ''), 255);
+            $remark = normalizeString(requestValue('remark', requestValue('reason', '')), 255);
             $status = validateInt(requestValue('status', 1), 0, 1) ?? 1;
             if (!in_array($ruleType, ['whitelist', 'blacklist'], true)) {
                 jsonResponse(0, '规则类型无效');
@@ -87,13 +103,13 @@ try {
                 jsonResponse(0, '至少填写 user_id 或 linuxdo_id');
             }
             if ($id > 0) {
-                $stmt = $pdo->prepare('UPDATE linuxdo_user_access_rules SET product_id=?, user_id=?, linuxdo_id=?, rule_type=?, reason=?, status=?, updated_at=NOW() WHERE id=?');
-                $stmt->execute([$productId ?: null, $userId ?: null, $linuxdoId ?: null, $ruleType, $reason ?: null, $status, $id]);
+                $stmt = $pdo->prepare('UPDATE linuxdo_user_access_rules SET product_id=?, user_id=?, linuxdo_id=?, rule_type=?, remark=?, status=?, updated_at=NOW() WHERE id=?');
+                $stmt->execute([$productId ?: null, $userId ?: null, $linuxdoId ?: null, $ruleType, $remark ?: null, $status, $id]);
                 logAudit($pdo, 'community.rule_update', ['rule_type' => $ruleType], (string)$id);
                 jsonResponse(1, '规则已更新');
             }
-            $stmt = $pdo->prepare('INSERT INTO linuxdo_user_access_rules (product_id, user_id, linuxdo_id, rule_type, reason, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())');
-            $stmt->execute([$productId ?: null, $userId ?: null, $linuxdoId ?: null, $ruleType, $reason ?: null, $status]);
+            $stmt = $pdo->prepare('INSERT INTO linuxdo_user_access_rules (product_id, user_id, linuxdo_id, rule_type, remark, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())');
+            $stmt->execute([$productId ?: null, $userId ?: null, $linuxdoId ?: null, $ruleType, $remark ?: null, $status]);
             $newId = (int)$pdo->lastInsertId();
             logAudit($pdo, 'community.rule_create', ['rule_type' => $ruleType], (string)$newId);
             jsonResponse(1, '规则已创建', ['id' => $newId]);
@@ -101,6 +117,9 @@ try {
 
         case 'delete_rule':
             checkAdmin($pdo);
+            if (!commerceTableExists($pdo, 'linuxdo_user_access_rules')) {
+                jsonResponse(0, '数据库未升级，请先执行数据库更新');
+            }
             $id = validateInt(requestValue('id', null), 1);
             if (!$id) {
                 jsonResponse(0, '规则ID无效');
@@ -121,11 +140,15 @@ try {
 
         case 'save_discount':
             checkAdmin($pdo);
+            if (!commerceTableExists($pdo, 'trust_level_discounts')) {
+                jsonResponse(0, '数据库未升级，请先执行数据库更新');
+            }
             $id = validateInt(requestValue('id', 0), 0) ?? 0;
             $productId = validateInt(requestValue('product_id', 0), 0) ?? 0;
             $trustLevel = validateInt(requestValue('trust_level', null), 0, 4);
             $discountType = normalizeString(requestValue('discount_type', 'percent'), 20);
             $discountValue = validateFloat(requestValue('discount_value', null), 0);
+            $remark = normalizeString(requestValue('remark', ''), 255);
             $status = validateInt(requestValue('status', 1), 0, 1) ?? 1;
             if ($trustLevel === null || $discountValue === null) {
                 jsonResponse(0, '参数无效');
@@ -134,13 +157,13 @@ try {
                 jsonResponse(0, '折扣类型无效');
             }
             if ($id > 0) {
-                $stmt = $pdo->prepare('UPDATE trust_level_discounts SET product_id=?, trust_level=?, discount_type=?, discount_value=?, status=?, updated_at=NOW() WHERE id=?');
-                $stmt->execute([$productId ?: null, $trustLevel, $discountType, round($discountValue, 2), $status, $id]);
+                $stmt = $pdo->prepare('UPDATE trust_level_discounts SET product_id=?, trust_level=?, discount_type=?, discount_value=?, remark=?, status=?, updated_at=NOW() WHERE id=?');
+                $stmt->execute([$productId ?: null, $trustLevel, $discountType, round($discountValue, 2), $remark ?: null, $status, $id]);
                 logAudit($pdo, 'community.discount_update', ['trust_level' => $trustLevel], (string)$id);
                 jsonResponse(1, '折扣规则已更新');
             }
-            $stmt = $pdo->prepare('INSERT INTO trust_level_discounts (product_id, trust_level, discount_type, discount_value, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())');
-            $stmt->execute([$productId ?: null, $trustLevel, $discountType, round($discountValue, 2), $status]);
+            $stmt = $pdo->prepare('INSERT INTO trust_level_discounts (product_id, trust_level, discount_type, discount_value, remark, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())');
+            $stmt->execute([$productId ?: null, $trustLevel, $discountType, round($discountValue, 2), $remark ?: null, $status]);
             $newId = (int)$pdo->lastInsertId();
             logAudit($pdo, 'community.discount_create', ['trust_level' => $trustLevel], (string)$newId);
             jsonResponse(1, '折扣规则已创建', ['id' => $newId]);
@@ -148,6 +171,9 @@ try {
 
         case 'delete_discount':
             checkAdmin($pdo);
+            if (!commerceTableExists($pdo, 'trust_level_discounts')) {
+                jsonResponse(0, '数据库未升级，请先执行数据库更新');
+            }
             $id = validateInt(requestValue('id', null), 1);
             if (!$id) {
                 jsonResponse(0, '折扣规则ID无效');

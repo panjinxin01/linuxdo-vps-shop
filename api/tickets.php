@@ -12,10 +12,6 @@ if (in_array($action, $csrfActions, true)) {
     requireCsrf();
 }
 
-function ticketsHasColumn(PDO $pdo, string $column): bool {
-    return commerceColumnExists($pdo, 'tickets', $column);
-}
-
 try {
     switch ($action) {
         case 'create':
@@ -96,7 +92,7 @@ try {
                 $fullContent .= "
 补充说明：" . $content;
             }
-            if (ticketsHasColumn($pdo, 'refund_target')) {
+            if (commerceColumnExists($pdo, 'tickets', 'refund_target')) {
                 $stmt = $pdo->prepare('INSERT INTO tickets (user_id, order_id, title, status, category, priority, refund_reason, refund_target, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?, ?, ?, NOW(), NOW())');
                 $stmt->execute([(int)$_SESSION['user_id'], $orderId, $title, 'refund_request', 2, $refundReason, $refundTarget]);
             } else {
@@ -263,9 +259,9 @@ try {
                 'pending' => (int)$pdo->query('SELECT COUNT(*) FROM tickets WHERE status = 0')->fetchColumn(),
                 'replied' => (int)$pdo->query('SELECT COUNT(*) FROM tickets WHERE status = 1')->fetchColumn(),
                 'closed' => (int)$pdo->query('SELECT COUNT(*) FROM tickets WHERE status = 2')->fetchColumn(),
-                'refund_requests' => ticketsHasColumn($pdo, 'category') ? (int)$pdo->query("SELECT COUNT(*) FROM tickets WHERE category = 'refund_request'")->fetchColumn() : 0,
+                'refund_requests' => commerceColumnExists($pdo, 'tickets', 'category') ? (int)$pdo->query("SELECT COUNT(*) FROM tickets WHERE category = 'refund_request'")->fetchColumn() : 0,
             ];
-            if (ticketsHasColumn($pdo, 'category')) {
+            if (commerceColumnExists($pdo, 'tickets', 'category')) {
                 $stmt = $pdo->query('SELECT category, COUNT(*) AS total FROM tickets GROUP BY category');
                 $stats['category_breakdown'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
             } else {
@@ -401,7 +397,7 @@ try {
             $stmt->execute([$ticketId, $reply]);
             $parts = ['status = 2', 'refund_allowed = 1', 'refund_reason = ?', 'handled_admin_id = ?', 'updated_at = NOW()'];
             $params = [$refundReason, (int)$_SESSION['admin_id']];
-            if (ticketsHasColumn($pdo, 'refund_target')) {
+            if (commerceColumnExists($pdo, 'tickets', 'refund_target')) {
                 $parts[] = 'refund_target = ?';
                 $params[] = $result['refund_target'];
             }
