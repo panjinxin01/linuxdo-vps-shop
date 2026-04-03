@@ -43,6 +43,15 @@ function switchPage(pageName) {
   if (pageName === "notifications" && typeof loadNotificationPage === "function") {
     loadNotificationPage();
   }
+  if (pageName === "tickets" && typeof loadMyTickets === "function") {
+    loadMyTickets();
+  }
+  if (pageName === "orders" && typeof loadMyOrders === "function") {
+    loadMyOrders();
+  }
+  if (pageName === "instances" && typeof updateManageInstances === "function") {
+    updateManageInstances();
+  }
 }
 
 // 主题切换
