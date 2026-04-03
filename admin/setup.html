@@ -21,7 +21,7 @@
     <div class="auth-layout">
         <div class="auth-card">
             <div style="text-align:center;margin-bottom:32px">
-                <div style="font-size:48px;margin-bottom:16px">👤</div>
+                <div style="font-size:48px;margin-bottom:16px"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
                 <h1 style="font-size:24px;font-weight:700;color:var(--text-main);margin-bottom:8px">创建管理员</h1>
                 <p style="color:var(--text-muted);font-size:14px">初始化系统，设置首个管理员账号</p>
             </div>
@@ -114,7 +114,7 @@
                 .then(r => r.json())
                 .then(data => {
                     if (data.code === 1) {
-                        alert('✅ 管理员创建成功！即将跳转到登录页面');
+                        alert('<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#22c55e" stroke-width="2" style="vertical-align:-3px;margin-right:4px"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> 管理员创建成功！即将跳转到登录页面');
                         window.location.href = 'login.html';
                     } else {
                         alert(data.msg);

@@ -260,7 +260,7 @@ function renderNotificationPage(data) {
 
   const list = data.list || [];
   if (list.length === 0) {
-    listEl.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text-muted)"><div style="font-size:48px;margin-bottom:16px">🔔</div><div>暂无通知</div></div>';
+    listEl.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text-muted)"><div style="font-size:48px;margin-bottom:16px"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div><div>暂无通知</div></div>';
     if (pagEl) pagEl.innerHTML = "";
     return;
   }
