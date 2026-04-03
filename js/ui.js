@@ -42,15 +42,14 @@ function switchPage(pageName) {
   window.scrollTo(0, 0);
   if (pageName === "notifications" && typeof loadNotificationPage === "function") {
     loadNotificationPage();
+  var isAdmin = typeof currentRole !== "undefined" && currentRole === "admin";
+  if (isAdmin && (pageName === "tickets" || pageName === "orders" || pageName === "instances" || pageName === "buy")) {
+    if (typeof renderAdminFrontendHints === "function") renderAdminFrontendHints();
+  } else {
+    if (pageName === "tickets" && typeof loadMyTickets === "function") loadMyTickets();
+    if (pageName === "orders" && typeof loadMyOrders === "function") loadMyOrders();
+    if (pageName === "instances" && typeof updateManageInstances === "function") updateManageInstances();
   }
-  if (pageName === "tickets" && typeof loadMyTickets === "function") {
-    loadMyTickets();
-  }
-  if (pageName === "orders" && typeof loadMyOrders === "function") {
-    loadMyOrders();
-  }
-  if (pageName === "instances" && typeof updateManageInstances === "function") {
-    updateManageInstances();
   }
 }
 

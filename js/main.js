@@ -28,7 +28,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function bootApp() {
   checkLogin();
-  loadProducts();
   loadAnnouncements();
   checkLinuxDOOAuth();
 }
@@ -38,12 +37,6 @@ window.addEventListener("pageshow", function (event) {
   currentUser = normalizeCurrentUserValueDeep(currentUser);
   initCsrfToken();
   checkLogin();
-  loadProducts();
-  if (currentRole === "user" || currentUser) {
-    loadMyOrders();
-    loadCreditSummary();
-    loadCreditTransactions();
-  }
 });
 
 // ==================== 认证模块 ====================
@@ -61,14 +54,23 @@ function checkLogin() {
         currentUser = normalizeCurrentUserValueDeep(data.data && data.data.user ? data.data.user : { username: data.data.username || "" });
         currentRole = data.data.role || "user";
         renderUserArea();
+        loadProducts();
         if (currentRole === "user") { loadMyOrders(); loadMyTickets(); loadCreditSummary(); loadCreditTransactions(); initNotifications(); }
+        else if (currentRole === "admin") { renderAdminFrontendHints(); renderAvailableInstances([]); }
         else { renderAvailableInstances([]); }
       } else {
         currentUser = null; currentRole = null; cachedOrderList = [];
-        renderUserArea(); renderAvailableInstances([]); stopNotificationPolling();
+        renderUserArea(); renderAvailableInstances([]); loadProducts(); stopNotificationPolling();
       }
     })
     .catch(() => { currentUser = null; currentRole = null; cachedOrderList = []; renderUserArea(); renderAvailableInstances([]); });
+}
+
+// ==================== 管理员前台提示 ====================
+function renderAdminFrontendHints() {
+  const adminHint = '<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><p>当前为管理员账号，请前往<a href="admin/index.html" style="color:var(--primary);text-decoration:underline;margin:0 4px">后台管理</a>查看</p></div>';
+  const targets = { myTickets: adminHint, myOrders: adminHint, buyProductList: adminHint, productList: adminHint };
+  Object.keys(targets).forEach(function(id) { const el = document.getElementById(id); if (el) el.innerHTML = targets[id]; });
 }
 
 // ==================== 用户区域渲染 ====================
@@ -293,6 +295,7 @@ function loadMyOrders(page = 1) {
   const container = document.getElementById("myOrders");
   if (container) container.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px;">加载中...</p>';
   apiFetch("api/orders.php?action=my&page=" + page + "&page_size=" + orderPagination.pageSize).then((r) => r.json()).then((data) => {
+    removePaginationWidget("orderPagination");
     if (data.code !== 1 || !data.data) { if (container) container.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px;">' + escapeHtml(data.msg || "加载失败") + "</p>"; renderAvailableInstances([]); return; }
     orderPagination.total = parseInt(data.data.total || 0);
     orderPagination.totalPages = parseInt(data.data.total_pages || 0);
@@ -321,11 +324,9 @@ function loadMyOrders(page = 1) {
     }).join("");
     renderAvailableInstances(orders);
     if (orderPagination.totalPages > 1) {
-      removePaginationWidget("orderPagination");
-      const anchor = container.closest(".page-content") || container.parentNode;
-      renderPaginationWidget("orderPagination", page, orderPagination.totalPages, "loadMyOrders", anchor, orderPagination.total);
-    } else { removePaginationWidget("orderPagination"); }
-  }).catch(() => { if (container) container.innerHTML = '<p style="color:var(--danger);text-align:center;padding:20px;">加载订单失败</p>'; });
+      renderPaginationWidget("orderPagination", page, orderPagination.totalPages, "loadMyOrders", container, orderPagination.total);
+    }
+  }).catch(() => { removePaginationWidget("orderPagination"); if (container) container.innerHTML = '<p style="color:var(--danger);text-align:center;padding:20px;">加载订单失败</p>'; });
 }
 
 // ==================== 订单详情弹窗 ====================
