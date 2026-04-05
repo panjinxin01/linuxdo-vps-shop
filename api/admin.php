@@ -5,7 +5,7 @@ require_once __DIR__ . '/../includes/db.php';
 
 $action = requestValue('action', '');
 
-$csrfActions = ['setup', 'login', 'logout', 'change_password', 'add', 'delete', 'promote_user'];
+$csrfActions = ['setup', 'login', 'logout', 'change_password', 'add', 'delete', 'promote_user', 'recovery_reset'];
 if (in_array($action, $csrfActions, true)) {
     requireCsrf();
 }
@@ -37,6 +37,54 @@ try {
             $stmt->execute([$username, $hash]);
             logAudit($pdo, 'admin.setup', ['username' => $username], (string)$pdo->lastInsertId());
             jsonResponse(1, '超级管理员创建成功');
+            break;
+
+        case 'recovery_reset':
+            rateLimit($pdo, 'admin_recovery_reset', getClientIp(), 3, 1800, 7200);
+
+            if (!defined('ADMIN_RECOVERY_ENABLED') || !ADMIN_RECOVERY_ENABLED) {
+                jsonResponse(0, '管理员恢复模式未启用，请先到 /api/config.php 中手动开启');
+            }
+
+            $configuredRecoveryKey = defined('ADMIN_RECOVERY_KEY') ? trim((string)ADMIN_RECOVERY_KEY) : '';
+            if ($configuredRecoveryKey === '') {
+                jsonResponse(0, '管理员恢复密钥未配置，请先到 /api/config.php 中设置 ADMIN_RECOVERY_KEY');
+            }
+
+            $recoveryKey = normalizeString(requestValue('recovery_key', ''), 200);
+            $confirmText = normalizeString(requestValue('confirm_text', ''), 50);
+            if ($recoveryKey === '' || $confirmText === '') {
+                jsonResponse(0, '请填写恢复密钥和确认文本');
+            }
+            if ($confirmText !== 'RESET ADMINS') {
+                jsonResponse(0, '确认文本错误，请输入 RESET ADMINS');
+            }
+            if (!hash_equals($configuredRecoveryKey, $recoveryKey)) {
+                jsonResponse(0, '恢复密钥错误');
+            }
+
+            $adminRows = $pdo->query('SELECT id, username, role FROM admins ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
+            if (empty($adminRows)) {
+                jsonResponse(1, '当前没有管理员数据，无需恢复', ['cleared' => 0]);
+            }
+
+            $pdo->beginTransaction();
+            $stmt = $pdo->prepare('DELETE FROM admins');
+            $stmt->execute();
+            $deleted = $stmt->rowCount();
+            $pdo->commit();
+
+            if (securityTableExists($pdo, 'error_logs')) {
+                logError($pdo, 'admin.recovery_reset', '管理员恢复模式已执行，admins 表已清空', [
+                    'deleted_count' => $deleted,
+                    'deleted_admins' => $adminRows,
+                    'ip' => getClientIp(),
+                    'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? '',
+                ]);
+            }
+
+            unset($_SESSION['admin_id'], $_SESSION['admin_name'], $_SESSION['admin_role']);
+            jsonResponse(1, '管理员数据已清空，请立即返回创建页面重新设置首个管理员', ['cleared' => $deleted]);
             break;
 
         case 'login':

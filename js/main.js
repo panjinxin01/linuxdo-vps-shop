@@ -14,12 +14,11 @@ let cachedOrderList = null;
 // ==================== 初始化 ====================
 document.addEventListener("DOMContentLoaded", () => {
   initCsrfToken();
-  apiFetch("api/check_install.php")
+  apiFetch("api/check_install.php?_=" + Date.now())
     .then((r) => r.json())
     .then((data) => {
       if (data.code === 1) {
-        if (!data.data.config_ok || !data.data.tables_ok) { window.location.href = "admin/install.html"; return; }
-        if (!data.data.admin_ok) { window.location.href = "admin/setup.html"; return; }
+        renderInstallStateNotice(data.data || {});
       }
       bootApp();
     })
@@ -60,11 +59,44 @@ function checkLogin() {
         else { renderAvailableInstances([]); }
       } else {
         currentUser = null; currentRole = null; cachedOrderList = [];
-        renderUserArea(); renderAvailableInstances([]); loadProducts(); stopNotificationPolling();
+        renderUserArea(); loadProducts(); loadMyOrders(); loadMyTickets(); stopNotificationPolling();
       }
     })
-    .catch(() => { currentUser = null; currentRole = null; cachedOrderList = []; renderUserArea(); renderAvailableInstances([]); });
+    .catch(() => { currentUser = null; currentRole = null; cachedOrderList = []; renderUserArea(); loadProducts(); loadMyOrders(); loadMyTickets(); });
 }
+
+function renderInstallStateNotice(state) {
+  if (!state || typeof document === "undefined") return;
+
+  let html = "";
+  if (!state.config_ok || !state.tables_ok) {
+    html = '<div id="installStateNotice" class="install-state-notice warning">当前站点尚未完成安装，公开前台不再强制跳转后台。请前往 <a href="admin/install.html">安装向导</a> 完成初始化。</div>';
+  } else if (!state.admin_ok) {
+    html = '<div id="installStateNotice" class="install-state-notice info">数据库已安装，但尚未创建管理员。请按需前往 <a href="admin/setup.html">管理员初始化</a>。</div>';
+  }
+
+  const wrapper = document.getElementById("globalNoticeArea");
+  const mount = document.getElementById("globalInstallStateNotice");
+  if (mount) {
+    mount.innerHTML = html;
+    if (wrapper) wrapper.classList.toggle("show", !!html);
+    return;
+  }
+
+  const stale = document.getElementById("installStateNotice");
+  if (stale) stale.remove();
+  if (!html) return;
+
+  const container =
+    document.querySelector(".page-content.active .dashboard-container") ||
+    document.querySelector(".page-content.active .container") ||
+    document.querySelector(".main-content") ||
+    document.querySelector("main") ||
+    document.body;
+  if (!container) return;
+  container.insertAdjacentHTML("afterbegin", html);
+}
+
 
 // ==================== 管理员前台提示 ====================
 function renderAdminFrontendHints() {
@@ -94,9 +126,48 @@ function renderUserArea() {
   updateHomeStats();
 }
 
+function setGuestHomeInstanceCards() {
+  const statCard = document.querySelector("#page-home .instance-stat-card");
+  if (statCard) {
+    if (!statCard.dataset.originalHtml) statCard.dataset.originalHtml = statCard.innerHTML;
+    if (!statCard.dataset.originalOnclick) statCard.dataset.originalOnclick = statCard.getAttribute("onclick") || "";
+    statCard.innerHTML = '<div class="instance-stat-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><div class="instance-stat-info"><div class="instance-stat-value">--</div><div class="instance-stat-label">登录后查看有效实例</div><div style="font-size:12px;color:var(--text-muted);margin-top:6px">查看已开通实例、交付信息与实例管理入口</div></div>';
+    statCard.setAttribute("onclick", "showLogin()");
+  }
+
+  const manageCard = document.getElementById("manageInstanceCard");
+  if (manageCard) {
+    if (!manageCard.dataset.originalHtml) manageCard.dataset.originalHtml = manageCard.innerHTML;
+    manageCard.innerHTML = '<div class="manage-instance-title">实例管理</div><div class="manage-instance-desc">登录后查看您的有效实例、连接信息与管理入口</div><div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px"><button class="btn btn-primary" onclick="event.stopPropagation();showLogin()">立即登录</button><button class="btn btn-outline" onclick="event.stopPropagation();showRegister()">注册账号</button></div>';
+    manageCard.style.display = "block";
+  }
+}
+
+function restoreHomeInstanceCards() {
+  const statCard = document.querySelector("#page-home .instance-stat-card");
+  if (statCard && statCard.dataset.originalHtml) {
+    if (statCard.innerHTML !== statCard.dataset.originalHtml) statCard.innerHTML = statCard.dataset.originalHtml;
+    if (statCard.dataset.originalOnclick) statCard.setAttribute("onclick", statCard.dataset.originalOnclick);
+  }
+  const manageCard = document.getElementById("manageInstanceCard");
+  if (manageCard && manageCard.dataset.originalHtml && manageCard.innerHTML !== manageCard.dataset.originalHtml) {
+    manageCard.innerHTML = manageCard.dataset.originalHtml;
+  }
+}
+
 function updateHomeStats() {
+  if (!currentUser) setGuestHomeInstanceCards();
+  else restoreHomeInstanceCards();
+
   const s = document.getElementById("statInstances");
   if (s) s.textContent = (currentUser && currentRole === "user") ? (orderPagination.total || "0") : "0";
+  // 首页订单余额卡片在未登录时也做友好提示
+  const balSummary = document.getElementById("creditBalanceSummary");
+  const balHint = document.getElementById("creditBalanceHint");
+  if (!currentUser) {
+    if (balSummary) balSummary.textContent = "--";
+    if (balHint) balHint.textContent = "登录后查看余额信息";
+  }
   updateManageInstances();
 }
 
@@ -104,6 +175,7 @@ function updateWelcomeCard() {
   currentUser = normalizeCurrentUserValueDeep(currentUser);
   const greeting = document.getElementById("welcomeGreeting");
   const avatar = document.getElementById("welcomeAvatar");
+  const quote = document.querySelector("#welcomeCard .welcome-quote");
   if (!greeting) return;
   const h = new Date().getHours();
   let tg = "您好";
@@ -111,6 +183,9 @@ function updateWelcomeCard() {
   else if (h >= 14 && h < 18) tg = "下午好"; else if (h >= 18 && h < 22) tg = "晚上好"; else tg = "夜深了";
   const un = safeUserNameFrom(currentUser);
   greeting.textContent = un ? tg + "！" + un : "欢迎访问";
+  if (quote) {
+    quote.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:2px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> ' + (un ? '使用积分兑换高性能VPS云服务器' : '请登录后查看并兑换高性能VPS云服务器');
+  }
   if (!avatar) return;
   if (un) { avatar.classList.add("has-user"); avatar.innerHTML = '<span style="font-size:24px;font-weight:600;">' + escapeHtml(un.charAt(0).toUpperCase()) + "</span>"; }
   else { avatar.classList.remove("has-user"); avatar.innerHTML = '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'; }
@@ -118,10 +193,29 @@ function updateWelcomeCard() {
 
 function updateManageInstances(orderList) {
   const card = document.getElementById("manageInstanceCard");
+  if (!card) return;
+
+  if (!currentUser) {
+    setGuestHomeInstanceCards();
+    renderAvailableInstances([]);
+    return;
+  }
+
+  restoreHomeInstanceCards();
   const tags = document.getElementById("manageInstanceTags");
-  if (!card || !tags) return;
-  const list = (orderList || cachedOrderList || []).filter((o) => parseInt(o.status || 0) === 1);
-  if (!list.length) { card.style.display = "none"; const s = document.getElementById("statInstances"); if (s) s.textContent = "0"; renderAvailableInstances([]); return; }
+  if (!tags) return;
+
+  const list = currentRole === "user"
+    ? (orderList || cachedOrderList || []).filter((o) => parseInt(o.status || 0) === 1)
+    : [];
+
+  if (!list.length) {
+    card.style.display = "none";
+    const s = document.getElementById("statInstances");
+    if (s) s.textContent = currentRole === "user" ? "0" : s.textContent;
+    renderAvailableInstances([]);
+    return;
+  }
   card.style.display = "block";
   tags.innerHTML = list.slice(0, 8).map((o) => `<span class="instance-tag" onclick="switchPage('instances')"><span class="status-dot"></span>${escapeHtml(o.product_name || "VPS-" + o.id)}</span>`).join("");
   const s = document.getElementById("statInstances"); if (s) s.textContent = String(list.length);
@@ -179,8 +273,10 @@ function doAuth() {
 function logout() {
   apiFetch("api/user.php", { method: "POST", body: new URLSearchParams({ action: "logout" }) }).then(() => {
     currentUser = null; currentRole = null; cachedOrderList = []; stopNotificationPolling();
-    renderUserArea(); renderAvailableInstances([]); loadProducts(); loadMyTickets();
+    renderUserArea(); loadProducts(); loadMyOrders(); loadMyTickets();
     const ce = document.getElementById("creditTransactions"); if (ce) ce.innerHTML = "暂无流水";
+    const bs = document.getElementById("creditBalanceSummary"); if (bs) bs.textContent = "--";
+    const bh = document.getElementById("creditBalanceHint"); if (bh) bh.textContent = "登录后查看余额信息";
     initCsrfToken();
   });
 }
@@ -192,7 +288,10 @@ function loadProducts() {
   const c = document.getElementById("buyProductList");
   if (!c) return;
   if (!currentUser) {
-    c.innerHTML = '<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><p>登录后查看可购买配置</p></div>';
+    c.innerHTML = renderLoginRequired('登录后查看可购买配置', {
+      icon: 'cart',
+      sub: '请登录后查看并兑换高性能VPS云服务器'
+    });
     return;
   }
   apiFetch("api/products.php?action=list").then((r) => r.json()).then((data) => {
@@ -293,6 +392,14 @@ function closeSuccess() { document.getElementById("successModal").classList.remo
 function loadMyOrders(page = 1) {
   orderPagination.page = page;
   const container = document.getElementById("myOrders");
+  if (!currentUser) {
+    if (container) container.innerHTML = renderLoginRequired('登录后查看订单记录', {
+      icon: 'order',
+      sub: '管理您的VPS订单、查看交付状态与余额流水'
+    });
+    renderAvailableInstances([]);
+    return;
+  }
   if (container) container.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px;">加载中...</p>';
   apiFetch("api/orders.php?action=my&page=" + page + "&page_size=" + orderPagination.pageSize).then((r) => r.json()).then((data) => {
     removePaginationWidget("orderPagination");
@@ -383,7 +490,12 @@ function loadAnnouncements() {
       return;
     }
     if (container) container.innerHTML = data.data.map((a) => `<div class="announcement-item ${a.is_top == 1 ? "top" : ""}" onclick="showAnnouncement(${a.id})">${a.is_top == 1 ? '<span class="announcement-tag">置顶</span>' : ""}<span class="announcement-title">${escapeHtml(a.title)}</span><span class="announcement-date">${escapeHtml((a.publish_at || a.created_at)?.split(" ")[0] || "")}</span></div>`).join("");
-    if (scrollList) scrollList.innerHTML = data.data.map((a) => `<div class="announcement-scroll-item" onclick="showAnnouncement(${a.id})"><div class="announcement-scroll-title">${a.is_top == 1 ? '<span class="tag">置顶</span>' : "<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:2px"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>"} ${escapeHtml(a.title)}</div><div class="announcement-scroll-desc">${escapeHtml((a.content || "").substring(0, 100))}</div><a href="#" class="announcement-scroll-link" onclick="event.stopPropagation();showAnnouncement(${a.id})">详情及修复办法</a></div>`).join("");
+    if (scrollList) scrollList.innerHTML = data.data.map((a) => {
+      const iconHtml = a.is_top == 1
+        ? '<span class="tag">置顶</span>'
+        : '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:2px"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>';
+      return `<div class="announcement-scroll-item" onclick="showAnnouncement(${a.id})"><div class="announcement-scroll-title">${iconHtml} ${escapeHtml(a.title)}</div><div class="announcement-scroll-desc">${escapeHtml((a.content || "").substring(0, 100))}</div><a href="#" class="announcement-scroll-link" onclick="event.stopPropagation();showAnnouncement(${a.id})">详情及修复办法</a></div>`;
+    }).join("");
   }).catch(() => { const c = document.getElementById("announcementList"); if (c) c.innerHTML = '<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div><p>加载失败</p></div>'; });
 }
 
@@ -402,7 +514,10 @@ function closeAnnouncementModal() { document.getElementById("announcementModal")
 function loadMyTickets() {
   const c = document.getElementById("myTickets"); if (!c) return;
   if (!currentUser) {
-    c.innerHTML = '<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><p>登录后查看工单记录</p></div>';
+    c.innerHTML = renderLoginRequired('登录后查看工单记录', {
+      icon: 'ticket',
+      sub: '提交问题反馈、查看处理进度，获取技术支持'
+    });
     return;
   }
   apiFetch("api/tickets.php?action=my").then((r) => r.json()).then((data) => {
@@ -465,7 +580,8 @@ function showTicketDetail(id) {
         return (a.mime_type || "").startsWith("image/") ? `<a class="ticket-attachment image" href="${u}" target="_blank"><img src="${u}" alt="${n}"><span class="ticket-attachment-name">${n}</span></a>` : `<a class="ticket-attachment file" href="${u}" target="_blank"><span class="ticket-attachment-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span><span class="ticket-attachment-name">${n}</span></a>`;
       }).join("") + "</div></div>";
     }
-    document.getElementById("ticketDetailBody").innerHTML = `<div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)"><span class="badge ${sc}" style="margin-right:12px">${st}</span>${t.order_no ? `<span style="color:var(--text-muted);font-size:13px">关联订单：${escapeHtml(t.order_no)}</span>` : ""}<div style="margin-top:8px;font-size:12px;color:var(--text-muted)">分类：${escapeHtml(t.category || "other")} · 优先级：${escapeHtml(String(t.priority ?? "1"))} · 更新时间：${escapeHtml(t.updated_at || "")}</div></div><div class="ticket-replies">${rHtml}</div>${evHtml}${atHtml}${t.status != 2 ? `<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)"><textarea id="replyContent" rows="3" placeholder="输入回复内容..." style="width:100%;resize:vertical"></textarea><div style="margin-top:8px;display:flex;align-items:center;gap:10px"><input type="file" id="ticketFile" accept="image/*,.txt,.log,.pdf" style="font-size:12px"><button class="btn btn-outline" style="padding:4px 10px;font-size:12px" onclick="uploadUserTicketAttachment(${t.id})">上传</button></div></div>` : ""}`;
+    const fileAccept = "image/" + "*,.txt,.log,.pdf";
+    document.getElementById("ticketDetailBody").innerHTML = `<div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)"><span class="badge ${sc}" style="margin-right:12px">${st}</span>${t.order_no ? `<span style="color:var(--text-muted);font-size:13px">关联订单：${escapeHtml(t.order_no)}</span>` : ""}<div style="margin-top:8px;font-size:12px;color:var(--text-muted)">分类：${escapeHtml(t.category || "other")} · 优先级：${escapeHtml(String(t.priority ?? "1"))} · 更新时间：${escapeHtml(t.updated_at || "")}</div></div><div class="ticket-replies">${rHtml}</div>${evHtml}${atHtml}${t.status != 2 ? `<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)"><textarea id="replyContent" rows="3" placeholder="输入回复内容..." style="width:100%;resize:vertical"></textarea><div style="margin-top:8px;display:flex;align-items:center;gap:10px"><input type="file" id="ticketFile" accept="${fileAccept}" style="font-size:12px"><button class="btn btn-outline" style="padding:4px 10px;font-size:12px" onclick="uploadUserTicketAttachment(${t.id})">上传</button></div></div>` : ""}`;
     document.getElementById("ticketDetailFoot").innerHTML = t.status != 2 ? `<button class="btn btn-outline" style="flex:1" onclick="closeTicket(${t.id})">关闭工单</button><button class="btn btn-primary" style="flex:1" onclick="replyTicket(${t.id})">发送回复</button>` : `<button class="btn btn-primary" style="width:100%" onclick="closeTicketDetail()">关闭</button>`;
     document.getElementById("ticketDetailModal").classList.add("show");
   });
@@ -526,7 +642,10 @@ function renderAvailableInstances(orderList) {
   const container = document.getElementById("productList");
   if (!container) return;
   if (!currentUser || currentRole !== "user") {
-    container.innerHTML = '<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><p>登录后查看您的实例</p></div>';
+    container.innerHTML = renderLoginRequired('登录后查看您的实例', {
+      icon: 'server',
+      sub: '登录账户即可管理已开通的VPS实例与连接信息'
+    });
     return;
   }
   const list = (orderList || cachedOrderList || []).filter((o) => { const s = parseInt(o.status || 0), d = String(o.delivery_status || ""); return s === 1 && d !== "refunded" && d !== "cancelled"; });

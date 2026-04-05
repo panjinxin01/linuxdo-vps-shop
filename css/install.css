@@ -12,10 +12,9 @@ body {
   background: #020817;
   color: #f8fafc;
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 40px 20px;
 }
 .install-box {
   background: #0f172a;
@@ -24,6 +23,12 @@ body {
   padding: 40px;
   width: 100%;
   max-width: 480px;
+  margin: 0 auto;
+}
+@supports (min-height: 100dvh) {
+  body {
+    min-height: 100dvh;
+  }
 }
 .step-indicator {
   display: flex;
@@ -251,5 +256,18 @@ h1 {
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 768px) {
+  body {
+    padding: 20px 14px;
+  }
+  .install-box {
+    padding: 24px 18px;
+    max-width: 100%;
+  }
+  .form-row {
+    grid-template-columns: 1fr;
   }
 }

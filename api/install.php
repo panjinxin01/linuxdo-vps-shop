@@ -20,6 +20,8 @@ function getCurrentConfig(): array {
         'DB_PASS' => '',
         'DB_NAME' => 'vps_shop',
         'DATA_ENCRYPTION_KEY' => '',
+        'ADMIN_RECOVERY_ENABLED' => false,
+        'ADMIN_RECOVERY_KEY' => '',
     ];
     $path = getConfigPath();
     if (file_exists($path)) {
@@ -54,6 +56,8 @@ function writeConfigFile(array $cfg): bool {
     $c .= "define('DB_NAME', " . var_export((string)$cfg['DB_NAME'], true) . ");\n";
     $c .= "\ndefine('SITE_NAME', 'VPS积分商城');\n";
     $c .= "\ndefine('DATA_ENCRYPTION_KEY', " . var_export((string)$cfg['DATA_ENCRYPTION_KEY'], true) . ");\n";
+    $c .= "\ndefine('ADMIN_RECOVERY_ENABLED', " . (!empty($cfg['ADMIN_RECOVERY_ENABLED']) ? 'true' : 'false') . ");\n";
+    $c .= "define('ADMIN_RECOVERY_KEY', " . var_export((string)$cfg['ADMIN_RECOVERY_KEY'], true) . ");\n";
     $c .= "\ndefine('LINUXDO_CLIENT_ID', " . var_export($oauthVars['LINUXDO_CLIENT_ID'], true) . ");\n";
     $c .= "define('LINUXDO_CLIENT_SECRET', " . var_export($oauthVars['LINUXDO_CLIENT_SECRET'], true) . ");\n";
     $c .= "define('LINUXDO_REDIRECT_URI', " . var_export($oauthVars['LINUXDO_REDIRECT_URI'], true) . ");\n";

@@ -53,6 +53,12 @@ function postApi(action, data) {
         .then(function(r) { return r.json(); });
 }
 
+function fetchInstallState() {
+    return fetch('../api/check_install.php?_=' + Date.now(), { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(res) { return res && res.data ? res.data : {}; });
+}
+
 // 初始化：加载当前配置
 function init() {
     fetch(API + '?action=get_config')
@@ -180,15 +186,32 @@ function runInstall() {
     setLoading(btn, true);
 
     postApi('run_install', {}).then(function(res) {
-        setLoading(btn, false);
-        if (res.code === 1) {
-            goStep(4);
-            setTimeout(function() {
-                window.location.href = 'setup.html';
-            }, 2000);
-        } else {
+        if (res.code !== 1) {
+            setLoading(btn, false);
             showMsg('step3Msg', res.msg, 'error');
+            return;
         }
+        goStep(4);
+        fetchInstallState().then(function(state) {
+            setLoading(btn, false);
+            var hasAdmin = !!state.admin_ok || Number(state.admin_count || 0) > 0;
+            var nextUrl = hasAdmin ? 'setup.html?existing_admin=1' : 'setup.html';
+            var tip = document.querySelector('[data-step="4"] .subtitle');
+            if (tip) {
+                tip.textContent = hasAdmin
+                    ? '检测到当前数据库中已存在管理员账号，正在跳转到确认页面...'
+                    : '正在跳转到管理员创建页面...';
+            }
+            setTimeout(function() {
+                window.location.replace(nextUrl);
+            }, 1200);
+
+        }).catch(function() {
+            setLoading(btn, false);
+            setTimeout(function() {
+                window.location.replace('setup.html');
+            }, 1200);
+        });
     }).catch(function() {
         setLoading(btn, false);
         showMsg('step3Msg', '请求失败', 'error');

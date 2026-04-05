@@ -20,8 +20,12 @@ function switchTab(tab) {
   document.querySelectorAll(".menu-item").forEach((x) => x.classList.remove("active"));
   const t = document.querySelector(`.menu-item[data-tab="${tab}"]`); if (t) t.classList.add("active");
   document.querySelectorAll(".tab-content").forEach((x) => x.classList.remove("active"));
-  document.getElementById(tab).classList.add("active");
+  const currentTab = document.getElementById(tab);
+  if (currentTab) currentTab.classList.add("active");
   const bc = document.getElementById("breadcrumbCurrent"); if (bc) bc.textContent = tabTitles[tab] || tab;
+  const main = document.querySelector(".main-content");
+  if (main) main.scrollTop = 0;
+  document.querySelectorAll(".settings-scroll-container").forEach((el) => { el.scrollTop = 0; });
   if (window.innerWidth <= 768) closeSidebar();
 }
 

@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../css/admin.css"><script>
+    <link rel="stylesheet" href="../css/admin.css?v=20260315j"><script>
         // 自动缓存破坏
         (function() {
             const v = Date.now();
@@ -19,7 +19,7 @@
         })();
     </script>
 </head>
-<body>
+<body class="auth-page">
     <div class="auth-layout">
         <div class="auth-card">
             <div style="text-align:center;margin-bottom:32px">
@@ -79,14 +79,14 @@
         initCsrfToken();
 
         // 检查安装状态
-        apiFetch('../api/check_install.php')
+        apiFetch('../api/check_install.php?_=' + Date.now())
             .then(r => r.json())
             .then(data => {
                 if (data.code === 1) {
 if (!data.data.config_ok || !data.data.tables_ok) {
-window.location.href = 'install.html';
+window.location.replace('install.html');
                     } else if (!data.data.admin_ok) {
-                        window.location.href = 'setup.html';
+                        window.location.replace('setup.html');
                     }
                 }
             });
@@ -96,7 +96,7 @@ window.location.href = 'install.html';
             .then(r => r.json())
             .then(data => {
                 if (data.code === 1) {
-                    window.location.href = 'index.html';
+                    window.location.replace('index.html');
                 }
             });
 
@@ -118,7 +118,7 @@ window.location.href = 'install.html';
                 .then(r => r.json())
                 .then(data => {
                     if (data.code === 1) {
-                        window.location.href = 'index.html';
+                        window.location.replace('index.html');
                     } else {
                         alert(data.msg);
                     }

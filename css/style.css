@@ -233,6 +233,35 @@ button {
   padding: 8px;
   cursor: pointer;
 }
+/* === 全局提示条 === */
+.global-notice-area {
+  display: none;
+  padding: 16px 24px 0;
+}
+.global-notice-area.show {
+  display: block;
+}
+.install-state-notice {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.install-state-notice a {
+  text-decoration: underline;
+  font-weight: 500;
+}
+.install-state-notice.warning {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.08);
+  color: #b45309;
+}
+.install-state-notice.info {
+  border-color: rgba(59, 130, 246, 0.28);
+  background: rgba(59, 130, 246, 0.08);
+  color: #1d4ed8;
+}
 
 /* === 页面内容 === */
 .page-content {
@@ -246,6 +275,7 @@ button {
 .page-header {
   margin-bottom: 24px;
 }
+
 .page-header h2 {
   font-size: 28px;
   font-weight: 700;
@@ -1576,11 +1606,14 @@ button {
     justify-content: center;
   }
 }
-
 @media (max-width: 768px) {
   .container {
     padding: 0 16px;
   }
+  .global-notice-area {
+    padding: 12px 0 0;
+  }
+
   .hero h1 {
     font-size: 32px;
   }
@@ -1731,5 +1764,211 @@ button {
   }
   .quick-actions-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* === 未登录提示卡片 === */
+.login-required-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 32px 48px;
+  text-align: center;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(160deg, rgba(59, 130, 246, 0.06) 0%, rgba(99, 102, 241, 0.02) 50%, transparent 100%);
+  border: 1px dashed var(--border);
+  margin: 16px 0;
+  position: relative;
+  overflow: hidden;
+}
+.login-required-card::before {
+  content: "";
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 160px;
+  height: 160px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.login-required-card::after {
+  content: "";
+  position: absolute;
+  bottom: -40px;
+  left: -40px;
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.06) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.login-required-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(99, 102, 241, 0.06) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  color: var(--primary);
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.08);
+}
+.login-required-hint {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-light);
+  margin-bottom: 8px;
+  line-height: 1.6;
+  position: relative;
+  z-index: 1;
+}
+.login-required-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+  line-height: 1.5;
+  max-width: 320px;
+  position: relative;
+  z-index: 1;
+}
+.login-required-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+.login-required-btn {
+  padding: 10px 28px !important;
+  font-size: 14px !important;
+  border-radius: var(--radius-lg) !important;
+}
+.login-required-btn-secondary {
+  padding: 10px 20px !important;
+  font-size: 13px !important;
+  border-radius: var(--radius-lg) !important;
+}
+/* 紧凑模式 */
+.login-required-compact {
+  padding: 32px 20px 28px;
+  margin: 8px 0;
+}
+.login-required-compact .login-required-icon {
+  width: 60px;
+  height: 60px;
+  margin-bottom: 14px;
+}
+.login-required-compact .login-required-hint {
+  font-size: 13px;
+}
+.login-required-compact .login-required-sub {
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+.login-required-compact .login-required-actions {
+  gap: 8px;
+}
+.login-required-compact .login-required-btn {
+  padding: 8px 20px !important;
+  font-size: 13px !important;
+}
+.login-required-compact .login-required-btn-secondary {
+  padding: 8px 16px !important;
+  font-size: 12px !important;
+}
+@media (max-width: 480px) {
+  .login-required-card {
+    padding: 40px 20px 32px;
+  }
+  .login-required-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  .login-required-actions .btn {
+    width: 100%;
+  }
+}
+
+/* === 分页控件 === */
+.pagination-widget {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 0 8px;
+  flex-wrap: wrap;
+}
+.pagination-info {
+  color: var(--text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.pagination-btns {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-light);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  line-height: 1;
+}
+.pagination-btn svg {
+  display: block;
+}
+.pagination-btn:hover:not(:disabled):not(.active) {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(99, 102, 241, 0.08);
+}
+.pagination-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  pointer-events: none;
+}
+.pagination-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.pagination-dots {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 32px;
+  color: var(--text-muted);
+  font-size: 14px;
+  letter-spacing: 2px;
+  user-select: none;
+}
+
+@media (max-width: 480px) {
+  .pagination-widget {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .pagination-btn {
+    min-width: 28px;
+    height: 28px;
+    font-size: 12px;
   }
 }

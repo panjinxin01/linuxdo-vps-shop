@@ -259,12 +259,14 @@ body {
 /* === 主内容 === */
 .main-content {
   grid-area: content;
+  min-height: 0;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   padding: 24px 28px;
   background: radial-gradient(
     circle at top right,
     rgba(99, 102, 241, 0.03),
-    transparent50%
+    transparent 50%
   );
 }
 .tab-content {
@@ -769,16 +771,9 @@ tr:hover td {
 
 /* === 设置页=== */
 .settings-scroll-container {
-  max-height: calc(100vh - 160px);
-  overflow-y: auto;
-  padding-right: 6px;
-}
-.settings-scroll-container::-webkit-scrollbar {
-  width: 5px;
-}
-.settings-scroll-container::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 3px;
+  max-height: none;
+  overflow: visible;
+  padding-right: 0;
 }
 .settings-grid {
   display: grid;
@@ -929,12 +924,75 @@ tr:hover td {
   border-color: var(--primary);
   color: white;
 }
+/* 兼容新分页类名 */
+.pagination-widget {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  border: 1px solid var(--border);
+  border-top: none;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.pagination-info {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.pagination-btns {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.pagination-btn {
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.15);
+  color: var(--text-light);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.pagination-btn svg { display: block; }
+.pagination-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.pagination-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.pagination-dots {
+  color: var(--text-muted);
+  font-size: 14px;
+  padding: 0 4px;
+}
+
 .page-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
-/* === 登录页 === */
+/* === 登录 / 初始化页 === */
+body.auth-page {
+  height: auto;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
 .auth-layout {
   display: flex;
   align-items: center;
@@ -947,6 +1005,11 @@ tr:hover td {
     transparent 50%
   );
 }
+body.auth-page .auth-layout {
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 40px 20px;
+}
 .auth-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -955,6 +1018,31 @@ tr:hover td {
   width: 100%;
   max-width: 380px;
   box-shadow: var(--shadow-lg);
+}
+body.auth-page .auth-card {
+  margin: 0 auto;
+}
+body.setup-page .auth-card {
+  max-width: 520px;
+}
+body.setup-page .auth-card code {
+  word-break: break-all;
+}
+@supports (min-height: 100dvh) {
+  body.auth-page {
+    min-height: 100dvh;
+  }
+  body.auth-page .auth-layout {
+    min-height: 100dvh;
+  }
+}
+@supports (height: 100dvh) {
+  body:not(.auth-page) {
+    height: 100dvh;
+  }
+  .admin-layout {
+    height: 100dvh;
+  }
 }
 
 /* === 汉堡菜单 === */
@@ -1054,6 +1142,13 @@ tr:hover td {
   .header-right .user-info {
     display: none;
   }
+  body.auth-page .auth-layout {
+    padding: 20px 14px;
+  }
+  body.auth-page .auth-card {
+    padding: 24px 18px;
+    max-width: 100%;
+  }
 }
 @media (max-width: 480px) {
   .stats-grid {
@@ -1072,6 +1167,12 @@ tr:hover td {
   }
   .page-title {
     font-size: 18px;
+  }
+  body.auth-page .auth-layout {
+    padding: 16px 12px;
+  }
+  body.auth-page .auth-card {
+    padding: 22px 16px;
   }
 }
 

@@ -40,7 +40,12 @@ function stopNotificationPolling() {
   if (list) list.style.display = "none";
   if (footer) footer.style.display = "none";
   if (markAll) markAll.style.display = "none";
-  if (loginPrompt) loginPrompt.style.display = "block";
+  if (loginPrompt) {
+    loginPrompt.innerHTML = typeof renderLoginRequired === 'function'
+      ? renderLoginRequired('登录后查看通知消息', { icon: 'bell', sub: '接收订单状态更新、工单回复等系统消息', compact: true })
+      : '';
+    loginPrompt.style.display = "block";
+  }
 }
 
 // 未读数量

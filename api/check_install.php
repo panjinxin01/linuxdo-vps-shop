@@ -10,6 +10,9 @@ $status = [
     'db_ok' => false,
     'tables_ok' => false,
     'admin_ok' => false,
+    'admin_count' => 0,
+    'recovery_enabled' => defined('ADMIN_RECOVERY_ENABLED') ? (bool)ADMIN_RECOVERY_ENABLED : false,
+    'recovery_key_set' => defined('ADMIN_RECOVERY_KEY') && trim((string)ADMIN_RECOVERY_KEY) !== '',
     'missing_tables' => []
 ];
 
@@ -45,6 +48,7 @@ try {
         if (empty($missingTables)) {
             $status['tables_ok'] = true;
             $admin = (int)$pdo->query('SELECT COUNT(*) FROM admins')->fetchColumn();
+            $status['admin_count'] = $admin;
             $status['admin_ok'] = $admin > 0;
         }
     }

@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" id="mainCss" href="css/style.css?v=20260315g" />
+    <link rel="stylesheet" id="mainCss" href="css/style.css?v=20260315h" />
   </head>
   <body>
     <!-- 侧边栏 -->
@@ -271,44 +271,8 @@
                 <div class="notification-list" id="notificationList">
                   <div class="notification-empty">暂无通知</div>
                 </div>
-                <!-- 未登录提示 -->
-                <div
-                  class="notification-login-prompt"
-                  id="notificationLoginPrompt"
-                  style="display: none"
-                >
-                  <div style="padding: 40px 20px; text-align: center">
-                    <div style="font-size: 48px; margin-bottom: 16px"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
-                    <div
-                      style="
-                        font-size: 16px;
-                        color: var(--text-light);
-                        margin-bottom: 8px;
-                      "
-                    >
-                      登录后查看通知
-                    </div>
-                    <p
-                      style="
-                        font-size: 13px;
-                        color: var(--text-muted);
-                        margin-bottom: 20px;
-                      "
-                    >
-                      订单状态、工单回复等重要消息将在这里显示
-                    </p>
-                    <button
-                      class="btn btn-primary"
-                      style="width: 100%; padding: 12px"
-                      onclick="
-                        closeNotificationPanel();
-                        showLogin();
-                      "
-                    >
-                      立即登录
-                    </button>
-                  </div>
-                </div>
+                <!-- 未登录提示（已移除） -->
+                <div id="notificationLoginPrompt" style="display: none"></div>
                 <div class="notification-footer" id="notificationFooter">
                   <a
                     href="#"
@@ -327,7 +291,13 @@
         </div>
       </header>
 
-      <!-- 首页/面板主页 -->
+      <div class="global-notice-area" id="globalNoticeArea">
+        <div class="container">
+          <div id="globalInstallStateNotice"></div>
+        </div>
+      </div>
+ 
+       <!-- 首页/面板主页 -->
       <div class="page-content active" id="page-home">
         <div class="dashboard-container">
           <!--欢迎卡片 -->
@@ -347,7 +317,7 @@
             </div>
             <div class="welcome-info">
               <div class="welcome-greeting" id="welcomeGreeting">欢迎访问</div>
-              <div class="welcome-quote"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:2px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> 使用积分兑换高性能VPS云服务器</div>
+              <div class="welcome-quote"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:2px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> 请登录后查看并兑换高性能VPS云服务器</div>
             </div>
           </div>
 
@@ -420,12 +390,7 @@
           <div class="page-header">
             <h2>可用实例</h2>
             <p>这里显示您已经拥有的实例与交付信息</p>
-          <div class="products" id="productList">
-            <div class="empty-state">
-              <div class="empty-icon"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-              <p>登录后查看您的实例</p>
-            </div>
-          </div>
+            <div class="products" id="productList"></div>
           </div>
         </div>
       </div>
@@ -469,7 +434,7 @@
                   margin-top: 8px;
                 "
               >
-                登录后可使用余额支付订单
+                余额可用于支付订单
               </div>
             </div>
             <div class="card" style="padding: 20px">
@@ -499,12 +464,7 @@
                 暂无流水
               </div>
             </div>
-          </div>
-          <div id="myOrders">
-            <div class="empty-state">
-              <div class="empty-icon"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-              <p>登录后查看订单记录</p>
-            </div>
+        <div id="myOrders"></div>
           </div>
         </div>
       </div>
@@ -518,12 +478,7 @@
             <button class="btn btn-primary" onclick="showCreateTicket()">
               + 新建工单
             </button>
-          </div>
-          <div id="myTickets">
-            <div class="empty-state">
-              <div class="empty-icon"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-              <p>登录后查看工单记录</p>
-            </div>
+        <div id="myTickets"></div>
           </div>
         </div>
       </div>
@@ -533,12 +488,7 @@
           <div class="page-header">
             <h2>新建实例</h2>
             <p>选择您需要的VPS配置，立即开通使用</p>
-          <div class="products" id="buyProductList">
-            <div class="empty-state">
-              <div class="empty-icon"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-              <p>登录后查看可购买配置</p>
-            </div>
-          </div>
+          <div class="products" id="buyProductList"></div>
           </div>
         </div>
       </div>
@@ -1036,6 +986,6 @@
     <script src="js/ui.js?v=20250613"></script>
     <script src="js/orders.js?v=20250613"></script>
     <script src="js/notifications.js?v=20250613"></script>
-    <script src="js/main.js?v=20250613"></script>
+    <script src="js/main.js?v=20250613a"></script>
   </body>
 </html>
