@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据库维护 - VPS积分商城（build 20260315i）</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/admin.css">
+    <script>
+        // 自动缓存破坏
+        (function() {
+            const v = Date.now();
+            document.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
+                if (link.href && !link.href.includes('fonts.googleapis.com')) {
+                    link.href = link.href.split('?')[0] + '?v=' + v;
+                }
+            });
+        })();
+    </script>
+    <style>
+        .maintenance-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .maintenance-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+        .maintenance-card h3 {
+            margin-bottom: 16px;
+            font-size: 18px;
+            color: var(--text-main);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+        }
+        .maintenance-card p {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        #dbStatus {
+            margin-bottom: 20px;
+            padding: 16px;
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            display: none;
+            line-height: 1.6;
+        }
+        #dbStatus.show { display: block; }
+        #dbStatus.success {
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+        #dbStatus.error {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        #dbStatus.warning {
+            background: rgba(251, 191, 36, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+        #dbStatus.loading {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 24px;
+            transition: var(--transition);
+        }
+        .back-link:hover { color: var(--primary); }
+        .danger-zone {
+            border-color: rgba(239, 68, 68, 0.3);
+            background: rgba(239, 68, 68, 0.05);
+        }
+        .danger-zone h3 {
+            color: #ef4444;
+            border-bottom-color: rgba(239, 68, 68, 0.3);
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
+        }
+        @media (max-width: 768px) {
+            .maintenance-card { padding: 20px; }
+            .btn-group { flex-direction: column; }
+            .btn-group .btn, .btn-group .btn-danger { width: 100%; }
+        }
+    </style>
+</head>
+<body style="overflow-y: auto; height: auto; min-height: 100vh;">
+    <div class="auth-layout" style="align-items: flex-start; padding: 40px 20px; min-height: 100vh; height: auto; overflow: visible;">
+        <div class="maintenance-container"><a href="index.html" class="back-link">← 返回后台管理</a>
+            <h1 class="page-title" style="margin-bottom: 32px;"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:4px"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> 数据库维护</h1>
+            
+            <div class="maintenance-card">
+                <h3><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:4px"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> 数据库状态检查</h3>
+                <p>检查数据库连接状态和表结构完整性。如果某些功能无法使用，可以先检查状态确认问题。</p>
+                <div id="dbStatus"></div>
+                <div class="btn-group">
+                    <button class="btn btn-outline" onclick="checkDbStatus()">检查状态</button></div>
+            </div>
+            
+            <div class="maintenance-card">
+                <h3><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:4px"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> 数据库更新</h3>
+                <p>检查并安装缺失的数据库表。版本更新后如果某些功能无法使用，可以点击此按钮修复。此操作不会删除现有数据。</p>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="updateDatabase()">更新数据库</button>
+                </div>
+            </div>
+            
+            <div class="maintenance-card danger-zone">
+                <h3><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#f59e0b" stroke-width="2" style="vertical-align:-3px;margin-right:4px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> 重置数据库</h3>
+                <p><strong>危险操作！</strong>此操作将删除所有数据表并重新创建，包括：<br>
+                    • 所有商品信息<br>
+                    • 所有订单记录<br>
+                    • 所有用户账号（管理员除外）<br>
+                    • 所有工单和公告<br><br>
+                    此操作<strong>不可恢复</strong>，请在操作前务必备份重要数据！
+                </p>
+                <div class="btn-group">
+                    <button class="btn-danger" onclick="resetDatabase()">重置数据库</button>
+                </div>
+            </div>
+            
+            <div class="maintenance-card">
+                <h3><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:2px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> 操作说明</h3>
+                <p style="margin-bottom: 12px;"><strong>检查状态</strong>：查看当前数据库的连接情况和表结构是否完整。</p>
+                <p style="margin-bottom: 12px;"><strong>更新数据库</strong>：自动创建缺失的数据表，不会影响已有数据。适用于版本升级后的兼容性修复。</p>
+                <p style="margin-bottom: 0;"><strong>重置数据库</strong>：清空所有数据并重建表结构。仅在需要完全重置系统时使用。</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let csrfToken = '';
+        function initCsrfToken() {
+            return window.fetch('../api/csrf.php', { credentials: 'same-origin' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.code === 1 && data.data && data.data.token) {
+                        csrfToken = data.data.token;
+                    }
+                })
+                .catch(() => {});
+        }
+
+        function apiFetch(url, options = {}) {
+            const opts = { credentials: 'same-origin', cache: 'no-store', ...options };
+            const method = (opts.method || 'GET').toUpperCase();
+            const ensureToken = (!csrfToken && method !== 'GET' && method !== 'HEAD') ? initCsrfToken() : Promise.resolve();
+            return ensureToken.then(() => {
+                const headers = new Headers(opts.headers || {});
+                if (csrfToken && !headers.has('X-CSRF-Token')) {
+                    headers.set('X-CSRF-Token', csrfToken);
+                }
+                opts.headers = headers;
+                return window.fetch(url, opts);
+            });
+        }
+
+        initCsrfToken();
+
+        document.addEventListener('DOMContentLoaded', function() {
+            apiFetch('../api/admin.php?action=check&_ts=' + Date.now())
+                .then(r => r.json())
+                .then(data => {
+                    if (data.code !== 1) location.href = 'login.html';
+                })
+                .catch(() => location.href = 'login.html');
+        });
+
+        function checkDbStatus() {
+            const statusDiv = document.getElementById('dbStatus');
+            statusDiv.className = 'show loading';
+            statusDiv.innerHTML = '⏳ 正在检查...';
+            
+            apiFetch('../api/update_db.php?action=check&_ts=' + Date.now())
+                .then(r => r.json())
+                .then(data => {
+                    if (data.code === 1) {
+                        const info = data.data;
+                        if (info.all_installed) {
+                            statusDiv.className = 'show success';
+                            const build = info.build ? ('<br><small style="opacity:0.8">构建版本: ' + info.build + '</small>') : '';
+                            const missingColCount = info.missing_columns ? info.missing_columns.length : 0;
+                            const missingCols = (info.missing_columns && info.missing_columns.length) ? ('<br><small style="opacity:0.8">缺失关键列: ' + info.missing_columns.join(', ') + '</small>') : '';
+                            const columnOk = info.all_columns_ready !== false;
+                            if (columnOk) {
+                                statusDiv.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#22c55e" stroke-width="2" style="vertical-align:-3px;margin-right:4px"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> 数据库状态正常，所有表和关键列已安装' + build + '<br><small style="opacity:0.8">已安装表: ' + info.existing.join(', ') + '</small>';
+                            } else {
+                                statusDiv.className = 'show warning';
+                                statusDiv.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#f59e0b" stroke-width="2" style="vertical-align:-3px;margin-right:4px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> 表都在，但关键列不完整' + build + (missingColCount ? ('<br><small style="opacity:0.8">缺失数量: ' + missingColCount + '</small>') : '') + missingCols + '<br><small style="opacity:0.8">请点击“更新数据库”执行补列</small>'; 
+                            }
+                        } else {
+                            statusDiv.className = 'show warning';
+                            statusDiv.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#f59e0b" stroke-width="2" style="vertical-align:-3px;margin-right:4px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> 发现缺失的表:<strong>' + info.missing.join(', ') + '</strong><br><small style="opacity:0.8">请点击"更新数据库"按钮进行安装</small>';
+                        }
+                    } else {
+                        statusDiv.className = 'show error';
+                        statusDiv.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ef4444" stroke-width="2" style="vertical-align:-3px;margin-right:4px"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> 检查失败: ' + data.msg;
+                    }
+                })
+                .catch(() => {
+                    statusDiv.className = 'show error';
+                    statusDiv.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ef4444" stroke-width="2" style="vertical-align:-3px;margin-right:4px"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> 网络错误，请检查网络连接';
+                });
+        }
+
+        function updateDatabase() {
+            if (!confirm('确定要更新数据库吗？此操作将创建缺失的数据表。')) return;
+            
+            const statusDiv = document.getElementById('dbStatus');
+            statusDiv.className = 'show loading';
+            statusDiv.innerHTML = '⏳ 正在更新...';
+            
+            const body = new FormData();
+            body.append('action', 'update');
+            
+            apiFetch('../api/update_db.php', { method: 'POST', body })
+                .then(r => r.json())
+                .then(data => {
+                    const info = data.data || {};
+                    const build = info.build ? ('<br><small style="opacity:0.8">构建版本: ' + info.build + '</small>') : '';
+                    const created = (info.created || []).length ? ('<br><small style="opacity:0.8">新建表: ' + info.created.join(', ') + '</small>') : '';
+                    const migrated = (info.migrated || []).length ? ('<br><small style="opacity:0.8">已补项目: ' + info.migrated.join(', ') + '</small>') : '';
+                    const remaining = (info.remaining_missing_columns || []).length ? ('<br><small style="opacity:0.8">仍缺关键列: ' + info.remaining_missing_columns.join(', ') + '</small>') : '';
+                    const errors = (info.errors || []).length ? ('<br><small style="opacity:0.8">错误详情:<br>' + info.errors.join('<br>') + '</small>') : '';
+                    if (data.code === 1) {
+                        statusDiv.className = 'show success';
+                        statusDiv.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#22c55e" stroke-width="2" style="vertical-align:-3px;margin-right:4px"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> ' + data.msg + build + created + migrated + remaining;
+                        setTimeout(checkDbStatus, 300);
+                    } else {
+                        statusDiv.className = 'show error';
+                        statusDiv.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ef4444" stroke-width="2" style="vertical-align:-3px;margin-right:4px"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> ' + data.msg + build + created + migrated + remaining + errors;
+                    }
+                })
+                .catch(() => {
+                    statusDiv.className = 'show error';
+                    statusDiv.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ef4444" stroke-width="2" style="vertical-align:-3px;margin-right:4px"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> 网络错误，请检查网络连接';
+                });
+        }
+
+        function resetDatabase() {
+            const confirmText = prompt('此操作将删除所有数据！\n\n如果确定要重置，请输入 "RESET" 确认：');
+            if (confirmText !== 'RESET') {
+                if (confirmText !== null) alert('输入不正确，操作已取消');
+                return;
+            }
+            
+            if (!confirm('最后确认：真的要删除所有数据并重置数据库吗？\n\n此操作不可恢复！')) return;
+            
+            const statusDiv = document.getElementById('dbStatus');
+            statusDiv.className = 'show loading';
+            statusDiv.innerHTML = '⏳ 正在重置数据库...';
+            
+            const body = new FormData();
+            body.append('action', 'reset');
+            
+            apiFetch('../api/update_db.php', { method: 'POST', body })
+                .then(r => r.json())
+                .then(data => {
+                    const info = data.data || {};
+                    const build = info.build ? ('<br><small style="opacity:0.8">构建版本: ' + info.build + '</small>') : '';
+                    const created = (info.created || []).length ? ('<br><small style="opacity:0.8">新建表: ' + info.created.join(', ') + '</small>') : '';
+                    const migrated = (info.migrated || []).length ? ('<br><small style="opacity:0.8">已补项目: ' + info.migrated.join(', ') + '</small>') : '';
+                    const remaining = (info.remaining_missing_columns || []).length ? ('<br><small style="opacity:0.8">仍缺关键列: ' + info.remaining_missing_columns.join(', ') + '</small>') : '';
+                    const errors = (info.errors || []).length ? ('<br><small style="opacity:0.8">错误详情:<br>' + info.errors.join('<br>') + '</small>') : '';
+                    if (data.code === 1) {
+                        statusDiv.className = 'show success';
+                        statusDiv.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#22c55e" stroke-width="2" style="vertical-align:-3px;margin-right:4px"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> ' + data.msg + build + created + migrated + remaining;
+                        setTimeout(checkDbStatus, 300);
+                    } else {
+                        statusDiv.className = 'show error';
+                        statusDiv.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ef4444" stroke-width="2" style="vertical-align:-3px;margin-right:4px"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> ' + data.msg + build + created + migrated + remaining + errors;
+                    }
+                })
+                .catch(() => {
+                    statusDiv.className = 'show error';
+                    statusDiv.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ef4444" stroke-width="2" style="vertical-align:-3px;margin-right:4px"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> 网络错误，请检查网络连接';
+                });
+        }
+    </script>
+</body>
+</html>

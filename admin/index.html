@@ -1,0 +1,1715 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>后台管理 - VPS积分商城</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" id="adminCss" href="../css/admin.css" />
+    <script>
+      document.getElementById("adminCss").href =
+        "../css/admin.css?v=" + Date.now();
+    </script>
+  </head>
+  <body>
+    <button class="menu-toggle" id="menuToggle" onclick="toggleSidebar()">
+      ☰
+    </button>
+    <div
+      class="sidebar-overlay"
+      id="sidebarOverlay"
+      onclick="closeSidebar()"
+    ></div>
+
+    <div class="admin-layout">
+      <!-- 侧边栏 -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <h2><span class="logo-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>VPS商城</h2>
+        </div>
+        <nav class="sidebar-nav">
+          <div class="nav-section">
+            <div class="nav-title">概览</div>
+            <div class="menu">
+              <a href="#" class="menu-item active" data-tab="dashboard"
+                ><span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>仪表盘</a
+              >
+            </div>
+          </div>
+          <div class="nav-section">
+            <div class="nav-title">业务管理</div>
+            <div class="menu">
+              <a href="#" class="menu-item" data-tab="products"
+                ><span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span>商品管理</a
+              >
+              <a href="#" class="menu-item" data-tab="templates"
+                ><span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></span>商品模板</a
+              >
+              <a href="#" class="menu-item" data-tab="credits"
+                ><span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span>积分管理</a
+              >
+              <a href="#" class="menu-item" data-tab="community"
+                ><span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>社区规则</a
+              >
+              <a href="#" class="menu-item" data-tab="reports"
+                ><span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>统计报表</a
+              >
+              <a href="#" class="menu-item" data-tab="orders"
+                ><span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>订单管理</a
+              >
+              <a href="#" class="menu-item" data-tab="coupons"
+                ><span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"/></svg></span>优惠券管理</a
+              >
+              <a href="#" class="menu-item" data-tab="tickets"
+                ><span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>工单管理<span
+                  class="menu-badge"
+                  id="ticketBadge"
+                  style="display: none"
+                  >0</span
+                ></a
+              >
+              <a href="#" class="menu-item" data-tab="announcements"
+                ><span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>公告管理</a
+              >
+            </div>
+          </div>
+          <div class="nav-section">
+            <div class="nav-title">系统</div>
+            <div class="menu">
+              <a href="#" class="menu-item" data-tab="admins"
+                ><span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>管理员</a
+              >
+              <a href="#" class="menu-item" data-tab="audit_logs"
+                ><span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span>操作日志</a
+              >
+              <a href="#" class="menu-item" data-tab="settings"
+                ><span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>系统设置</a
+              >
+              <a href="maintenance.html" class="menu-item"
+                ><span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>数据库维护</a
+              >
+            </div>
+          </div>
+        </nav>
+        <div class="sidebar-footer">
+          <a href="../index.html" class="menu-item"><span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>返回前台</a
+          ><a
+            href="#"
+            onclick="logout()"
+            class="menu-item"
+            style="color: var(--danger)"
+            ><span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>退出登录</a
+          >
+        </div>
+      </aside>
+
+      <!-- 顶部栏 -->
+      <header class="top-header">
+        <div class="header-left">
+          <div class="breadcrumb">
+            <span>后台管理</span>
+            <span class="sep">/</span>
+            <span class="current" id="breadcrumbCurrent">仪表盘</span>
+          </div>
+        </div>
+        <div class="header-right">
+          <button class="header-btn" title="刷新数据" onclick="refreshAll()">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          </button>
+          <button
+            class="header-btn"
+            title="待处理工单"
+            onclick="switchTab('tickets')"
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><span
+              class="badge-dot"
+              id="headerTicketDot"
+              style="display: none"
+            ></span>
+          </button>
+          <div class="user-dropdown" onclick="toggleUserMenu(event)">
+            <div class="user-avatar" id="adminAvatar">A</div>
+            <div class="user-info">
+              <div class="user-name" id="adminName">管理员</div>
+              <div class="user-role" id="adminRole">超级管理员</div>
+            </div>
+          </div>
+          <div class="user-menu" id="userMenu">
+            <a
+              href="#"
+              onclick="
+                switchTab('settings');
+                closeUserMenu();
+                return false;
+              "
+              >系统设置</a
+            >
+            <button
+              type="button"
+              onclick="
+                closeUserMenu();
+                logout();
+              "
+            >
+              退出登录
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- 主内容 -->
+      <main class="main-content">
+        <!--仪表盘 -->
+        <div class="tab-content active" id="dashboard">
+          <div class="page-header">
+            <h1 class="page-title">仪表盘</h1>
+          </div>
+          <!-- 统计卡片 -->
+          <div class="stats-grid">
+            <div class="stat-card primary">
+              <div class="stat-header"><div class="stat-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div></div>
+              <div class="stat-label">商品总数</div>
+              <div class="stat-value" id="statProducts">-</div>
+            </div>
+            <div class="stat-card info">
+              <div class="stat-header"><div class="stat-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div></div>
+              <div class="stat-label">注册用户</div>
+              <div class="stat-value" id="statUsers">-</div>
+            </div>
+            <div class="stat-card warning">
+              <div class="stat-header"><div class="stat-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div></div>
+              <div class="stat-label">待支付</div>
+              <div class="stat-value" id="statPending">-</div>
+            </div>
+            <div class="stat-card success">
+              <div class="stat-header"><div class="stat-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div></div>
+              <div class="stat-label">已完成</div>
+              <div class="stat-value" id="statPaid">-</div>
+            </div>
+            <div class="stat-card primary">
+              <div class="stat-header"><div class="stat-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div></div>
+              <div class="stat-label">总收入</div>
+              <div class="stat-value" id="statIncome">-</div>
+            </div>
+          </div>
+          <!-- 快捷操作 -->
+          <div class="quick-actions">
+            <div class="quick-btn" onclick="showAddProduct()">
+              <div class="icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+              <span>添加商品</span>
+            </div>
+            <div class="quick-btn" onclick="switchTab('orders')">
+              <div class="icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+              <span>查看订单</span>
+            </div>
+            <div class="quick-btn" onclick="switchTab('tickets')">
+              <div class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+              <span>处理工单</span>
+            </div>
+            <div class="quick-btn" onclick="showAddAnnouncement()">
+              <div class="icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+              <span>发布公告</span>
+            </div>
+            <div class="quick-btn" onclick="switchTab('settings')">
+              <div class="icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+              <span>系统设置</span>
+            </div>
+          </div>
+          <!-- 仪表盘卡片 -->
+          <div class="dashboard-grid">
+            <div class="dashboard-card">
+              <div class="dashboard-card-header">
+                <span class="dashboard-card-title"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>最近订单</span
+                ><span
+                  class="dashboard-card-action"
+                  onclick="switchTab('orders')"
+                  >查看全部</span
+                >
+              </div>
+              <div class="dashboard-card-body">
+                <div class="recent-list" id="recentOrders">
+                  <div class="empty">加载中...</div>
+                </div>
+              </div>
+            </div>
+            <div class="dashboard-card">
+              <div class="dashboard-card-header">
+                <span class="dashboard-card-title"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>待处理工单</span>
+                <span
+                  class="dashboard-card-action"
+                  onclick="switchTab('tickets')"
+                  >查看全部</span
+                >
+              </div>
+              <div class="dashboard-card-body">
+                <div class="recent-list" id="recentTickets">
+                  <div class="empty">加载中...</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 商品管理 -->
+        <div class="tab-content" id="products">
+          <div class="page-header">
+            <h1 class="page-title">商品管理</h1>
+            <div class="page-actions">
+              <button class="btn btn-primary" onclick="showAddProduct()">
+                + 添加商品
+              </button>
+            </div>
+          </div>
+          <div class="table-container">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>名称</th>
+                    <th>配置</th>
+                    <th>价格</th>
+                    <th>IP</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="productTable">
+                  <tr>
+                    <td colspan="7" class="empty">加载中...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 商品模板 -->
+        <div class="tab-content" id="templates">
+          <div class="page-header">
+            <h1 class="page-title">商品模板</h1>
+            <div class="page-actions">
+              <button class="btn btn-primary" onclick="saveTemplate()">
+                保存模板
+              </button>
+            </div>
+          </div>
+          <div class="settings-grid">
+            <div class="card" style="padding: 24px">
+              <input type="hidden" id="tplId" />
+              <div class="form-group">
+                <label>模板名称 *</label
+                ><input
+                  type="text"
+                  id="tplName"
+                  placeholder="如：香港高防模板"
+                />
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>CPU</label><input type="text" id="tplCpu" />
+                </div>
+                <div class="form-group">
+                  <label>内存</label><input type="text" id="tplMemory" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>硬盘</label><input type="text" id="tplDisk" />
+                </div>
+                <div class="form-group">
+                  <label>带宽</label><input type="text" id="tplBandwidth" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>地区</label><input type="text" id="tplRegion" />
+                </div>
+                <div class="form-group">
+                  <label>线路</label><input type="text" id="tplLineType" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>系统</label><input type="text" id="tplOsType" />
+                </div>
+                <div class="form-group">
+                  <label>排序</label
+                  ><input type="number" id="tplSort" value="0" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label>描述</label
+                ><textarea id="tplDescription" rows="3"></textarea>
+              </div>
+              <div class="form-group">
+                <label>额外信息</label
+                ><textarea id="tplExtraInfo" rows="3"></textarea>
+              </div>
+            </div>
+            <div class="card" style="padding: 24px">
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>模板</th>
+                      <th>规格</th>
+                      <th>状态</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="templateTable">
+                    <tr>
+                      <td colspan="5" class="empty">加载中...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 积分管理 -->
+        <div class="tab-content" id="credits">
+          <div class="page-header">
+            <h1 class="page-title">积分管理</h1>
+            <div class="page-actions">
+              <button class="btn btn-outline" onclick="loadCreditAdminUsers()">
+                刷新
+              </button>
+            </div>
+          </div>
+          <div class="settings-grid">
+            <div class="card" style="padding: 24px">
+              <div class="form-group">
+                <label>搜索用户</label
+                ><input
+                  type="text"
+                  id="creditSearchKeyword"
+                  placeholder="用户名 / Linux DO ID"
+                  oninput="loadCreditAdminUsers()"
+                />
+              </div>
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>用户</th>
+                      <th>Linux DO</th>
+                      <th>余额</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="creditUserTable">
+                    <tr>
+                      <td colspan="5" class="empty">加载中...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card" style="padding: 24px">
+              <h3 style="margin-bottom: 16px">手动加减积分</h3>
+              <div class="form-group">
+                <label>用户ID</label><input type="number" id="creditUserId" />
+              </div>
+              <div class="form-group">
+                <label>金额（正数=增加，负数=扣减）</label
+                ><input type="number" id="creditAmount" step="0.01" />
+              </div>
+              <div class="form-group">
+                <label>备注</label
+                ><input
+                  type="text"
+                  id="creditRemark"
+                  placeholder="如：售后补偿 / 人工扣减"
+                />
+              </div>
+              <button class="btn btn-primary" onclick="submitCreditAdjust()">
+                提交调整
+              </button>
+              <div style="margin-top: 20px" class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>时间</th>
+                      <th>用户</th>
+                      <th>类型</th>
+                      <th>变动</th>
+                      <th>备注</th>
+                    </tr>
+                  </thead>
+                  <tbody id="creditTxnTable">
+                    <tr>
+                      <td colspan="5" class="empty">加载中...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 社区规则 -->
+        <div class="tab-content" id="community">
+          <div class="page-header">
+            <h1 class="page-title">Linux DO 社区规则</h1>
+          </div>
+          <div class="settings-grid">
+            <div class="card" style="padding: 24px">
+              <h3 style="margin-bottom: 16px">全局设置</h3>
+              <div class="form-group">
+                <label>silenced 用户下单策略</label
+                ><select id="communitySilencedMode">
+                  <option value="review">人工审核</option>
+                  <option value="block">直接禁止</option>
+                </select>
+              </div>
+              <button class="btn btn-primary" onclick="saveCommunitySettings()">
+                保存设置
+              </button>
+              <hr
+                style="
+                  margin: 20px 0;
+                  border: none;
+                  border-top: 1px solid var(--border);
+                "
+              />
+              <h3 style="margin-bottom: 16px">白名单 / 黑名单</h3>
+              <input type="hidden" id="ruleId" />
+              <div class="form-row">
+                <div class="form-group">
+                  <label>规则类型</label
+                  ><select id="ruleType">
+                    <option value="whitelist">白名单</option>
+                    <option value="blacklist">黑名单</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>商品ID（留空=全局）</label
+                  ><input type="number" id="ruleProductId" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>用户ID（本站）</label
+                  ><input type="number" id="ruleUserId" />
+                </div>
+                <div class="form-group">
+                  <label>Linux DO ID</label
+                  ><input type="number" id="ruleLinuxdoId" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label>备注</label><input type="text" id="ruleRemark" />
+              </div>
+              <button class="btn btn-primary" onclick="saveCommunityRule()">
+                保存规则
+              </button>
+            </div>
+            <div class="card" style="padding: 24px">
+              <h3 style="margin-bottom: 16px">信任等级折扣</h3>
+              <input type="hidden" id="discountId" />
+              <div class="form-row">
+                <div class="form-group">
+                  <label>信任等级</label
+                  ><select id="discountTrustLevel">
+                    <option value="0">TL0</option>
+                    <option value="1">TL1</option>
+                    <option value="2">TL2</option>
+                    <option value="3">TL3</option>
+                    <option value="4">TL4</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>商品ID（留空=全局）</label
+                  ><input type="number" id="discountProductId" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>折扣类型</label
+                  ><select id="discountType">
+                    <option value="percent">百分比</option>
+                    <option value="fixed">固定减免</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>折扣值</label
+                  ><input type="number" step="0.01" id="discountValue" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label>备注</label><input type="text" id="discountRemark" />
+              </div>
+              <button class="btn btn-primary" onclick="saveCommunityDiscount()">
+                保存折扣
+              </button>
+            </div>
+          </div>
+          <div class="settings-grid" style="margin-top: 20px">
+            <div class="card" style="padding: 24px">
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>规则</th>
+                      <th>范围</th>
+                      <th>备注</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="communityRuleTable">
+                    <tr>
+                      <td colspan="5" class="empty">加载中...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card" style="padding: 24px">
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>TL</th>
+                      <th>商品</th>
+                      <th>类型</th>
+                      <th>折扣</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="communityDiscountTable">
+                    <tr>
+                      <td colspan="6" class="empty">加载中...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 统计报表 -->
+        <div class="tab-content" id="reports">
+          <div class="page-header">
+            <h1 class="page-title">统计报表</h1>
+            <div class="page-actions">
+              <button class="btn btn-outline" onclick="loadReportDashboard()">
+                刷新
+              </button>
+            </div>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card primary">
+              <div class="stat-label">今日成交额</div>
+              <div class="stat-value" id="reportTodayIncome">-</div>
+            </div>
+            <div class="stat-card success">
+              <div class="stat-label">本月成交额</div>
+              <div class="stat-value" id="reportMonthIncome">-</div>
+            </div>
+            <div class="stat-card info">
+              <div class="stat-label">余额支付订单</div>
+              <div class="stat-value" id="reportBalanceOrders">-</div>
+            </div>
+            <div class="stat-card warning">
+              <div class="stat-label">EasyPay 订单</div>
+              <div class="stat-value" id="reportEpayOrders">-</div>
+            </div>
+            <div class="stat-card danger">
+              <div class="stat-label">异常订单</div>
+              <div class="stat-value" id="reportExceptionOrders">-</div>
+            </div>
+            <div class="stat-card primary">
+              <div class="stat-label">用户余额总量</div>
+              <div class="stat-value" id="reportBalanceTotal">-</div>
+            </div>
+          </div>
+          <div class="settings-grid">
+            <div class="card" style="padding: 24px">
+              <h3 style="margin-bottom: 16px">热门商品</h3>
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>商品</th>
+                      <th>订单数</th>
+                      <th>支付数</th>
+                      <th>收入</th>
+                    </tr>
+                  </thead>
+                  <tbody id="reportHotProducts">
+                    <tr>
+                      <td colspan="4" class="empty">加载中...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card" style="padding: 24px">
+              <h3 style="margin-bottom: 16px">工单分类占比</h3>
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>分类</th>
+                      <th>数量</th>
+                    </tr>
+                  </thead>
+                  <tbody id="reportTicketCategory">
+                    <tr>
+                      <td colspan="2" class="empty">加载中...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 订单管理 -->
+        <div class="tab-content" id="orders">
+          <div class="page-header">
+            <h1 class="page-title">订单管理</h1>
+            <div class="page-actions">
+              <button class="btn btn-outline" onclick="exportData('orders')">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 导出CSV
+              </button>
+              <button
+                class="btn btn-outline"
+                onclick="batchDeleteOrders('expired')"
+              >
+                清理已取消
+              </button>
+              <button
+                class="btn btn-outline"
+                onclick="batchDeleteOrders('pending')"
+              >
+                清理待支付
+              </button>
+            </div>
+          </div>
+          <div class="table-container">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>订单号</th>
+                    <th>商品</th>
+                    <th>用户</th>
+                    <th>金额</th>
+                    <th>状态</th>
+                    <th>时间</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="orderTable">
+                  <tr>
+                    <td colspan="7" class="empty">加载中...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 优惠券管理 -->
+        <div class="tab-content" id="coupons">
+          <div class="page-header">
+            <h1 class="page-title">优惠券管理</h1>
+            <div class="page-actions">
+              <button class="btn btn-outline" onclick="exportData('coupons')">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 导出CSV
+              </button>
+              <button class="btn btn-primary" onclick="showAddCoupon()">
+                + 创建优惠券
+              </button>
+            </div>
+          </div>
+          <div class="table-container">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>代码</th>
+                    <th>名称</th>
+                    <th>类型</th>
+                    <th>面值</th>
+                    <th>已用/总量</th>
+                    <th>有效期</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="couponTable">
+                  <tr>
+                    <td colspan="8" class="empty">加载中...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 工单管理 -->
+        <div class="tab-content" id="tickets">
+          <div class="page-header">
+            <h1 class="page-title">工单管理</h1>
+            <div class="page-actions">
+              <button class="btn btn-outline" onclick="exportData('tickets')">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 导出CSV
+              </button>
+            </div>
+          </div>
+          <div class="stats-grid" style="margin-bottom: 20px">
+            <div class="stat-card warning">
+              <div class="stat-header"><div class="stat-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div></div>
+              <div class="stat-label">待回复</div>
+              <div class="stat-value" id="statTicketPending">-</div>
+            </div>
+            <div class="stat-card success">
+              <div class="stat-header"><div class="stat-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div></div>
+              <div class="stat-label">已回复</div>
+              <div class="stat-value" id="statTicketReplied">-</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-header"><div class="stat-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div></div>
+              <div class="stat-label">已关闭</div>
+              <div class="stat-value" id="statTicketClosed">-</div>
+            </div>
+            <div class="stat-card primary">
+              <div class="stat-header"><div class="stat-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div></div>
+              <div class="stat-label">总工单</div>
+              <div class="stat-value" id="statTicketTotal">-</div>
+            </div>
+          </div>
+          <div class="table-container">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>标题</th>
+                    <th>用户</th>
+                    <th>关联订单</th>
+                    <th>状态</th>
+                    <th>更新时间</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="ticketTable">
+                  <tr>
+                    <td colspan="7" class="empty">加载中...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 公告管理 -->
+        <div class="tab-content" id="announcements">
+          <div class="page-header">
+            <h1 class="page-title">公告管理</h1>
+            <div class="page-actions">
+              <button class="btn btn-primary" onclick="showAddAnnouncement()">
+                + 发布公告
+              </button>
+            </div>
+          </div>
+          <div class="table-container">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>标题</th>
+                    <th>置顶</th>
+                    <th>状态</th>
+                    <th>发布时间</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="announcementTable">
+                  <tr>
+                    <td colspan="6" class="empty">加载中...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 管理员管理 -->
+        <div class="tab-content" id="admins">
+          <div class="page-header">
+            <h1 class="page-title">管理员管理</h1>
+            <div class="page-actions">
+              <button class="btn btn-primary" onclick="showAddAdmin()">
+                + 添加管理员
+              </button>
+            </div>
+          </div>
+          <div class="admin-split-grid">
+            <div class="table-container">
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>用户名</th>
+                      <th>角色</th>
+                      <th>创建时间</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="adminTable">
+                    <tr>
+                      <td colspan="5" class="empty">加载中...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card" style="padding: 24px">
+              <h3 style="margin-bottom: 16px">提权已有用户</h3>
+              <div class="form-group">
+                <label>搜索用户</label
+                ><input
+                  type="text"
+                  id="promoteUserKeyword"
+                  placeholder="用户名 / 邮箱 / Linux DO"
+                  oninput="loadPromotableUsers()"
+                />
+              </div>
+              <div class="form-group">
+                <label>提权后角色</label
+                ><select id="promoteUserRole">
+                  <option value="admin">普通管理员</option>
+                  <option value="super">超级管理员</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>管理员密码（可留空沿用用户现有密码）</label
+                ><input
+                  type="password"
+                  id="promoteUserPassword"
+                  placeholder="该用户没本地密码时必填"
+                />
+              </div>
+              <div class="table-wrapper" style="max-height: 340px">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>用户</th>
+                      <th>状态</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="promoteUserTable">
+                    <tr>
+                      <td colspan="4" class="empty">输入关键词后搜索</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 操作日志 -->
+        <div class="tab-content" id="audit_logs">
+          <div class="page-header">
+            <h1 class="page-title">操作日志</h1>
+            <div class="page-actions">
+              <button class="btn btn-danger" onclick="clearAuditLogs()">
+                一键删除日志
+              </button>
+            </div>
+          </div>
+          <div class="table-container">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>时间</th>
+                    <th>管理员</th>
+                    <th>动作</th>
+                    <th>目标</th>
+                    <th>IP</th>
+                    <th>详情</th>
+                  </tr>
+                </thead>
+                <tbody id="auditTable">
+                  <tr>
+                    <td colspan="6" class="empty">加载中...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 系统设置 -->
+        <div class="tab-content" id="settings">
+          <div class="page-header"><h1 class="page-title">系统设置</h1></div>
+          <div class="settings-scroll-container">
+            <div class="settings-grid">
+              <div class="card" style="padding: 24px">
+                <h3
+                  style="
+                    margin-bottom: 20px;
+                    font-size: 16px;
+                    color: var(--text-main);
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                  "
+                >
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> 支付配置
+                </h3>
+                <div class="form-group">
+                  <label>PID (Client ID)</label
+                  ><input
+                    type="text"
+                    id="cfgPid"
+                    placeholder="从Linux DO控制台获取"
+                  />
+                </div>
+                <div class="form-group">
+                  <label>Key (Client Secret)</label
+                  ><input
+                    type="password"
+                    id="cfgKey"
+                    placeholder="从Linux DO控制台获取"
+                  />
+                </div>
+                <div class="form-group">
+                  <label>异步回调地址</label
+                  ><input
+                    type="text"
+                    id="cfgNotify"
+                    placeholder="https://yourdomain.com/api/notify.php"
+                  />
+                </div>
+                <div class="form-group">
+                  <label>支付成功跳转</label
+                  ><input
+                    type="text"
+                    id="cfgReturn"
+                    placeholder="https://yourdomain.com/"
+                  />
+                </div>
+                <button class="btn btn-primary" onclick="savePaySettings()">
+                  保存支付配置
+                </button>
+              </div>
+              <div class="card" style="padding: 24px">
+                <h3
+                  style="
+                    margin-bottom: 20px;
+                    font-size: 16px;
+                    color: var(--text-main);
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                  "
+                >
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> OAuth登录配置
+                </h3>
+                <p
+                  id="cfgOAuthConfigHint"
+                  style="
+                    font-size: 12px;
+                    color: var(--text-muted);
+                    margin-bottom: 14px;
+                    line-height: 1.8;
+                  "
+                >
+                  OAuth 登录配置已改为服务器私有配置模式。请在 <code>/api/config.local.php</code> 或环境变量中设置 Client ID / Client Secret / Redirect URI。
+                </p>
+                <div class="form-group">
+                  <label>Client ID</label
+                  ><input
+                    type="text"
+                    id="cfgOAuthClientId"
+                    placeholder="从 Linux DO Connect 获取"
+                    readonly
+                  />
+                </div>
+                <div class="form-group">
+                  <label>Client Secret 状态</label
+                  ><input
+                    type="text"
+                    id="cfgOAuthClientSecretStatus"
+                    placeholder="未配置"
+                    readonly
+                  />
+                </div>
+                <div class="form-group">
+                  <label>回调地址</label
+                  ><input
+                    type="text"
+                    id="cfgOAuthRedirectUri"
+                    placeholder="https://yourdomain.com/api/oauth.php?action=callback"
+                    readonly
+                  />
+                </div>
+                <button class="btn btn-outline" onclick="saveOAuthSettings()">
+                  查看配置说明
+                </button>
+                <button
+                  class="btn btn-outline"
+                  style="margin-left: 10px"
+                  onclick="migrateLinuxDOFields()"
+                >
+                  迁移字段
+                </button>
+              </div>
+              <div class="card" style="padding: 24px">
+                <h3
+                  style="
+                    margin-bottom: 20px;
+                    font-size: 16px;
+                    color: var(--text-main);
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                  "
+                >
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> 邮件配置 (SMTP)
+                </h3>
+                <p
+                  style="
+                    font-size: 12px;
+                    color: var(--text-muted);
+                    margin-bottom: 14px;
+                  "
+                >
+                  用于发送密码重置和邮箱验证邮件
+                </p>
+                <div class="form-group">
+                  <label>SMTP服务器</label
+                  ><input
+                    type="text"
+                    id="cfgSmtpHost"
+                    placeholder="smtp.example.com"
+                  />
+                </div>
+                <div class="form-group">
+                  <label>SMTP端口</label
+                  ><input
+                    type="number"
+                    id="cfgSmtpPort"
+                    placeholder="587"
+                    value="587"
+                  />
+                </div>
+                <div class="form-group">
+                  <label>SMTP用户名</label
+                  ><input type="text" id="cfgSmtpUser" placeholder="邮箱地址" />
+                </div>
+                <div class="form-group">
+                  <label>SMTP密码</label
+                  ><input
+                    type="password"
+                    id="cfgSmtpPass"
+                    placeholder="邮箱密码或授权码"
+                  />
+                </div>
+                <div class="form-group">
+                  <label>发件人邮箱</label
+                  ><input
+                    type="text"
+                    id="cfgSmtpFrom"
+                    placeholder="noreply@example.com"
+                  />
+                </div>
+                <div class="form-group">
+                  <label>发件人名称</label
+                  ><input type="text" id="cfgSmtpName" placeholder="VPS商城" />
+                </div>
+                <div class="form-group">
+                  <label>加密方式</label>
+                  <select
+                    id="cfgSmtpSecure"
+                    style="
+                      width: 100%;
+                      padding: 10px;
+                      border: 1px solid var(--border);
+                      border-radius: 8px;
+                      background: var(--bg-main);
+                      color: var(--text-main);
+                    "
+                  >
+                    <option value="tls">TLS (推荐)</option>
+                    <option value="ssl">SSL</option>
+                    <option value="">无</option>
+                  </select>
+                </div>
+                <button class="btn btn-primary" onclick="saveSmtpSettings()">
+                  保存邮件配置</button
+                ><button
+                  class="btn btn-outline"
+                  style="margin-left: 10px"
+                  onclick="testSmtpSettings()"
+                >
+                  测试发送
+                </button>
+              </div>
+              <div class="card" style="padding: 24px">
+                <h3
+                  style="
+                    margin-bottom: 20px;
+                    font-size: 16px;
+                    color: var(--text-main);
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                  "
+                >
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> 通知中心配置
+                </h3>
+                <div class="form-group">
+                  <label
+                    ><input
+                      type="checkbox"
+                      id="cfgNotifEmail"
+                      style="width: auto; margin-right: 8px"
+                    />启用邮件通知</label
+                  >
+                </div>
+                <div class="form-group">
+                  <label
+                    ><input
+                      type="checkbox"
+                      id="cfgNotifWebhook"
+                      style="width: auto; margin-right: 8px"
+                    />启用 Webhook 通知</label
+                  >
+                </div>
+                <div class="form-group">
+                  <label>Webhook 地址</label
+                  ><input
+                    type="text"
+                    id="cfgNotifWebhookUrl"
+                    placeholder="https://example.com/webhook"
+                  />
+                </div>
+                <div class="form-group">
+                  <label>silenced 用户下单策略</label
+                  ><select id="cfgSilencedOrderMode">
+                    <option value="review">进入人工审核</option>
+                    <option value="block">禁止下单</option>
+                  </select>
+                </div>
+                <button
+                  class="btn btn-primary"
+                  onclick="saveNotificationSettings()"
+                >
+                  保存通知配置
+                </button>
+              </div>
+              <div class="card" style="padding: 24px">
+                <h3
+                  style="
+                    margin-bottom: 20px;
+                    font-size: 16px;
+                    color: var(--text-main);
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                  "
+                >
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg> 修改密码
+                </h3>
+                <div class="form-group">
+                  <label>原密码</label><input type="password" id="oldPass" />
+                </div>
+                <div class="form-group">
+                  <label>新密码</label
+                  ><input type="password" id="newPass" placeholder="至少6位" />
+                </div>
+                <button class="btn btn-primary" onclick="changePassword()">
+                  修改密码
+                </button>
+              </div>
+              <div class="card" style="padding: 24px">
+                <h3
+                  style="
+                    margin-bottom: 20px;
+                    font-size: 16px;
+                    color: var(--text-main);
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                  "
+                >
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> 缓存管理
+                </h3>
+                <p
+                  style="
+                    font-size: 12px;
+                    color: var(--text-muted);
+                    margin-bottom: 14px;
+                  "
+                >
+                  文件缓存用于提高页面加载速度
+                </p>
+                <div
+                  id="cacheStats"
+                  style="
+                    margin-bottom: 16px;
+                    padding: 12px;
+                    background: var(--bg-main);
+                    border-radius: 8px;
+                    font-size: 13px;
+                  "
+                >
+                  <span>缓存文件: <strong id="cacheCount">-</strong></span>
+                  <span style="margin-left: 16px"
+                    >占用空间: <strong id="cacheSize">-</strong></span
+                  >
+                  <span style="margin-left: 16px"
+                    >已过期: <strong id="cacheExpired">-</strong></span
+                  >
+                </div>
+                <button class="btn btn-outline" onclick="loadCacheStats()">
+                  刷新统计
+                </button>
+                <button
+                  class="btn btn-outline"
+                  style="margin-left: 10px"
+                  onclick="cleanupCache()"
+                >
+                  清理过期
+                </button>
+                <button
+                  class="btn btn-danger"
+                  style="margin-left: 10px"
+                  onclick="clearAllCache()"
+                >
+                  清空全部
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+    <!-- 商品弹窗 -->
+    <div class="modal-bg" id="productModal">
+      <div class="modal" style="max-width: 760px">
+        <div class="modal-head">
+          <h3 id="productModalTitle">添加商品</h3>
+          <button class="modal-close" onclick="closeProductModal()">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="pId" />
+          <div class="form-group">
+            <label>商品名称 *</label
+            ><input type="text" id="pName" placeholder="如：香港轻量VPS" />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>商品模板</label
+              ><select id="pTemplate">
+                <option value="">不使用模板</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>积分价格 *</label
+              ><input type="number" id="pPrice" placeholder="每月积分数" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>CPU</label
+              ><input type="text" id="pCpu" placeholder="1核" />
+            </div>
+            <div class="form-group">
+              <label>内存</label
+              ><input type="text" id="pMem" placeholder="1GB" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>硬盘</label
+              ><input type="text" id="pDisk" placeholder="20GB SSD" />
+            </div>
+            <div class="form-group">
+              <label>带宽</label
+              ><input type="text" id="pBw" placeholder="500Mbps" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>地区</label
+              ><input type="text" id="pRegion" placeholder="香港" />
+            </div>
+            <div class="form-group">
+              <label>线路</label
+              ><input type="text" id="pLineType" placeholder="优化线路" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>系统</label
+              ><input type="text" id="pOsType" placeholder="Debian / Ubuntu" />
+            </div>
+            <div class="form-group">
+              <label>最低 trust_level</label
+              ><input
+                type="number"
+                id="pMinTrustLevel"
+                min="0"
+                max="4"
+                value="0"
+              />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>描述</label
+            ><textarea
+              id="pDescription"
+              rows="3"
+              style="resize: vertical"
+            ></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label
+                ><input
+                  type="checkbox"
+                  id="pRiskReviewRequired"
+                  style="width: auto; margin-right: 6px"
+                />需人工审核</label
+              >
+            </div>
+            <div class="form-group">
+              <label
+                ><input
+                  type="checkbox"
+                  id="pAllowWhitelistOnly"
+                  style="width: auto; margin-right: 6px"
+                />仅白名单可购买</label
+              >
+            </div>
+          </div>
+          <div class="form-section-title">VPS连接信息</div>
+          <div class="form-group">
+            <label>IP地址 *</label
+            ><input type="text" id="pIp" placeholder="服务器IP" />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>SSH端口</label
+              ><input type="text" id="pPort" placeholder="22" />
+            </div>
+            <div class="form-group">
+              <label>用户名</label
+              ><input type="text" id="pUser" placeholder="root" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>密码 *</label
+            ><input type="text" id="pPass" placeholder="SSH密码" />
+          </div>
+          <div class="form-group">
+            <label>备注</label
+            ><input type="text" id="pExtra" placeholder="可选" />
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-outline" onclick="closeProductModal()">
+            取消</button
+          ><button class="btn btn-primary" onclick="saveProduct()">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 优惠券弹窗 -->
+    <div class="modal-bg" id="couponModal">
+      <div class="modal" style="max-width: 500px">
+        <div class="modal-head">
+          <h3 id="couponModalTitle">创建优惠券</h3>
+          <button class="modal-close" onclick="closeCouponModal()">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="cId" />
+          <div class="form-group">
+            <label>优惠券代码 *</label
+            ><input
+              type="text"
+              id="cCode"
+              placeholder="如：SAVE20（只能包含字母数字）"
+            />
+          </div>
+          <div class="form-group">
+            <label>名称 *</label
+            ><input type="text" id="cName" placeholder="如：新用户立减" />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>类型</label>
+              <select id="cType" onchange="toggleCouponType()">
+                <option value="fixed">固定金额减免</option>
+                <option value="percent">百分比折扣</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label id="cValueLabel">减免金额</label
+              ><input type="number" id="cValue" placeholder="100" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>最低消费金额</label
+              ><input type="number" id="cMinAmount" value="0" />
+            </div>
+            <div class="form-group">
+              <label>最大使用次数</label
+              ><input
+                type="number"
+                id="cMaxUses"
+                value="0"
+                placeholder="0为不限"
+              />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>每人限用</label
+              ><input type="number" id="cPerUserLimit" value="1" />
+            </div>
+            <div
+              class="form-group"
+              id="cMaxDiscountGroup"
+              style="display: none"
+            >
+              <label>最高减免</label
+              ><input type="number" id="cMaxDiscount" placeholder="可选" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>开始时间</label
+              ><input type="datetime-local" id="cStartsAt" />
+            </div>
+            <div class="form-group">
+              <label>结束时间</label
+              ><input type="datetime-local" id="cEndsAt" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label
+              ><input
+                type="checkbox"
+                id="cStatus"
+                checked
+                style="width: auto; margin-right: 6px"
+              />启用</label
+            >
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-outline" onclick="closeCouponModal()">
+            取消</button
+          ><button class="btn btn-primary" onclick="saveCoupon()">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 工单详情弹窗 -->
+    <div class="modal-bg" id="ticketDetailModal">
+      <div class="modal" style="max-width: 650px">
+        <div class="modal-head">
+          <h3 id="adminTicketTitle">工单详情</h3>
+          <button class="modal-close" onclick="closeAdminTicketDetail()">
+            &times;
+          </button>
+        </div>
+        <div
+          class="modal-body"
+          id="adminTicketBody"
+          style="max-height: 55vh"
+        ></div>
+        <div class="modal-foot" id="adminTicketFoot"></div>
+      </div>
+    </div>
+
+    <!-- 公告弹窗 -->
+    <div class="modal-bg" id="announcementModal">
+      <div class="modal" style="max-width: 540px">
+        <div class="modal-head">
+          <h3 id="announcementModalTitle">发布公告</h3>
+          <button class="modal-close" onclick="closeAnnouncementModal()">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="annId" />
+          <div class="form-group">
+            <label>标题 *</label
+            ><input type="text" id="annTitle" placeholder="公告标题" />
+          </div>
+          <div class="form-group">
+            <label>内容 *</label
+            ><textarea
+              id="annContent"
+              rows="6"
+              placeholder="公告内容..."
+              style="resize: vertical"
+            ></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>开始时间</label
+              ><input type="datetime-local" id="annPublishAt" />
+            </div>
+            <div class="form-group">
+              <label>结束时间</label
+              ><input type="datetime-local" id="annExpiresAt" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label
+                ><input
+                  type="checkbox"
+                  id="annTop"
+                  style="width: auto; margin-right: 6px"
+                />置顶</label
+              >
+            </div>
+            <div class="form-group">
+              <label
+                ><input
+                  type="checkbox"
+                  id="annStatus"
+                  checked
+                  style="width: auto; margin-right: 6px"
+                />显示</label
+              >
+            </div>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-outline" onclick="closeAnnouncementModal()">
+            取消</button
+          ><button class="btn btn-primary" onclick="saveAnnouncement()">
+            保存
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 添加管理员弹窗 -->
+    <div class="modal-bg" id="adminModal">
+      <div class="modal" style="max-width: 420px">
+        <div class="modal-head">
+          <h3>添加管理员</h3>
+          <button class="modal-close" onclick="closeAdminModal()">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>用户名 *</label
+            ><input type="text" id="newAdminUser" placeholder="管理员用户名" />
+          </div>
+          <div class="form-group">
+            <label>密码 *</label
+            ><input type="password" id="newAdminPass" placeholder="至少6位" />
+          </div>
+          <div class="form-group">
+            <label style="font-size: 12px; color: var(--text-muted)"
+              >这里只用于新建管理员；已有普通用户请在页面右侧“提权已有用户”中选择。</label
+            >
+          </div>
+          <div class="form-group">
+            <label>角色</label>
+            <select id="newAdminRole">
+              <option value="admin">普通管理员</option>
+              <option value="super">超级管理员</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-outline" onclick="closeAdminModal()">
+            取消</button
+          ><button class="btn btn-primary" onclick="saveAdmin()">创建</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 数据库更新提示弹窗 -->
+    <div class="modal-bg" id="dbUpdateModal">
+      <div class="modal" style="max-width: 460px">
+        <div class="modal-head">
+          <h3><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> 数据库需要更新</h3>
+          <button class="modal-close" onclick="closeDbUpdateModal()">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <p style="color: var(--text-muted); margin-bottom: 12px">
+            检测到以下数据表缺失，部分功能可能无法正常使用：
+          </p>
+          <div
+            id="dbMissingTables"
+            style="
+              background: rgba(245, 158, 11, 0.1);
+              padding: 12px 16px;
+              border-radius: 8px;
+              font-size: 13px;
+              color: #f59e0b;
+              margin-bottom: 16px;
+              line-height: 1.8;
+            "
+          ></div>
+          <p style="font-size: 13px; color: var(--text-muted)">
+            建议前往「数据库维护」页面执行更新。
+          </p>
+        </div>
+        <div class="modal-foot">
+          <button
+            class="btn btn-outline"
+            style="flex: 1"
+            onclick="closeDbUpdateModal()"
+          >
+            稍后再说
+          </button>
+          <button
+            class="btn btn-primary"
+            style="flex: 1"
+            onclick="
+              closeDbUpdateModal();
+              window.location.href = 'maintenance.html';
+            "
+          >
+            前往更新
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="../js/common.js?v=20250613"></script>
+    <script src="../js/admin.js?v=20250613"></script>
+  </body>
+</html>
