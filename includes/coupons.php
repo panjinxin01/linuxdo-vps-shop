@@ -29,12 +29,15 @@ function computeCouponDiscount(array $coupon, float $amount): array {
     } elseif ($type === 'percent') {
         $value = max(0.0, min(100.0, $value));
         $discount = round($amount * $value / 100.0, 2);
-        $maxDiscount = $coupon['max_discount'] ?? null;
-        if ($maxDiscount !== null) {
-            $maxDiscount = (float)$maxDiscount;
-            if ($maxDiscount > 0) {
-                $discount = min($discount, $maxDiscount);
-            }
+    }
+
+    // max_discount 是"优惠金额上限"，对固定额与百分比两种券都应生效。
+    // 原先只写在 percent 分支内，导致后台为固定额券设置的封顶值被完全忽略。
+    $maxDiscount = $coupon['max_discount'] ?? null;
+    if ($maxDiscount !== null) {
+        $maxDiscount = (float)$maxDiscount;
+        if ($maxDiscount > 0) {
+            $discount = min($discount, $maxDiscount);
         }
     }
 
@@ -169,7 +172,10 @@ function markCouponUsedByOrder(PDO $pdo, string $orderNo): bool {
     }
     try {
         $stmt = $pdo->prepare('UPDATE coupon_usages SET status = 1, used_at = NOW() WHERE order_no = ? AND status = 0');
-        return $stmt->execute([$orderNo]);
+        $stmt->execute([$orderNo]);
+        // execute() 在"影响 0 行"时同样返回 true（比如订单根本没有用券，或已经核销过），
+        // 直接 return execute() 会让调用方误以为核销成功。必须看 rowCount()。
+        return $stmt->rowCount() > 0;
     } catch (Throwable $e) {
         return false;
     }

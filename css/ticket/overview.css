@@ -1,0 +1,59 @@
+/* =====================================================
+   页头统计概览条（可点击筛选）
+   来源：css/tickets.css 原始第 150-204 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 页头统计概览条（前台「我的工单」，可点击筛选） === */
+.tk-overview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.tk-overview-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+  font-size: 12.5px;
+  font-family: inherit;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.tk-overview-item:hover {
+  border-color: var(--border-focus);
+  background: var(--bg-card-hover);
+  color: var(--text-main);
+}
+.tk-overview-item:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+.tk-overview-item strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-main);
+  font-variant-numeric: tabular-nums;
+}
+.tk-overview-item.is-active {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary);
+  font-weight: 600;
+}
+.tk-overview-item.is-wait strong {
+  color: var(--warning);
+}
+.tk-overview-item.is-on strong {
+  color: var(--success);
+}
+.tk-overview-item.is-off strong {
+  color: var(--text-muted);
+}
+.tk-overview-item.is-active strong {
+  color: var(--primary);
+}
+

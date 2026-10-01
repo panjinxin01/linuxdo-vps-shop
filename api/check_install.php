@@ -27,7 +27,20 @@ if (stripos($remoteAddr, '::ffff:') === 0) {
 $status['recovery_local_allowed'] = $isLocal;
 
 // 检查配置是否存在
-if (!defined('DB_HOST') || !defined('DB_USER') || !defined('DB_NAME')) {
+// 注意：不能只用 defined() 判断。config.php 总会用内置默认值把 DB_HOST/DB_USER/DB_NAME
+// 定义出来（localhost / root / vps_shop），所以未部署的全新站点也会通过 defined() 检查，
+// 导致安装向导的"未配置"分支永远不触发。这里改为检测是否真的提供了私有配置。
+$configLocalPath = __DIR__ . '/config.local.php';
+$hasLocalConfigFile = is_file($configLocalPath);
+$envConfigured = false;
+foreach (['DB_HOST', 'DB_USER', 'DB_NAME', 'DB_PASS'] as $envKey) {
+    $val = getenv($envKey);
+    if ($val !== false && $val !== '') {
+        $envConfigured = true;
+        break;
+    }
+}
+if (!$hasLocalConfigFile && !$envConfigured) {
     jsonResponse(1, '', $status);
 }
 $status['config_ok'] = true;

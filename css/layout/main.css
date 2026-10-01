@@ -1,0 +1,16 @@
+/* =====================================================
+   主内容区容器
+   来源：css/style.css 原始第 273-284 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 主内容区 === */
+.main-wrapper {
+  margin-left: var(--sidebar-w);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  transition: margin-left 0.3s ease;
+}
+.sidebar-collapsed .main-wrapper {
+  margin-left: var(--sidebar-w-collapsed);
+}
+

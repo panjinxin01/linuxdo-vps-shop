@@ -1,0 +1,44 @@
+/* =====================================================
+   状态徽章圆点 · 优先级色点
+   来源：css/tickets.css 原始第 110-149 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 徽章圆点（状态可视化，色彩不是唯一指示） === */
+.badge .bd-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  min-width: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  margin-right: 5px;
+  vertical-align: 1px;
+}
+
+/* === 优先级标记 === */
+.tk-priority {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.tk-priority::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-disabled);
+  flex-shrink: 0;
+}
+.tk-priority.low::before {
+  background: var(--info);
+}
+.tk-priority.normal::before {
+  background: var(--success);
+}
+.tk-priority.high::before {
+  background: var(--warning);
+}
+.tk-priority.urgent::before {
+  background: var(--danger);
+  box-shadow: 0 0 0 3px var(--danger-bg);
+}
+

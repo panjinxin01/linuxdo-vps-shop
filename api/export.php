@@ -31,8 +31,10 @@ function handleExportOrders(PDO $pdo): void {
             FROM orders o LEFT JOIN users u ON o.user_id = u.id LEFT JOIN products p ON o.product_id = p.id WHERE 1=1";
     $params = [];
     if ($status !== '' && validateInt($status, 0, 3) !== null) { $sql .= ' AND o.status = ?'; $params[] = (int)$status; }
-    if ($startDate !== '' && isValidDateTime($startDate)) { $sql .= ' AND o.created_at >= ?'; $params[] = $startDate . ' 00:00:00'; }
-    if ($endDate !== '' && isValidDateTime($endDate)) { $sql .= ' AND o.created_at <= ?'; $params[] = $endDate . ' 23:59:59'; }
+    // isValidDateTime() 也接受带时间的输入，直接拼接 " 00:00:00" 会得到
+    // "2026-01-01 12:00:00 00:00:00" 这种非法 DATETIME。先归一化成纯日期再补时间边界。
+    if ($startDate !== '' && isValidDateTime($startDate)) { $sql .= ' AND o.created_at >= ?'; $params[] = date('Y-m-d', strtotime($startDate)) . ' 00:00:00'; }
+    if ($endDate !== '' && isValidDateTime($endDate)) { $sql .= ' AND o.created_at <= ?'; $params[] = date('Y-m-d', strtotime($endDate)) . ' 23:59:59'; }
     $sql .= ' ORDER BY o.id DESC';
     $stmt = $pdo->prepare($sql); $stmt->execute($params);
     $statusMap = ['待支付', '已支付', '已退款', '已取消'];
@@ -80,15 +82,31 @@ function handleExportTickets(PDO $pdo): void {
         ['工单ID', '标题', '用户', '状态', '回复数', '创建时间', '更新时间'], $rows);
 }
 
+/**
+ * 转义 CSV 单元格，防御公式注入
+ *
+ * fputcsv() 只做引号转义，不会阻止以 = + - @ 开头的单元格被 Excel / LibreOffice
+ * 当作公式执行。工单标题、用户名、优惠码都是用户可控内容，管理员打开导出文件
+ * 即可能触发公式计算、外部请求或数据外传。
+ */
+function csvSanitizeCell($value): string {
+    $value = (string)($value ?? '');
+    // is_numeric 排除负数等合法数值（Excel 不会把 -5 当公式）
+    if ($value !== '' && preg_match('/^[=+\-@\t\r]/', $value) && !is_numeric($value)) {
+        $value = "'" . $value;
+    }
+    return $value;
+}
+
 function outputCSV(string $filename, array $headers, array $rows): void {
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="' . $filename . '"');
     header('Cache-Control: no-cache, no-store, must-revalidate');
     echo "\xEF\xBB\xBF";
     $output = fopen('php://output', 'w');
-    fputcsv($output, $headers);
+    fputcsv($output, array_map('csvSanitizeCell', $headers));
     foreach ($rows as $row) {
-        fputcsv($output, $row);
+        fputcsv($output, array_map('csvSanitizeCell', $row));
     }
     fclose($output);
     exit;

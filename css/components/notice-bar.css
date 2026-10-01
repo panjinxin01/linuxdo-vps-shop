@@ -1,0 +1,40 @@
+/* =====================================================
+   全局提示条
+   来源：css/style.css 原始第 458-493 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 全局提示条 === */
+.global-notice-area {
+  display: none;
+  padding: 16px 24px 0;
+}
+.global-notice-area.show {
+  display: block;
+}
+.install-state-notice {
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.install-state-notice a {
+  text-decoration: underline;
+  font-weight: 500;
+}
+.install-state-notice.warning {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.08);
+  color: #b45309;
+}
+.dark .install-state-notice.warning {
+  color: #fbbf24;
+}
+.install-state-notice.info {
+  border-color: rgba(59, 130, 246, 0.28);
+  background: rgba(59, 130, 246, 0.08);
+  color: #1d4ed8;
+}
+.dark .install-state-notice.info {
+  color: #60a5fa;
+}
+

@@ -1,0 +1,61 @@
+/* =====================================================
+   折叠面板
+   来源：css/tickets.css 原始第 505-561 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 折叠面板（时间线 / 附件容器） === */
+.tk-collapse {
+  margin-top: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-muted);
+  overflow: hidden;
+  animation: tk-pop-in 0.28s var(--ease-spring) both;
+}
+.tk-collapse-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: left;
+}
+.tk-collapse-head:hover {
+  background: var(--bg-card-hover);
+}
+.tk-collapse-head:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--border-focus);
+}
+.tk-collapse-head .tk-collapse-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.tk-collapse-count {
+  font-weight: 500;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+.tk-collapse-chevron {
+  margin-left: auto;
+  display: inline-flex;
+  color: var(--text-muted);
+  transition: transform 0.22s var(--ease-spring);
+}
+.tk-collapse.is-open .tk-collapse-chevron {
+  transform: rotate(180deg);
+}
+.tk-collapse-body {
+  padding: 4px 14px 12px;
+  border-top: 1px dashed var(--border);
+}
+

@@ -1,0 +1,43 @@
+/* =====================================================
+   快捷回复模板 chips
+   来源：css/tickets.css 原始第 801-839 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 快捷回复模板 chips（后台） === */
+.tk-template-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.tk-template-chips-label {
+  font-size: 11px;
+  color: var(--text-disabled);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.tk-template-chip {
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-light);
+  font-size: 12px;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tk-template-chip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--border-focus);
+}
+.tk-template-chip:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-light);
+}
+

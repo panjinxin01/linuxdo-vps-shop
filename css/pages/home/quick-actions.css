@@ -1,0 +1,51 @@
+/* =====================================================
+   快捷操作卡片
+   来源：css/pages/home.css（第二轮细化拆分，内容零改动）
+   ===================================================== */
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+.quick-action-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.quick-action-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary);
+  transform: translateY(-2px);
+}
+.quick-action-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--primary-light);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 22px;
+  transition: var(--transition);
+}
+.quick-action-card:hover .quick-action-icon {
+  background: var(--gradient-brand);
+  color: #fff;
+  box-shadow: var(--shadow-primary);
+}
+.quick-action-text,
+.quick-action-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-light);
+}
+
+/* === Hero（遗留兼容） === */

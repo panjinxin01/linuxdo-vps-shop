@@ -12,6 +12,9 @@ function scalar(PDO $pdo, string $sql, $default = 0) {
         $value = $pdo->query($sql)->fetchColumn();
         return $value === false || $value === null ? $default : $value;
     } catch (Throwable $e) {
+        // 静默返回默认值会让缺表/缺列/SQL 错误显示成"收入 0 / 订单 0"，
+        // 产生可信但错误的后台统计。这里至少要留下可排查的日志。
+        logError($pdo, 'dashboard.scalar', $e->getMessage(), ['sql' => $sql]);
         return $default;
     }
 }

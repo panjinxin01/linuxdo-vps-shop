@@ -3,6 +3,7 @@ require_once __DIR__ . '/../includes/security.php';
 startSecureSession();
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/coupons.php';
+require_once __DIR__ . '/../includes/commerce.php';
 
 $pdo = getDB();
 $action = requestValue('action', '');
@@ -40,8 +41,27 @@ try {
                 if ((int)$row['status'] !== 1) {
                     jsonResponse(0, '商品已下架或暂不可购买');
                 }
-                $amount = (float)$row['price'];
+                // 验券基准必须与下单口径一致：orders.php 是先扣信任等级折扣、再算优惠券。
+                // 若这里用商品原价，会出现"预验证通过但下单被拒"（门槛判断矛盾）
+                // 以及前端应付金额与实际扣款不一致的问题。
+                $basePrice = round((float)$row['price'], 2);
+                $amount = $basePrice;
+                $trustDiscountAmount = 0.0;
+                if (!empty($_SESSION['user_id'])) {
+                    $buyer = commerceGetUserById($pdo, (int)$_SESSION['user_id']);
+                    if ($buyer) {
+                        $trust = commerceGetTrustDiscount(
+                            $pdo,
+                            (int)$productId,
+                            (int)($buyer['linuxdo_trust_level'] ?? 0),
+                            $basePrice
+                        );
+                        $trustDiscountAmount = (float)$trust['discount_amount'];
+                        $amount = round(max(0, $basePrice - $trustDiscountAmount), 2);
+                    }
+                }
             } else {
+                $trustDiscountAmount = 0.0;
                 $amount = validateFloat(requestValue('amount', 0), 0);
                 if ($amount === null) {
                     $amount = 0;
@@ -60,6 +80,8 @@ try {
 
             jsonResponse(1, 'ok', [
                 'code' => $res['code'],
+                // 只回传展示所需的券信息。原先连 max_uses / per_user_limit /
+                // used_count 一起返回，任何登录用户都能探测并枚举券池使用情况。
                 'coupon' => [
                     'id' => (int)$coupon['id'],
                     'name' => $coupon['name'],
@@ -67,14 +89,10 @@ try {
                     'value' => (float)$coupon['value'],
                     'min_amount' => (float)$coupon['min_amount'],
                     'max_discount' => $coupon['max_discount'] === null ? null : (float)$coupon['max_discount'],
-                    'max_uses' => (int)$coupon['max_uses'],
-                    'per_user_limit' => (int)$coupon['per_user_limit'],
-                    'used_count' => (int)$coupon['used_count'],
-                    'starts_at' => $coupon['starts_at'],
-                    'ends_at' => $coupon['ends_at'],
-                    'status' => (int)$coupon['status']
                 ],
                 'amount' => round($amount, 2),
+                'base_amount' => isset($basePrice) ? $basePrice : round($amount, 2),
+                'trust_discount_amount' => round($trustDiscountAmount, 2),
                 'discount' => (float)$res['discount'],
                 'final' => (float)$res['final']
             ]);

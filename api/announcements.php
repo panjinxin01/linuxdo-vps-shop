@@ -91,7 +91,11 @@ function handleAnnounceAll(PDO $pdo): void {
 
 function handleAnnounceAdd(PDO $pdo): void {
     checkAdmin($pdo);
-    $title = normalizeString(requestValue('title', ''), 200);
+    // 先取原始值做长度校验，再截断。
+    // 原先先 normalizeString(...,200) 截断再判断 >200，条件恒为 false，
+    // 超长标题会被静默截断而不是返回错误。
+    $rawTitle = normalizeString(requestValue('title', ''));
+    $title = utf8Substr($rawTitle, 0, 200);
     $content = normalizeString(requestValue('content', ''));
     $isTop = validateInt(requestValue('is_top', 0), 0, 1) ?? 0;
     $status = validateInt(requestValue('status', 1), 0, 1) ?? 1;
@@ -101,7 +105,7 @@ function handleAnnounceAdd(PDO $pdo): void {
     if ($title === '' || $content === '') {
         jsonResponse(0, '标题和内容不能为空');
     }
-    if (utf8Length($title) > 200) {
+    if (utf8Length($rawTitle) > 200) {
         jsonResponse(0, '标题不能超过200字');
     }
     if ($publishAt !== '' && !isValidDateTime($publishAt)) {
@@ -137,7 +141,8 @@ function handleAnnounceEdit(PDO $pdo): void {
     if (!$id) {
         jsonResponse(0, '公告ID无效');
     }
-    $title = normalizeString(requestValue('title', ''), 200);
+    $rawTitle = normalizeString(requestValue('title', ''));
+    $title = utf8Substr($rawTitle, 0, 200);
     $content = normalizeString(requestValue('content', ''));
     $isTop = validateInt(requestValue('is_top', 0), 0, 1) ?? 0;
     $status = validateInt(requestValue('status', 1), 0, 1) ?? 1;
@@ -146,6 +151,9 @@ function handleAnnounceEdit(PDO $pdo): void {
 
     if ($title === '' || $content === '') {
         jsonResponse(0, '标题和内容不能为空');
+    }
+    if (utf8Length($rawTitle) > 200) {
+        jsonResponse(0, '标题不能超过200字');
     }
     if ($publishAt !== '' && !isValidDateTime($publishAt)) {
         jsonResponse(0, 'publish_at 时间格式不正确');

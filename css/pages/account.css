@@ -1,0 +1,183 @@
+/* =====================================================
+   我的账户页结构组件
+   来源：css/style.css 原始第 2619-2797 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* =====================================================
+   v20260402 · 页面结构补充组件（配合重构版 index.html）
+   ===================================================== */
+
+/* 我的账户页 · 概要卡片 */
+.account-summary-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 340px) 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.balance-card {
+  background:
+    radial-gradient(circle at 90% -20%, var(--primary-light) 0%, transparent 55%),
+    var(--bg-card);
+}
+.balance-value {
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--primary);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin-top: 6px;
+}
+.balance-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 10px;
+}
+.tx-card {
+  min-width: 0;
+}
+.tx-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.tx-head .stat-label {
+  margin-bottom: 0;
+}
+.tx-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 12.5px;
+}
+.tx-list > div:last-child {
+  border-bottom: none;
+}
+
+/* 购买弹窗补充 */
+.coupon-label {
+  font-size: 13px;
+  color: var(--text-light);
+  font-weight: 500;
+}
+.balance-tip-box {
+  padding: 12px 14px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+  background: var(--bg-muted);
+}
+.pay-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.6;
+  margin: 0;
+}
+.buy-foot {
+  flex-wrap: wrap;
+}
+
+/* 登录弹窗补充 */
+.auth-submit {
+  width: 100%;
+  padding: 12px;
+  margin-top: 4px;
+}
+.auth-foot {
+  justify-content: center;
+  border-top: none;
+  padding-top: 4px;
+}
+.auth-foot p {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* 成功弹窗补充 */
+.success-title {
+  color: var(--success);
+}
+.success-desc {
+  margin-bottom: 16px;
+  color: var(--text-muted);
+}
+
+/* 表单双列 */
+.form-row-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 480px) {
+  .form-row-2col {
+    grid-template-columns: 1fr;
+  }
+  .account-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 弹窗内容区滚动（头部/底部吸附） */
+.modal-scroll {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.modal-scroll-lg {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* 侧边栏底部用户卡片 */
+.sidebar-user-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.sidebar-user-card .avatar {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--gradient-brand);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+.sidebar-user-card .info {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.3;
+}
+.sidebar-user-card .name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sidebar-user-card .sub {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 折叠态隐藏用户信息文字 */
+.sidebar-collapsed .sidebar-user-card .info {
+  display: none;
+}
+.sidebar-collapsed .sidebar-user-card {
+  justify-content: center;
+}
+

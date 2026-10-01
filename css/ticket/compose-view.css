@@ -1,0 +1,152 @@
+/* =====================================================
+   发起新工单页
+   来源：css/tickets.css 原始第 1397-1544 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 发起新工单页 === */
+.tk-new-form {
+  max-width: 860px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+/* Markdown 提示卡 */
+.tk-md-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 13px 16px;
+  border-radius: var(--radius-lg);
+  background: var(--primary-light);
+  border: 1px solid var(--border-focus);
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--text-main);
+}
+.tk-md-hint svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--primary);
+}
+.tk-md-hint code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(127, 127, 127, 0.16);
+  white-space: nowrap;
+}
+
+/* 格式工具栏 */
+.tk-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  background: var(--bg-muted);
+  flex-wrap: wrap;
+}
+.tk-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 30px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.tk-tool-btn:hover {
+  background: var(--bg-card);
+  color: var(--primary);
+}
+.tk-tool-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--border-focus);
+}
+.tk-tool-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+.tk-tool-btn.is-image-pending {
+  color: var(--warning);
+  background: var(--warning-bg);
+}
+
+/* 工具栏与文本域拼接：构成完整编辑器外框
+   v20260926 修复：此前该规则仅有“顶部圆角归零”两行，
+   导致 textarea 缺失基础样式而回退到浏览器默认外观
+   （等宽字体 / 0 内边距 / 裸边框），视觉上“没有 CSS”。 */
+.tk-compose-stack textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 96px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-top: none; /* 顶边由 .tk-toolbar 的左右边框衔接，两块拼成一个整体 */
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-bottom-left-radius: var(--radius-md);
+  border-bottom-right-radius: var(--radius-md);
+  background: var(--bg-input);
+  color: var(--text-main);
+  font-size: 14px;
+  line-height: 1.7;
+  font-family: inherit;
+  transition: var(--transition);
+}
+.tk-compose-stack textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+.tk-compose-stack textarea::placeholder {
+  color: var(--text-disabled);
+}
+.tk-compose-stack:focus-within .tk-toolbar {
+  border-color: var(--primary);
+}
+
+/* 紧急勾选框 */
+.tk-check-urgent {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--danger);
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: var(--transition);
+  width: fit-content;
+}
+.tk-check-urgent input[type="checkbox"] {
+  accent-color: var(--danger);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+.tk-check-urgent input:checked ~ span,
+.tk-check-urgent:has(input:checked) span {
+  text-decoration: underline;
+}
+.tk-check-urgent:focus-within {
+  box-shadow: 0 0 0 3px var(--danger-bg);
+}
+

@@ -143,7 +143,11 @@ try {
             if (!in_array($mode, ['review', 'block'], true)) {
                 $mode = 'review';
             }
-            commerceSetSetting($pdo, 'linuxdo_silenced_order_mode', $mode);
+            // commerceSetSetting() 在 settings 表缺失或 SQL 异常时返回 false，
+            // 忽略返回值会让前端拿到"已保存"的假成功。
+            if (!commerceSetSetting($pdo, 'linuxdo_silenced_order_mode', $mode)) {
+                jsonResponse(0, '设置保存失败，请检查数据库或稍后重试');
+            }
             logAudit($pdo, 'community.settings_save', ['linuxdo_silenced_order_mode' => $mode]);
             jsonResponse(1, '社区规则设置已保存');
             break;

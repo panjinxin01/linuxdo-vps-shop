@@ -1,0 +1,144 @@
+<!-- 社区规则 tab -->
+<!-- 来源：admin/index.html · 由 js/core/partials.js 同步注入，请勿在此文件内写 <script> -->
+        <!-- 社区规则 -->
+        <div class="tab-content" id="community">
+          <div class="page-header">
+            <h1 class="page-title">Linux DO 社区规则</h1>
+          </div>
+          <div class="settings-grid">
+            <div class="card" style="padding: 24px">
+              <h3 style="margin-bottom: 16px">全局设置</h3>
+              <div class="form-group">
+                <label>silenced 用户下单策略</label
+                ><select id="communitySilencedMode">
+                  <option value="review">人工审核</option>
+                  <option value="block">直接禁止</option>
+                </select>
+              </div>
+              <button class="btn btn-primary" onclick="saveCommunitySettings()">
+                保存设置
+              </button>
+              <hr
+                style="
+                  margin: 20px 0;
+                  border: none;
+                  border-top: 1px solid var(--border);
+                "
+              />
+              <h3 style="margin-bottom: 16px">白名单 / 黑名单</h3>
+              <input type="hidden" id="ruleId" />
+              <div class="form-row">
+                <div class="form-group">
+                  <label>规则类型</label
+                  ><select id="ruleType">
+                    <option value="whitelist">白名单</option>
+                    <option value="blacklist">黑名单</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>商品ID（留空=全局）</label
+                  ><input type="number" id="ruleProductId" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>用户ID（本站）</label
+                  ><input type="number" id="ruleUserId" />
+                </div>
+                <div class="form-group">
+                  <label>Linux DO ID</label
+                  ><input type="number" id="ruleLinuxdoId" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label>备注</label><input type="text" id="ruleRemark" />
+              </div>
+              <button class="btn btn-primary" onclick="saveCommunityRule()">
+                保存规则
+              </button>
+            </div>
+            <div class="card" style="padding: 24px">
+              <h3 style="margin-bottom: 16px">信任等级折扣</h3>
+              <input type="hidden" id="discountId" />
+              <div class="form-row">
+                <div class="form-group">
+                  <label>信任等级</label
+                  ><select id="discountTrustLevel">
+                    <option value="0">TL0</option>
+                    <option value="1">TL1</option>
+                    <option value="2">TL2</option>
+                    <option value="3">TL3</option>
+                    <option value="4">TL4</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>商品ID（留空=全局）</label
+                  ><input type="number" id="discountProductId" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>折扣类型</label
+                  ><select id="discountType">
+                    <option value="percent">百分比</option>
+                    <option value="fixed">固定减免</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>折扣值</label
+                  ><input type="number" step="0.01" id="discountValue" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label>备注</label><input type="text" id="discountRemark" />
+              </div>
+              <button class="btn btn-primary" onclick="saveCommunityDiscount()">
+                保存折扣
+              </button>
+            </div>
+          </div>
+          <div class="settings-grid" style="margin-top: 20px">
+            <div class="card" style="padding: 24px">
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>规则</th>
+                      <th>范围</th>
+                      <th>备注</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="communityRuleTable">
+                    <tr>
+                      <td colspan="5" class="empty">加载中...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card" style="padding: 24px">
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>TL</th>
+                      <th>商品</th>
+                      <th>类型</th>
+                      <th>折扣</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="communityDiscountTable">
+                    <tr>
+                      <td colspan="6" class="empty">加载中...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+

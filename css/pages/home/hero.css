@@ -1,0 +1,32 @@
+/* =====================================================
+   Hero 区（遗留兼容）
+   来源：css/pages/home.css（第二轮细化拆分，内容零改动）
+   ===================================================== */
+.hero {
+  text-align: center;
+  padding: 60px 24px 50px;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--primary-light) 0%, transparent 50%);
+}
+.hero h1 {
+  font-size: 42px;
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 16px;
+  color: var(--text-main);
+}
+.hero p {
+  font-size: 17px;
+  color: var(--text-muted);
+  max-width: 600px;
+  margin: 0 auto 32px;
+  line-height: 1.7;
+}
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+

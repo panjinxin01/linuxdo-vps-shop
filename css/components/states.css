@@ -1,0 +1,154 @@
+/* =====================================================
+   空状态 · 骨架屏 · 未登录提示
+   来源：css/style.css 原始第 2217-2366 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 空状态 === */
+.empty-state {
+  text-align: center;
+  padding: 56px 20px;
+  color: var(--text-muted);
+}
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 14px;
+  color: var(--text-disabled);
+}
+.empty-state p {
+  font-size: 15px;
+}
+.empty-state a {
+  color: var(--primary);
+}
+.empty-state a:hover {
+  text-decoration: underline;
+}
+
+/* === 骨架屏 === */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-muted);
+  border-radius: var(--radius-md);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.16), transparent);
+  animation: skeleton-wave 1.4s infinite;
+}
+@keyframes skeleton-wave {
+  100% {
+    transform: translateX(100%);
+  }
+}
+.skeleton-card {
+  height: 180px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-light);
+}
+
+/* === 未登录提示卡片 === */
+.login-required-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 32px 48px;
+  text-align: center;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(160deg, var(--primary-light) 0%, transparent 60%);
+  border: 1px dashed var(--border);
+  margin: 16px 0;
+  position: relative;
+  overflow: hidden;
+}
+.login-required-card::before {
+  content: "";
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 160px;
+  height: 160px;
+  background: radial-gradient(circle, var(--primary-light) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.login-required-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-light) 0%, transparent 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  color: var(--primary);
+  position: relative;
+  z-index: 1;
+  box-shadow: var(--shadow-glow);
+}
+.login-required-hint {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-light);
+  margin-bottom: 8px;
+  line-height: 1.6;
+  position: relative;
+  z-index: 1;
+}
+.login-required-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+  line-height: 1.5;
+  max-width: 320px;
+  position: relative;
+  z-index: 1;
+}
+.login-required-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+.login-required-btn {
+  padding: 10px 28px !important;
+  font-size: 14px !important;
+  border-radius: var(--radius-lg) !important;
+}
+.login-required-btn-secondary {
+  padding: 10px 20px !important;
+  font-size: 13px !important;
+  border-radius: var(--radius-lg) !important;
+}
+.login-required-compact {
+  padding: 32px 20px 28px;
+  margin: 8px 0;
+}
+.login-required-compact .login-required-icon {
+  width: 60px;
+  height: 60px;
+  margin-bottom: 14px;
+}
+.login-required-compact .login-required-hint {
+  font-size: 13px;
+}
+.login-required-compact .login-required-sub {
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+.login-required-compact .login-required-actions {
+  gap: 8px;
+}
+.login-required-compact .login-required-btn {
+  padding: 8px 20px !important;
+  font-size: 13px !important;
+}
+.login-required-compact .login-required-btn-secondary {
+  padding: 8px 16px !important;
+  font-size: 12px !important;
+}
+

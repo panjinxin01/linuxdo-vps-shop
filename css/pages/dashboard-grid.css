@@ -1,0 +1,201 @@
+/* =====================================================
+   首页仪表盘栅格
+   来源：css/style.css 原始第 2798-2994 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* =====================================================
+   v20260828 · 首页仪表盘（模仿 7iNet Console Next 布局）
+   ===================================================== */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 991px) {
+  .dashboard-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* 通用卡片 */
+.dash-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: var(--transition);
+}
+.dash-card:hover { box-shadow: var(--shadow-md); }
+.dash-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-main);
+  padding: 16px 20px 0;
+}
+.dash-card-body { padding: 16px 20px 20px; }
+.dash-card-body.pa-0 { padding: 8px 0 12px; }
+.mt-2 { margin-top: 12px; }
+.mt-3 { margin-top: 16px; }
+
+/* 欢迎卡片 */
+.welcome-row { display: flex; align-items: center; gap: 16px; }
+.welcome-row > div:last-child { flex: 1; min-width: 0; }
+.welcome-avatar-dash {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: var(--primary-light);
+  color: var(--primary);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.welcome-avatar-dash.has-user {
+  background: var(--gradient-brand);
+  color: #fff;
+}
+.welcome-title {
+  font-size: 20px; font-weight: 500;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+.welcome-quote {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: nowrap;
+  line-height: 1.55;
+}
+/* 图标与首行文字对齐（flex-start 时图标自身下移补偿行高差） */
+.welcome-quote > svg {
+  flex-shrink: 0;
+  margin-top: 2.5px;
+  margin-right: 5px;
+}
+.welcome-quote > span {
+  min-width: 0;
+}
+/* 统计卡三联 */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+@media (max-width: 767px) {
+  .stat-grid { grid-template-columns: 1fr; }
+}
+.stat-row { display: flex; align-items: center; gap: 16px; padding: 14px 16px !important; }
+.stat-avatar {
+  width: 48px; height: 48px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.credit-card  .stat-avatar { background: var(--info-bg); color: var(--info); }
+.instance-card .stat-avatar { background: var(--primary-light); color: var(--primary); }
+.expire-card  .stat-avatar { background: var(--warning-bg); color: var(--warning); }
+.stat-value {
+  font-size: 18px; font-weight: 600; color: var(--text-main); line-height: 1.3;
+}
+.stat-label { font-size: 13px; color: var(--text-muted); }
+.info-card { cursor: pointer; }
+
+/* 公告轮播卡 */
+.swiper-h5 { font-size: 17px; font-weight: 600; color: var(--text-main); }
+.swiper-p { margin-top: 10px; font-size: 14.5px; color: var(--text-muted); line-height: 1.7; }
+
+/* 管理实例 chips */
+.instance-tags { display: flex; flex-wrap: wrap; gap: 10px; }
+.instance-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 13px; font-weight: 600;
+  padding: 7px 16px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.instance-tag:hover { filter: brightness(1.08); }
+.instance-tag .status-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 3px var(--success-bg);
+}
+.dash-empty { font-size: 13.5px; color: var(--text-muted); }
+.dash-empty a { color: var(--primary); }
+
+/* 待办工单表格 */
+/* 防止 nowrap 表格把网格列撑宽导致布局错位，窄屏时横向滚动 */
+#dashTicketTable { overflow-x: auto; }
+.dash-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.dash-table th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.dash-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-light);
+  white-space: nowrap;
+}
+.dash-table tr:last-child td { border-bottom: none; }
+.dash-table tbody tr { cursor: pointer; transition: background 0.15s; }
+.dash-table tbody tr:hover { background: var(--bg-hover); }
+.dash-ticket-empty {
+  text-align: center;
+  padding: 26px 0 14px;
+  color: var(--text-muted);
+  font-size: 15px;
+}
+.dash-ticket-empty-icon { font-size: 44px; margin-bottom: 10px; }
+
+/* 右栏：交流社区按钮 */
+.community-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: var(--primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: var(--transition);
+}
+.community-btn:last-child { margin-bottom: 0; }
+.community-btn:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+
+/* 右栏：公告/活动列表 */
+.dash-ann-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.dash-ann-item:hover { background: var(--bg-hover); }
+.dash-ann-empty { color: var(--text-muted); font-size: 13.5px; cursor: default; }
+.dash-ann-empty:hover { background: transparent; }
+.dash-ann-tag {
+  flex-shrink: 0;
+  font-size: 11px; font-weight: 600;
+  color: var(--primary);
+  background: var(--primary-light);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+.dash-ann-title {
+  flex: 1; min-width: 0;
+  font-size: 13.5px; color: var(--text-light);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dash-ann-date { flex-shrink: 0; font-size: 12px; color: var(--text-muted); }
+.dash-more-link { font-size: 13px; color: var(--primary); }

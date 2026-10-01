@@ -1,0 +1,164 @@
+/* =====================================================
+   IM 聊天式对话流
+   来源：css/tickets.css 原始第 345-504 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* =====================================================
+   IM 聊天气泡对话流（v20260824 核心）
+   结构：.tk-msg > (.tk-msg-avatar + .tk-msg-main >
+         (.tk-msg-meta + .tk-msg-bubble + .tk-msg-time))
+   客服（is-admin）靠右 · 用户（is-user）靠左
+   ===================================================== */
+.ticket-replies {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 2px;
+}
+.tk-msg {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  animation: tk-pop-in 0.28s var(--ease-spring) both;
+}
+.tk-msg-avatar {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+.tk-msg.is-user .tk-msg-avatar {
+  background: var(--bg-darker);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+.tk-msg.is-admin {
+  flex-direction: row-reverse;
+}
+.tk-msg.is-admin .tk-msg-avatar {
+  background: var(--gradient-brand);
+  color: #fff;
+  box-shadow: var(--shadow-primary);
+}
+.tk-msg-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  max-width: min(78%, 520px);
+}
+.tk-msg.is-admin .tk-msg-main {
+  align-items: flex-end;
+}
+.tk-msg-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+.tk-msg-name {
+  font-weight: 600;
+  color: var(--text-light);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tk-role-tag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  background: var(--primary);
+  color: #fff;
+  letter-spacing: 0.02em;
+  line-height: 1.6;
+}
+.dark .tk-role-tag,
+.dark .tk-msg.is-admin .tk-msg-bubble {
+  color: #0b1226;
+}
+.tk-msg.is-admin .tk-msg-bubble {
+  background: var(--primary);
+  border-bottom-right-radius: 4px;
+  color: #fff;
+  box-shadow: var(--shadow-primary);
+}
+.dark .tk-msg.is-admin .tk-msg-bubble {
+  box-shadow: none;
+}
+.tk-msg.is-user .tk-msg-bubble {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 4px;
+  color: var(--text-light);
+}
+.tk-msg-bubble {
+  padding: 10px 14px;
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+  font-size: 13.5px;
+  line-height: 1.68;
+  word-break: break-word;
+}
+.tk-msg-bubble a {
+  color: inherit;
+  text-decoration: underline;
+}
+.tk-msg-bubble code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(127, 127, 127, 0.14);
+}
+.tk-msg-time {
+  padding: 0 4px;
+  font-size: 10.5px;
+  color: var(--text-disabled);
+  cursor: default;
+  font-variant-numeric: tabular-nums;
+}
+/* 兼容保留：旧版回复卡类名（防止历史缓存 DOM 残留时裸奔） */
+.ticket-reply {
+  padding: 13px 15px;
+  border-radius: var(--radius-md);
+  background: var(--bg-muted);
+  border-left: 3px solid var(--border);
+}
+.ticket-reply.admin {
+  border-left-color: var(--primary);
+}
+.ticket-reply.user {
+  border-left-color: var(--success);
+}
+.reply-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.reply-author {
+  font-weight: 700;
+  color: var(--text-main);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.reply-time {
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: default;
+}
+.reply-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+

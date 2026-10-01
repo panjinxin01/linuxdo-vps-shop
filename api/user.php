@@ -42,7 +42,9 @@ function handleUserRegister(PDO $pdo): void {
     $password = (string)requestValue('password', '');
     $email = normalizeString(requestValue('email', ''), 100);
 
-    rateLimit($pdo, 'user_register', $username, 5, 600, 1800);
+    // 限流维度必须是 IP。原先把"用户名"作为 identity，而用户名由攻击者完全可控，
+    // 每换一个用户名就是一条新的 rate_limits 记录，hit_count 永远是 1，限流形同虚设。
+    rateLimit($pdo, 'user_register', '', 5, 600, 1800);
 
     if ($username === '' || $password === '') {
         jsonResponse(0, '用户名和密码不能为空');
@@ -84,6 +86,8 @@ function handleUserLogin(PDO $pdo): void {
     $stmt->execute([$username]);
     $admin = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($admin && password_verify($password, $admin['password'])) {
+        // 登录成功后必须轮换 session id，否则攻击者可先植入已知 PHPSESSID 实施会话固定
+        session_regenerate_id(true);
         $_SESSION['admin_id'] = $admin['id'];
         $_SESSION['admin_name'] = $admin['username'];
         $_SESSION['admin_role'] = $admin['role'] ?? 'admin';
@@ -105,6 +109,8 @@ function handleUserLogin(PDO $pdo): void {
     $stmt->execute([$username]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($user && password_verify($password, (string)$user['password'])) {
+        // 同上：登录成功后轮换 session id，防止会话固定攻击
+        session_regenerate_id(true);
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['username'] = $user['username'];
         unset($user['password']);

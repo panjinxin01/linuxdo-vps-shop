@@ -1,0 +1,52 @@
+<!-- 数据库更新提示弹窗 -->
+<!-- 来源：admin/index.html · 由 js/core/partials.js 同步注入，请勿在此文件内写 <script> -->
+    <!-- 数据库更新提示弹窗 -->
+    <div class="modal-bg" id="dbUpdateModal">
+      <div class="modal" style="max-width: 460px">
+        <div class="modal-head">
+          <h3><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> 数据库需要更新</h3>
+          <button class="modal-close" onclick="closeDbUpdateModal()">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <p style="color: var(--text-muted); margin-bottom: 12px">
+            检测到以下数据表缺失，部分功能可能无法正常使用：
+          </p>
+          <div
+            id="dbMissingTables"
+            style="
+              background: rgba(245, 158, 11, 0.1);
+              padding: 12px 16px;
+              border-radius: 8px;
+              font-size: 13px;
+              color: #f59e0b;
+              margin-bottom: 16px;
+              line-height: 1.8;
+            "
+          ></div>
+          <p style="font-size: 13px; color: var(--text-muted)">
+            建议前往「数据库维护」页面执行更新。
+          </p>
+        </div>
+        <div class="modal-foot">
+          <button
+            class="btn btn-outline"
+            style="flex: 1"
+            onclick="closeDbUpdateModal()"
+          >
+            稍后再说
+          </button>
+          <button
+            class="btn btn-primary"
+            style="flex: 1"
+            onclick="
+              closeDbUpdateModal();
+              window.location.href = 'maintenance.html';
+            "
+          >
+            前往更新
+          </button>
+        </div>
+      </div>
+    </div>

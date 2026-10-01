@@ -33,7 +33,9 @@ function productInput(PDO $pdo): array {
         'min_trust_level' => validateInt(requestValue('min_trust_level', 0), 0, 4) ?? 0,
         'risk_review_required' => validateInt(requestValue('risk_review_required', 0), 0, 1) ?? 0,
         'allow_whitelist_only' => validateInt(requestValue('allow_whitelist_only', 0), 0, 1) ?? 0,
-        'status' => validateInt(requestValue('status', 1), 0, 1) ?? 1,
+        // 注意：不提供缺省值 1。编辑时必须区分"未传 status"（保持原值）
+        // 与"显式传 status=1"，否则编辑一台已售/已锁定的机器会把它重新上架，导致重复售出。
+        'status' => validateInt(requestValue('status', null), 0, 1),
     ];
 }
 
@@ -119,8 +121,20 @@ try {
                 $currentUser = commerceGetUserById($pdo, (int)$_SESSION['user_id']);
             }
             $list = array_map(static function (array $row) use ($pdo, $currentUser) {
-                unset($row['ssh_password'], $row['ip_address'], $row['ssh_user']);
-                return productEffectiveRow($pdo, $row, $currentUser);
+                // 公开商品列表必须剔除全部主机连接凭据。
+                // 原先只去掉了 ssh_password / ip_address / ssh_user，
+                // ssh_port 与 extra_info（常含额外登录说明）仍会返回给匿名访客。
+                // 必须在 productEffectiveRow() 之后再剔除：该函数会用模板字段回填空值，
+                // 先 unset 的话 extra_info 可能被模板重新填回来。
+                $row = productEffectiveRow($pdo, $row, $currentUser);
+                unset(
+                    $row['ssh_password'],
+                    $row['ip_address'],
+                    $row['ssh_user'],
+                    $row['ssh_port'],
+                    $row['extra_info']
+                );
+                return $row;
             }, $list);
             jsonResponse(1, '', $list);
             break;
@@ -146,7 +160,7 @@ try {
                 jsonResponse(0, '名称、价格、IP、密码必填');
             }
             $columns = ['name', 'price', 'ip_address', 'ssh_port', 'ssh_user', 'status'];
-            $values = [$data['name'], round($data['price'], 2), $data['ip_address'], $data['ssh_port'], $data['ssh_user'], $data['status']];
+            $values = [$data['name'], round($data['price'], 2), $data['ip_address'], $data['ssh_port'], $data['ssh_user'], $data['status'] ?? 1];
             $optional = productOptionalAssignments($pdo, $data, true);
             foreach ($optional as $column => $value) {
                 if (!in_array($column, ['name', 'price', 'ip_address', 'ssh_port', 'ssh_user', 'status'], true)) {
@@ -173,8 +187,28 @@ try {
             if ($data['name'] === '' || $data['price'] === null || $data['ip_address'] === '' || $data['ssh_password'] === '') {
                 jsonResponse(0, '名称、价格、IP、密码必填');
             }
+
+            // 编辑前先确认商品存在，并读取当前库存状态
+            $current = $pdo->prepare('SELECT id, status FROM products WHERE id = ?');
+            $current->execute([$id]);
+            $currentRow = $current->fetch(PDO::FETCH_ASSOC);
+            if (!$currentRow) {
+                jsonResponse(0, '商品不存在');
+            }
+
+            // status 未显式提交时保持原值，避免把已售/已锁定的机器重新上架
+            $newStatus = $data['status'] ?? (int)$currentRow['status'];
+            if ($newStatus === 1 && (int)$currentRow['status'] !== 1) {
+                // 试图重新上架：若该商品已存在已支付订单（含退款外的占用），拒绝并保留"已售"
+                $sold = $pdo->prepare('SELECT COUNT(*) FROM orders WHERE product_id = ? AND status = 1');
+                $sold->execute([$id]);
+                if ((int)$sold->fetchColumn() > 0) {
+                    jsonResponse(0, '该商品已售出，无法重新上架。请先为对应订单办理退款后再操作');
+                }
+            }
+
             $setParts = ['name=?', 'price=?', 'ip_address=?', 'ssh_port=?', 'ssh_user=?', 'status=?'];
-            $params = [$data['name'], round($data['price'], 2), $data['ip_address'], $data['ssh_port'], $data['ssh_user'], $data['status']];
+            $params = [$data['name'], round($data['price'], 2), $data['ip_address'], $data['ssh_port'], $data['ssh_user'], $newStatus];
             $optional = productOptionalAssignments($pdo, $data, true);
             foreach ($optional as $column => $value) {
                 if (!in_array($column, ['name', 'price', 'ip_address', 'ssh_port', 'ssh_user', 'status'], true)) {

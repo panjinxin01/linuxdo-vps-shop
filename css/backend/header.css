@@ -1,0 +1,317 @@
+/* =====================================================
+   后台顶部栏（面包屑 · 图标按钮 · 用户胶囊）
+   来源：css/admin.css 原始第 53-365 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 顶部栏（v20260405 与前台头部导航样式统一） ===
+   毛玻璃 sticky 头部 · icon-btn 圆角图标按钮 · 面包屑 · 头像胶囊下拉 */
+.top-header {
+  grid-area: header;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(243, 245, 250, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  transition:
+    background 0.25s ease,
+    box-shadow var(--transition),
+    border-color var(--transition);
+}
+.dark .top-header {
+  background: rgba(7, 11, 22, 0.72);
+}
+/* 滚动后：背景加深 + 投影（由内联脚本监听 .main-content 滚动） */
+.top-header.scrolled {
+  box-shadow: var(--shadow-md);
+}
+html:not(.dark) .top-header.scrolled {
+  background: rgba(243, 245, 250, 0.94);
+}
+.dark .top-header.scrolled {
+  background: rgba(7, 11, 22, 0.9);
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 24px;
+  min-height: var(--header-h, 64px);
+}
+
+/* --- 左区：移动端菜单 + 面包屑 --- */
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  flex-shrink: 0;
+  border-radius: 11px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.menu-btn:hover {
+  color: var(--text-main);
+  background: var(--bg-hover);
+}
+.menu-btn:active {
+  transform: scale(0.95);
+}
+
+/* 面包屑（结构与前台一致） */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+  font-size: 15px;
+  line-height: 1.4;
+  /* 超长页名：整体横向滑动查看（隐藏滚动条，触摸平滑滚动） */
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.breadcrumb::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+.crumb {
+  color: var(--text-muted);
+  font-weight: 500;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.crumb-link {
+  padding: 2px 4px;
+  border-radius: 7px;
+  transition: var(--transition);
+}
+.crumb-link:hover {
+  color: var(--primary);
+  background: var(--primary-light);
+}
+.crumb-sep {
+  color: var(--text-disabled);
+  flex-shrink: 0;
+  /* 右侧补偿：使分隔符前后间隙对称 */
+  margin-right: 4px;
+}
+.crumb.active {
+  color: var(--text-main);
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+/* 单层模式：仅显示当前标题 */
+.breadcrumb.single .crumb-link {
+  display: none;
+}
+.breadcrumb.single .crumb-sep {
+  display: none;
+}
+
+/* --- 右区：主题 / 刷新 / 工单 / 用户 --- */
+.header-actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.icon-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  flex-shrink: 0;
+  border-radius: 11px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.icon-btn svg {
+  width: 19px;
+  height: 19px;
+}
+.icon-btn:hover {
+  color: var(--text-main);
+  background: var(--bg-hover);
+  transform: translateY(-1px);
+}
+.icon-btn:active {
+  transform: scale(0.95);
+}
+.icon-btn:focus-visible {
+  outline: none;
+  color: var(--primary);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+.icon-btn .badge-dot {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  width: 8px;
+  height: 8px;
+  background: var(--danger);
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px var(--danger-bg);
+}
+
+/* 顶栏用户胶囊（结构与前台 user-menu-btn 一致） */
+.user-area-wrap {
+  position: relative;
+}
+.user-menu-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 12px 5px 5px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  cursor: pointer;
+  transition: var(--transition);
+  max-width: 240px;
+}
+.user-menu-btn:hover {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+.user-menu-btn .avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--gradient-brand);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 13px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(67, 97, 238, 0.35);
+}
+.user-menu-btn .meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.25;
+  min-width: 0;
+}
+.user-menu-btn .name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.user-menu-btn .balance {
+  font-size: 11px;
+  color: var(--primary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.user-menu-btn .chev {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+.user-menu-btn.open .chev {
+  transform: rotate(180deg);
+}
+
+/* 用户下拉菜单（对齐前台 user-dropdown 视觉） */
+.user-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 200px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-lg);
+  padding: 8px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
+  transition: all 0.18s ease;
+  z-index: 120;
+}
+.user-menu.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+.user-menu a,
+.user-menu button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  color: var(--text-light);
+  font-size: 13px;
+  font-family: inherit;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.user-menu a svg,
+.user-menu button svg {
+  width: 15px;
+  height: 15px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.user-menu a:hover,
+.user-menu button:hover {
+  background: var(--bg-hover);
+  color: var(--text-main);
+}
+.user-menu button.danger {
+  color: var(--danger);
+}
+.user-menu button.danger svg {
+  color: var(--danger);
+}
+.user-menu button.danger:hover {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.user-dropdown-divider {
+  height: 1px;
+  background: var(--border-light);
+  margin: 6px 4px;
+}
+

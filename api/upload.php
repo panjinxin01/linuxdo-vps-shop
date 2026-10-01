@@ -226,7 +226,8 @@ function handleUploadDelete(PDO $pdo): void {
     }
     $fullPath = realpath(__DIR__ . '/../' . $attachment['file_path']);
     $uploadRoot = realpath(UPLOAD_DIR);
-    if ($fullPath && $uploadRoot && strpos($fullPath, $uploadRoot) === 0 && file_exists($fullPath)) {
+    // 必须带上目录分隔符再比较，否则 "…/uploads" 会放行兄弟目录 "…/uploads_backup/…"
+    if ($fullPath && $uploadRoot && strpos($fullPath, $uploadRoot . DIRECTORY_SEPARATOR) === 0 && file_exists($fullPath)) {
         @unlink($fullPath);
     }
     $stmt = $pdo->prepare('DELETE FROM ticket_attachments WHERE id = ?');
@@ -264,7 +265,7 @@ function handleUploadDownload(PDO $pdo): void {
     }
     $fullPath = realpath(__DIR__ . '/../' . $attachment['file_path']);
     $uploadRoot = realpath(UPLOAD_DIR);
-    if (!$fullPath || !$uploadRoot || strpos($fullPath, $uploadRoot) !== 0 || !file_exists($fullPath)) {
+    if (!$fullPath || !$uploadRoot || strpos($fullPath, $uploadRoot . DIRECTORY_SEPARATOR) !== 0 || !file_exists($fullPath)) {
         header('HTTP/1.1 404 Not Found');
         exit('文件不存在');
     }

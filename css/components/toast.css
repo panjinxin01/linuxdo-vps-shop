@@ -1,0 +1,29 @@
+/* =====================================================
+   Toast
+   来源：css/style.css 原始第 2027-2051 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === Toast === */
+.toast {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  background: var(--text-main);
+  color: var(--bg-body);
+  padding: 12px 24px;
+  border-radius: var(--radius-full);
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  z-index: 9999;
+  max-width: calc(100vw - 40px);
+}
+.toast.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+

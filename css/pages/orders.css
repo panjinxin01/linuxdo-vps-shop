@@ -1,0 +1,101 @@
+/* =====================================================
+   订单区域
+   来源：css/style.css 原始第 1265-1361 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 订单区域 === */
+.query-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 28px;
+  margin-top: 24px;
+}
+.section-title {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: var(--text-main);
+}
+.order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.order-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  transition: var(--transition);
+  box-shadow: var(--shadow-sm);
+}
+.order-item:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary);
+}
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.order-no {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.order-status {
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 600;
+}
+.status-paid {
+  background: var(--success-bg);
+  color: var(--success);
+}
+.status-pending {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+.status-refunded {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.status-delivered {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+.order-info {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.order-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+}
+.order-info-item {
+  font-size: 13px;
+  color: var(--text-muted);
+  background: var(--bg-muted);
+  border: 1px solid var(--border-light);
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  word-break: break-all;
+}
+.order-info-item strong {
+  color: var(--text-light);
+  font-weight: 500;
+}
+.order-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+}
+

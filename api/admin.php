@@ -172,6 +172,9 @@ function handleLogin(PDO $pdo): void {
         jsonResponse(0, '用户名或密码错误');
     }
 
+    // 登录成功后轮换 session id，防止会话固定攻击
+    session_regenerate_id(true);
+
     $_SESSION['admin_id'] = $admin['id'];
     $_SESSION['admin_name'] = $admin['username'];
     $_SESSION['admin_role'] = $admin['role'] ?? 'admin';

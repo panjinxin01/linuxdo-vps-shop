@@ -1,0 +1,28 @@
+/* =====================================================
+   动效偏好
+   来源：css/tickets.css 原始第 1193-1216 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 动效偏好 === */
+@media (prefers-reduced-motion: reduce) {
+  .tk-msg,
+  .tk-collapse,
+  .tk-empty {
+    animation: none;
+  }
+  .tk-skeleton {
+    animation: none;
+  }
+  .ticket-item,
+  .ticket-attachment {
+    transform: none;
+  }
+  .ticket-item:hover,
+  .ticket-item:focus-visible,
+  .ticket-attachment:hover {
+    transform: none;
+  }
+  .ticket-item::before {
+    transform: scaleX(1);
+  }
+}
+

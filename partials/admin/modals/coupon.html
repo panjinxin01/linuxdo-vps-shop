@@ -1,0 +1,96 @@
+<!-- 优惠券编辑弹窗 -->
+<!-- 来源：admin/index.html · 由 js/core/partials.js 同步注入，请勿在此文件内写 <script> -->
+    <!-- 优惠券弹窗 -->
+    <div class="modal-bg" id="couponModal">
+      <div class="modal" style="max-width: 500px">
+        <div class="modal-head">
+          <h3 id="couponModalTitle">创建优惠券</h3>
+          <button class="modal-close" onclick="closeCouponModal()">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="cId" />
+          <div class="form-group">
+            <label>优惠券代码 *</label
+            ><input
+              type="text"
+              id="cCode"
+              placeholder="如：SAVE20（只能包含字母数字）"
+            />
+          </div>
+          <div class="form-group">
+            <label>名称 *</label
+            ><input type="text" id="cName" placeholder="如：新用户立减" />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>类型</label>
+              <select id="cType" onchange="toggleCouponType()">
+                <option value="fixed">固定金额减免</option>
+                <option value="percent">百分比折扣</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label id="cValueLabel">减免金额</label
+              ><input type="number" id="cValue" placeholder="100" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>最低消费金额</label
+              ><input type="number" id="cMinAmount" value="0" />
+            </div>
+            <div class="form-group">
+              <label>最大使用次数</label
+              ><input
+                type="number"
+                id="cMaxUses"
+                value="0"
+                placeholder="0为不限"
+              />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>每人限用</label
+              ><input type="number" id="cPerUserLimit" value="1" />
+            </div>
+            <div
+              class="form-group"
+              id="cMaxDiscountGroup"
+              style="display: none"
+            >
+              <label>最高减免</label
+              ><input type="number" id="cMaxDiscount" placeholder="可选" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>开始时间</label
+              ><input type="datetime-local" id="cStartsAt" />
+            </div>
+            <div class="form-group">
+              <label>结束时间</label
+              ><input type="datetime-local" id="cEndsAt" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label
+              ><input
+                type="checkbox"
+                id="cStatus"
+                checked
+                style="width: auto; margin-right: 6px"
+              />启用</label
+            >
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-outline" onclick="closeCouponModal()">
+            取消</button
+          ><button class="btn btn-primary" onclick="saveCoupon()">保存</button>
+        </div>
+      </div>
+    </div>
+

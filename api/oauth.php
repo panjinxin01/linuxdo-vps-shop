@@ -114,6 +114,9 @@ function getUserInfo(string $accessToken): ?array {
 
 function handleUserLogin(array $userInfo): array {
     $pdo = getDB();
+    // 登录成功后轮换 session id，防止会话固定攻击
+    // （本函数有三条成功返回路径，统一在入口轮换一次，session 数据会被保留）
+    session_regenerate_id(true);
     $linuxdoId = (int)$userInfo['id'];
     $username = (string)($userInfo['username'] ?? '');
     $name = (string)($userInfo['name'] ?? $username);

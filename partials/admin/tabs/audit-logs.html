@@ -1,0 +1,35 @@
+<!-- 操作日志 tab -->
+<!-- 来源：admin/index.html · 由 js/core/partials.js 同步注入，请勿在此文件内写 <script> -->
+        <!-- 操作日志 -->
+        <div class="tab-content" id="audit_logs">
+          <div class="page-header">
+            <h1 class="page-title">操作日志</h1>
+            <div class="page-actions">
+              <button class="btn btn-danger" onclick="clearAuditLogs()">
+                一键删除日志
+              </button>
+            </div>
+          </div>
+          <div class="table-container">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>时间</th>
+                    <th>管理员</th>
+                    <th>动作</th>
+                    <th>目标</th>
+                    <th>IP</th>
+                    <th>详情</th>
+                  </tr>
+                </thead>
+                <tbody id="auditTable">
+                  <tr>
+                    <td colspan="6" class="empty">加载中...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+

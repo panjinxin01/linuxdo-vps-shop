@@ -1,0 +1,30 @@
+/* =====================================================
+   Toast
+   来源：css/admin.css 原始第 1388-1413 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === Toast（v20260824：双主题适配） === */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 36px;
+  transform: translateX(-50%) translateY(16px);
+  background: var(--bg-card);
+  color: var(--text-main);
+  padding: 11px 22px;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+  z-index: 9999;
+  border: 1px solid var(--border);
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+

@@ -1,0 +1,148 @@
+<!-- 商品编辑弹窗 -->
+<!-- 来源：admin/index.html · 由 js/core/partials.js 同步注入，请勿在此文件内写 <script> -->
+    <!-- 商品弹窗 -->
+    <div class="modal-bg" id="productModal">
+      <div class="modal" style="max-width: 760px">
+        <div class="modal-head">
+          <h3 id="productModalTitle">添加商品</h3>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn btn-outline btn-ai-generate" onclick="openAIGenerate()">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><path d="M12 2a10 10 0 0 1 10 10c0 5-4 9-10 10S2 17 2 12 7 2 12 2z"/><path d="M8 12l2 2 4-4"/><path d="M12 6v2"/><path d="M12 16v2"/></svg> AI 智能生成
+            </button>
+            <button class="modal-close" onclick="closeProductModal()">
+              &times;
+            </button>
+          </div>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="pId" />
+          <div class="form-group">
+            <label>商品名称 *</label
+            ><input type="text" id="pName" placeholder="如：香港轻量VPS" />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>商品模板</label
+              ><select id="pTemplate">
+                <option value="">不使用模板</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>积分价格 *</label
+              ><input type="number" id="pPrice" placeholder="每月积分数" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>CPU</label
+              ><input type="text" id="pCpu" list="cpuPresets" placeholder="1核" />
+            </div>
+            <div class="form-group">
+              <label>内存</label
+              ><input type="text" id="pMem" list="memPresets" placeholder="1GB" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>硬盘</label
+              ><input type="text" id="pDisk" list="diskPresets" placeholder="20GB SSD" />
+            </div>
+            <div class="form-group">
+              <label>带宽</label
+              ><input type="text" id="pBw" list="bwPresets" placeholder="500Mbps" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>地区</label
+              ><input type="text" id="pRegion" list="regionPresets" placeholder="香港" />
+            </div>
+            <div class="form-group">
+              <label>线路</label
+              ><input type="text" id="pLineType" list="lineTypePresets" placeholder="优化线路" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>系统</label
+              ><input type="text" id="pOsType" list="osPresets" placeholder="Debian / Ubuntu" />
+            </div>
+            <div class="form-group">
+              <label>最低 trust_level</label
+              ><input
+                type="number"
+                id="pMinTrustLevel"
+                min="0"
+                max="4"
+                value="0"
+              />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>描述</label
+            ><textarea
+              id="pDescription"
+              rows="3"
+              style="resize: vertical"
+            ></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label
+                ><input
+                  type="checkbox"
+                  id="pRiskReviewRequired"
+                  style="width: auto; margin-right: 6px"
+                />需人工审核</label
+              >
+            </div>
+            <div class="form-group">
+              <label
+                ><input
+                  type="checkbox"
+                  id="pAllowWhitelistOnly"
+                  style="width: auto; margin-right: 6px"
+                />仅白名单可购买</label
+              >
+            </div>
+          </div>
+          <div class="form-section-title">VPS连接信息</div>
+          <div class="form-group">
+            <label>IP地址 *</label
+            ><input type="text" id="pIp" placeholder="服务器IP" />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>SSH端口</label
+              ><input type="text" id="pPort" placeholder="22" />
+            </div>
+            <div class="form-group">
+              <label>用户名</label
+              ><input type="text" id="pUser" placeholder="root" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>密码 *</label
+            ><input type="text" id="pPass" placeholder="SSH密码" />
+          </div>
+          <div class="form-group">
+            <label>备注</label
+            ><input type="text" id="pExtra" placeholder="可选" />
+          </div>
+          <!-- 快捷预设值 -->
+          <datalist id="cpuPresets"><option value="1核"><option value="2核"><option value="4核"><option value="8核"><option value="16核"></datalist>
+          <datalist id="memPresets"><option value="1GB"><option value="2GB"><option value="4GB"><option value="8GB"><option value="16GB"><option value="32GB"></datalist>
+          <datalist id="diskPresets"><option value="20GB SSD"><option value="40GB SSD"><option value="80GB SSD"><option value="160GB SSD"><option value="200GB NVMe"></datalist>
+          <datalist id="bwPresets"><option value="10Mbps"><option value="30Mbps"><option value="50Mbps"><option value="100Mbps"><option value="200Mbps"><option value="500Mbps"><option value="1Gbps"></datalist>
+          <datalist id="regionPresets"><option value="香港"><option value="日本东京"><option value="新加坡"><option value="美国洛杉矶"><option value="美国硅谷"><option value="德国法兰克福"><option value="韩国首尔"></datalist>
+          <datalist id="lineTypePresets"><option value="BGP"><option value="CN2 GIA"><option value="CN2 GT"><option value="优化线路"><option value="国际带宽"><option value="9929"><option value="CMI"></datalist>
+          <datalist id="osPresets"><option value="Debian 11"><option value="Debian 12"><option value="Ubuntu 20.04"><option value="Ubuntu 22.04"><option value="CentOS 7"><option value="Rocky Linux 9"><option value="AlmaLinux 9"><option value="Windows Server 2022"></datalist>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-outline" onclick="closeProductModal()">
+            取消</button
+          ><button class="btn btn-primary" onclick="saveProduct()">保存</button>
+        </div>
+      </div>
+    </div>
+

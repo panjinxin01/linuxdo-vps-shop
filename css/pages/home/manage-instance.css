@@ -1,0 +1,68 @@
+/* =====================================================
+   管理实例卡片与状态点
+   来源：css/pages/home.css（第二轮细化拆分，内容零改动）
+   ===================================================== */
+.manage-instance-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 22px 26px;
+  transition: var(--transition);
+}
+.manage-instance-card:hover {
+  box-shadow: var(--shadow-sm);
+}
+.manage-instance-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.manage-instance-title {
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-main);
+}
+.manage-instance-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+.manage-instance-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.instance-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: var(--radius-full);
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.instance-tag:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-light);
+}
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 3px var(--success-bg);
+  flex-shrink: 0;
+}
+
+/* === 快速操作 === */
+.quick-actions,

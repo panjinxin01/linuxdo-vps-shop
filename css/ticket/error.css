@@ -1,0 +1,51 @@
+/* =====================================================
+   错误 / 可重试状态
+   来源：css/tickets.css 原始第 1066-1112 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 状态提示（错误态） === */
+.tk-state {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.tk-state .tk-state-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+  color: var(--text-disabled);
+  margin-bottom: 12px;
+}
+.tk-state.is-error .tk-state-icon {
+  color: var(--danger);
+  background: var(--danger-bg);
+  border-color: transparent;
+}
+.tk-state p {
+  margin: 0 0 14px;
+}
+.tk-state .tk-state-retry {
+  padding: 7px 18px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-light);
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.tk-state .tk-state-retry:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-light);
+}
+.tk-state .tk-state-retry:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+

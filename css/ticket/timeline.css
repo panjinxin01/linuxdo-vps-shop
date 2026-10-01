@@ -1,0 +1,50 @@
+/* =====================================================
+   处理时间线
+   来源：css/tickets.css 原始第 562-607 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 处理时间线（位于折叠面板内） === */
+.ticket-timeline {
+  margin: 8px 0 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+}
+.ticket-timeline-item {
+  display: flex;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px dashed var(--border);
+  font-size: 12px;
+}
+.ticket-timeline-item:last-child {
+  border-bottom: none;
+  padding-bottom: 2px;
+}
+.ticket-timeline-dot {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+  margin-top: 4px;
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+.ticket-timeline-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--text-muted);
+}
+.ticket-timeline-content strong {
+  color: var(--text-main);
+  font-size: 12.5px;
+}
+.ticket-timeline-content span {
+  word-break: break-word;
+}
+.ticket-timeline-content time {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+

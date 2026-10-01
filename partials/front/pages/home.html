@@ -1,0 +1,69 @@
+<!-- 首页 / 面板主页（欢迎卡 / 统计 / 公告 / 实例 / 快捷操作） -->
+<!-- 来源：index.html · 由 js/core/partials.js 同步注入，请勿在此文件内写 <script> -->
+      <!-- ============ 首页 / 面板主页 ============ -->
+      <div class="page-content active" id="page-home">
+        <div class="dashboard-container">
+          <!-- 欢迎卡片 -->
+          <div class="welcome-card" id="welcomeCard">
+            <div class="welcome-avatar" id="welcomeAvatar">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+              </svg>
+            </div>
+            <div class="welcome-info">
+              <div class="welcome-greeting" id="welcomeGreeting">欢迎访问</div>
+              <div class="welcome-quote"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;flex-shrink:0"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> 请登录后查看并兑换高性能VPS云服务器</div>
+            </div>
+          </div>
+
+          <!-- 有效实例统计 -->
+          <div class="instance-stat-card" onclick="switchPage('orders')">
+            <div class="instance-stat-icon">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+              </svg>
+            </div>
+            <div class="instance-stat-info">
+              <div class="instance-stat-value"><span id="statInstances">0</span> 台</div>
+              <div class="instance-stat-label">有效实例</div>
+            </div>
+          </div>
+
+          <!-- 公告滚动区域 -->
+          <div class="announcement-scroll-card" id="announcementScrollCard">
+            <div class="announcement-scroll-header">
+              <span class="announcement-scroll-title">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l18-7-7 18-2.5-7.5L3 11z"/></svg>
+                平台公告
+              </span>
+            </div>
+            <div class="announcement-scroll-list" id="announcementScrollList">
+              <div class="announcement-scroll-empty">暂无公告</div>
+            </div>
+          </div>
+
+          <!-- 管理实例 -->
+          <div class="manage-instance-card" id="manageInstanceCard" style="display: none">
+            <div class="manage-instance-title">管理实例</div>
+            <div class="manage-instance-desc">点击下方实例进行管理</div>
+            <div class="manage-instance-tags" id="manageInstanceTags"></div>
+          </div>
+
+          <!-- 快速操作 -->
+          <div class="quick-actions">
+            <div class="quick-action-card" onclick="switchPage('instances')">
+              <div class="quick-action-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div>
+              <div class="quick-action-text">我的实例</div>
+            </div>
+            <div class="quick-action-card" onclick="switchPage('tickets')">
+              <div class="quick-action-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+              <div class="quick-action-text">帮助支持</div>
+            </div>
+            <div class="quick-action-card" onclick="switchPage('announcements')">
+              <div class="quick-action-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+              <div class="quick-action-text">新闻公告</div>
+            </div>
+          </div>
+        </div>
+      </div>
+

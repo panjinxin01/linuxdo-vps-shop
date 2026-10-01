@@ -134,7 +134,13 @@ function handleCreditAdminTransactions(PDO $pdo): void {
     $stmt = $pdo->prepare('SELECT COUNT(*) FROM credit_transactions WHERE user_id = ?');
     $stmt->execute([$userId]);
     $total = (int)$stmt->fetchColumn();
-    $stmt = $pdo->prepare('SELECT ct.*, u.username, a.username AS operator_name FROM credit_transactions ct LEFT JOIN users u ON ct.user_id = u.id LEFT JOIN admins a ON ct.operator_admin_id = a.id WHERE ct.user_id = ? ORDER BY ct.id DESC LIMIT ? OFFSET ?');
+    // credit_transactions.operator_admin_id 是后期迁移加入的列，旧库上直接 JOIN 会报"未知列"。
+    // 同文件其它查询都做了列存在性兼容，这里也必须一致。
+    $operatorJoin = commerceColumnExists($pdo, 'credit_transactions', 'operator_admin_id')
+        ? ' LEFT JOIN admins a ON ct.operator_admin_id = a.id'
+        : '';
+    $operatorField = $operatorJoin !== '' ? ', a.username AS operator_name' : '';
+    $stmt = $pdo->prepare('SELECT ct.*, u.username' . $operatorField . ' FROM credit_transactions ct LEFT JOIN users u ON ct.user_id = u.id' . $operatorJoin . ' WHERE ct.user_id = ? ORDER BY ct.id DESC LIMIT ? OFFSET ?');
     $stmt->bindValue(1, $userId, PDO::PARAM_INT);
     $stmt->bindValue(2, $pg['page_size'], PDO::PARAM_INT);
     $stmt->bindValue(3, $pg['offset'], PDO::PARAM_INT);

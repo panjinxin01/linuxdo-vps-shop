@@ -1,0 +1,74 @@
+/* =====================================================
+   附件区
+   来源：css/tickets.css 原始第 608-677 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 附件（位于折叠面板内） === */
+.ticket-attachments {
+  margin: 8px 0 0;
+  padding: 0;
+  border: none;
+}
+.ticket-attachments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+.ticket-attachment {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  color: var(--text-light);
+  text-decoration: none;
+  transition: var(--transition);
+  overflow: hidden;
+}
+.ticket-attachment:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+.ticket-attachment:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+.ticket-attachment.image {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+.ticket-attachment.image img {
+  width: 100%;
+  height: 92px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+  background: var(--bg-muted);
+}
+.ticket-attachment.file .ticket-attachment-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  border-radius: var(--radius-sm);
+  background: var(--primary-light);
+  color: var(--primary);
+}
+.ticket-attachment-name {
+  max-width: 170px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ticket-attachment-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+

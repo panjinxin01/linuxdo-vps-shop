@@ -1,0 +1,14 @@
+/* =====================================================
+   页脚
+   来源：css/style.css 原始第 2052-2061 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === Footer === */
+.footer {
+  padding: 40px 0;
+  margin-top: 48px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+

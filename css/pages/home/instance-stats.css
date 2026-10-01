@@ -1,0 +1,85 @@
+/* =====================================================
+   实例统计卡片
+   来源：css/pages/home.css（第二轮细化拆分，内容零改动）
+   ===================================================== */
+/* === 实例统计卡片 === */
+.instance-stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 22px 26px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+.instance-stat-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--success), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+.instance-stat-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--success);
+  transform: translateY(-1px);
+}
+.instance-stat-card:hover::after {
+  opacity: 1;
+}
+.instance-stat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.instance-stat-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+.instance-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+.instance-stat-item {
+  text-align: center;
+  padding: 16px;
+  background: var(--bg-muted);
+  border-radius: var(--radius-md);
+}
+.instance-stat-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 15px;
+  background: var(--success-bg);
+  color: var(--success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.instance-stat-info {
+  flex: 1;
+  min-width: 0;
+}
+.instance-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+.instance-stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+

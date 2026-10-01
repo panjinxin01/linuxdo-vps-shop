@@ -1,0 +1,37 @@
+<!-- 登录 / 注册弹窗（v20260828 起已页面化） -->
+<!-- 来源：index.html · 由 js/core/partials.js 同步注入，请勿在此文件内写 <script> -->
+    <!-- ==================== 登录/注册弹窗 ==================== -->
+    <div class="modal-bg" id="authModal">
+      <div class="modal">
+        <div class="modal-head">
+          <h3 id="authTitle">登录</h3>
+          <button class="modal-close" onclick="closeAuth()" aria-label="关闭">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>用户名</label>
+            <input type="text" id="authUser" placeholder="请输入用户名" autocomplete="username" />
+          </div>
+          <div class="form-group">
+            <label>密码</label>
+            <input type="password" id="authPass" placeholder="请输入密码" autocomplete="current-password" />
+          </div>
+          <div class="form-group" id="emailGroup" style="display: none">
+            <label>邮箱（可选）</label>
+            <input type="email" id="authEmail" placeholder="用于找回密码" autocomplete="email" />
+          </div>
+          <button class="btn btn-primary auth-submit" id="authBtn" onclick="doAuth()">登录</button>
+          <div id="oauthDivider" class="oauth-divider" style="display: none"><span>或</span></div>
+          <button id="linuxdoLoginBtn" class="btn btn-linuxdo" style="display: none; width: 100%; padding: 12px; margin-top: 0" onclick="loginWithLinuxDO()">
+            <svg style="width: 18px; height: 18px; margin-right: 8px; vertical-align: middle" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+            </svg>
+            使用 Linux DO 登录
+          </button>
+        </div>
+        <div class="modal-foot auth-foot">
+          <p><span id="authSwitch"></span></p>
+        </div>
+      </div>
+    </div>
+

@@ -1,0 +1,18 @@
+<!-- 订单详情弹窗（含已废弃工单弹窗说明注释） -->
+<!-- 来源：admin/index.html · 由 js/core/partials.js 同步注入，请勿在此文件内写 <script> -->
+    <!-- 工单详情弹窗（v20260824 已废弃 · v20260825 改为 tab 内嵌子视图 ticketAdminView） -->
+
+    <!-- 订单详情弹窗（v20260825 · 与工单弹窗解耦，独立节点） -->
+    <div class="modal-bg" id="orderAdminModal">
+      <div class="modal" style="max-width: 680px">
+        <div class="modal-head">
+          <h3 id="orderAdminTitle">订单详情</h3>
+          <button class="modal-close" onclick="closeOrderAdminModal()" aria-label="关闭">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body modal-scroll" id="orderAdminBody"></div>
+        <div class="modal-foot" id="orderAdminFoot"></div>
+      </div>
+    </div>
+

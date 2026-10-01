@@ -1,0 +1,23 @@
+/* =====================================================
+   首页栅格容器（dashboard-container / dashboard-row）
+   来源：css/pages/home.css（第二轮细化拆分，内容零改动）
+   ===================================================== */
+/* === 仪表盘 === */
+.dashboard-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.dashboard-row {
+  display: grid;
+  gap: 18px;
+}
+.dashboard-row.cols-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+.dashboard-row.cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+

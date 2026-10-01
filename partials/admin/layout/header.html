@@ -1,0 +1,80 @@
+<!-- 后台顶部栏（面包屑 / 主题 / 刷新 / 工单 / 用户） -->
+<!-- 来源：admin/index.html · 由 js/core/partials.js 同步注入，请勿在此文件内写 <script> -->
+      <!-- 顶部栏（v20260822 与前台头部导航样式统一） -->
+      <header class="top-header" id="topHeader">
+        <div class="header-inner">
+          <!-- 左区：移动端菜单 + 面包屑 -->
+          <div class="header-left">
+            <button class="menu-btn" id="menuBtn" onclick="toggleSidebar()" aria-label="打开导航菜单" aria-controls="sidebar">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
+            </button>
+            <nav class="breadcrumb" aria-label="当前位置">
+              <a href="#" class="crumb crumb-link" onclick="switchTab('dashboard'); closeSidebar(); return false;">后台管理</a>
+              <svg class="crumb-sep" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="9 6 15 12 9 18"/>
+              </svg>
+              <span class="crumb active" id="breadcrumbCurrent" aria-current="page">仪表盘</span>
+            </nav>
+          </div>
+
+          <!-- 右区：主题切换 / 刷新 / 工单 / 用户 -->
+          <div class="header-actions">
+            <!-- 主题切换 -->
+            <button
+              class="icon-btn"
+              id="adminThemeToggle"
+              type="button"
+              title="切换主题"
+              onclick="toggleAdminTheme()"
+            >
+              <svg id="adminThemeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            </button>
+            <!-- 刷新数据 -->
+            <button
+              class="icon-btn"
+              type="button"
+              title="刷新数据"
+              onclick="refreshAll()"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            </button>
+            <!-- 待处理工单 -->
+            <button
+              class="icon-btn"
+              type="button"
+              title="待处理工单"
+              onclick="switchTab('tickets')"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><span
+                class="badge-dot"
+                id="headerTicketDot"
+                style="display: none"
+              ></span>
+            </button>
+            <!-- 用户胶囊 + 下拉菜单 -->
+            <div class="user-area-wrap">
+              <button type="button" class="user-menu-btn" id="userMenuBtn" onclick="toggleUserMenu(event)" aria-haspopup="true">
+                <span class="avatar" id="adminAvatar">A</span>
+                <span class="meta">
+                  <span class="name" id="adminName">管理员</span>
+                  <span class="balance" id="adminRole">超级管理员</span>
+                </span>
+                <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="user-menu" id="userMenu">
+                <a href="#" onclick="switchTab('settings'); closeUserMenu(); return false;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                  系统设置
+                </a>
+                <div class="user-dropdown-divider"></div>
+                <button type="button" class="danger" onclick="closeUserMenu(); logout();">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                  退出登录
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>

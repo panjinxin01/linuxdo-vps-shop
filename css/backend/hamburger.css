@@ -1,0 +1,38 @@
+/* =====================================================
+   移动端汉堡菜单
+   来源：css/admin.css 原始第 1354-1387 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 汉堡菜单 === */
+.menu-toggle {
+  display: none;
+  position: fixed;
+  top: 13px;
+  left: 14px;
+  z-index: 1001;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-md);
+  background: var(--gradient-brand);
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+}
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(2, 6, 23, 0.55);
+  backdrop-filter: blur(3px);
+  z-index: 999;
+}
+.sidebar-overlay.show {
+  display: block;
+}
+

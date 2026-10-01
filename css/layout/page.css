@@ -1,0 +1,42 @@
+/* =====================================================
+   页面容器 / 通用排版
+   来源：css/style.css 原始第 494-531 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 页面内容 === */
+.page-content {
+  display: none;
+  padding: 24px;
+  flex: 1;
+}
+.page-content.active {
+  display: block;
+  animation: page-in 0.3s ease both;
+}
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.page-header {
+  margin-bottom: 24px;
+}
+.page-header h2 {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 6px;
+  letter-spacing: -0.02em;
+}
+.page-header p {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+

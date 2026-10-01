@@ -1,0 +1,15 @@
+/* =====================================================
+   后台整体栅格布局
+   来源：css/admin.css 原始第 42-52 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 布局 === */
+.admin-layout {
+  display: grid;
+  grid-template-columns: 264px 1fr;
+  grid-template-rows: 64px 1fr;
+  grid-template-areas:
+    "sidebar header"
+    "sidebar content";
+  height: 100vh;
+}
+

@@ -1,0 +1,43 @@
+/* =====================================================
+   页面头操作区（v20260825 页面化）
+   来源：css/tickets.css 原始第 1217-1255 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* =====================================================
+   工单页面化重构（v20260825）
+   列表页表格视图 / 发起新工单页 / 查看工单页
+   全部基于 variables.css 设计令牌，双主题自适应
+   ===================================================== */
+
+/* === 页面头操作区 === */
+.tk-page-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.tk-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  padding: 6px 10px;
+  margin-left: -10px;
+  border-radius: var(--radius-md);
+  transition: var(--transition);
+}
+.tk-back-link:hover {
+  color: var(--primary);
+  background: var(--primary-light);
+}
+.tk-back-link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+

@@ -1,0 +1,72 @@
+/* =====================================================
+   分页
+   来源：css/admin.css 原始第 1158-1225 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 分页 === */
+.admin-pagination,
+.pagination-widget {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 13px 18px;
+  background: var(--bg-muted);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  border: 1px solid var(--border);
+  border-top: none;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.page-info,
+.pagination-info {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.page-btns,
+.pagination-btns {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.page-btn,
+.pagination-btn {
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-light);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+}
+.pagination-btn svg {
+  display: block;
+}
+.page-btn:hover:not(:disabled),
+.pagination-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-light);
+}
+.page-btn.active,
+.pagination-btn.active {
+  background: var(--gradient-brand);
+  border-color: transparent;
+  color: white;
+}
+.page-btn:disabled,
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.pagination-dots {
+  color: var(--text-muted);
+  font-size: 14px;
+  padding: 0 4px;
+}
+

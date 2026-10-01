@@ -1,0 +1,88 @@
+<!-- 商品模板 tab -->
+<!-- 来源：admin/index.html · 由 js/core/partials.js 同步注入，请勿在此文件内写 <script> -->
+        <!-- 商品模板 -->
+        <div class="tab-content" id="templates">
+          <div class="page-header">
+            <h1 class="page-title">商品模板</h1>
+            <div class="page-actions">
+              <button class="btn btn-primary" onclick="saveTemplate()">
+                保存模板
+              </button>
+            </div>
+          </div>
+          <div class="settings-grid">
+            <div class="card" style="padding: 24px">
+              <input type="hidden" id="tplId" />
+              <div class="form-group">
+                <label>模板名称 *</label
+                ><input
+                  type="text"
+                  id="tplName"
+                  placeholder="如：香港高防模板"
+                />
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>CPU</label><input type="text" id="tplCpu" />
+                </div>
+                <div class="form-group">
+                  <label>内存</label><input type="text" id="tplMemory" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>硬盘</label><input type="text" id="tplDisk" />
+                </div>
+                <div class="form-group">
+                  <label>带宽</label><input type="text" id="tplBandwidth" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>地区</label><input type="text" id="tplRegion" />
+                </div>
+                <div class="form-group">
+                  <label>线路</label><input type="text" id="tplLineType" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>系统</label><input type="text" id="tplOsType" />
+                </div>
+                <div class="form-group">
+                  <label>排序</label
+                  ><input type="number" id="tplSort" value="0" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label>描述</label
+                ><textarea id="tplDescription" rows="3"></textarea>
+              </div>
+              <div class="form-group">
+                <label>额外信息</label
+                ><textarea id="tplExtraInfo" rows="3"></textarea>
+              </div>
+            </div>
+            <div class="card" style="padding: 24px">
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>模板</th>
+                      <th>规格</th>
+                      <th>状态</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="templateTable">
+                    <tr>
+                      <td colspan="5" class="empty">加载中...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+

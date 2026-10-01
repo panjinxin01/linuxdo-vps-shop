@@ -1,0 +1,21 @@
+/* =====================================================
+   入场动画
+   来源：css/tickets.css 原始第 1113-1129 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 入场动画 === */
+@keyframes tk-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes tk-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+

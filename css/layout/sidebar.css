@@ -1,0 +1,188 @@
+/* =====================================================
+   前台侧边栏（含折叠态）
+   来源：css/style.css 原始第 89-272 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* =====================================================
+   侧边栏（v20260822：跟随后台深浅主题自动切换，与 admin.css 一致）
+   浅色 = 白色卡片；深色 = 深色渐变质感
+   ===================================================== */
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--sidebar-w);
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+  transition: width 0.3s ease, transform 0.3s ease, background 0.3s ease;
+}
+.dark .sidebar {
+  background: linear-gradient(180deg, #101a33 0%, #0b1226 100%);
+}
+.sidebar-header {
+  padding: 18px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-light);
+  min-height: var(--header-h);
+}
+.sidebar .logo {
+  font-size: 17px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-main);
+  min-width: 0;
+}
+.logo-icon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  background: var(--gradient-brand);
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #fff;
+  box-shadow: var(--shadow-primary);
+}
+.logo-text {
+  white-space: nowrap;
+  overflow: hidden;
+  transition: opacity 0.2s, width 0.2s;
+}
+.sidebar-toggle {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 8px;
+  background: var(--bg-hover);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+.sidebar-toggle:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+.sidebar-toggle svg {
+  transition: transform 0.3s ease;
+}
+.sidebar-collapsed .sidebar-toggle svg {
+  transform: rotate(180deg);
+}
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px 12px;
+}
+.nav-section {
+  margin-bottom: 10px;
+}
+.nav-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-disabled);
+  letter-spacing: 0.06em;
+  padding: 0 12px;
+  margin-bottom: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--text-light);
+  font-size: 14px;
+  font-weight: 500;
+  transition: var(--transition);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  position: relative;
+}
+.nav-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-main);
+}
+.nav-item.active {
+  background: var(--primary-light);
+  color: var(--primary);
+  font-weight: 600;
+}
+.nav-item.active::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 20px;
+  border-radius: 0 3px 3px 0;
+  background: var(--gradient-brand);
+}
+.nav-icon {
+  width: 19px;
+  height: 19px;
+  flex-shrink: 0;
+}
+.nav-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity 0.2s, width 0.2s;
+}
+.sidebar-footer {
+  padding: 14px 16px;
+  border-top: 1px solid var(--border-light);
+}
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.5);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 99;
+  opacity: 0;
+  visibility: hidden;
+  transition: var(--transition);
+}
+
+/* === 侧边栏折叠（桌面端） === */
+.sidebar-collapsed .sidebar {
+  width: var(--sidebar-w-collapsed);
+}
+.sidebar-collapsed .logo-text,
+.sidebar-collapsed .nav-text,
+.sidebar-collapsed .nav-section-title {
+  opacity: 0;
+  width: 0;
+  padding: 0;
+}
+.sidebar-collapsed .sidebar-header {
+  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
+}
+.sidebar-collapsed .nav-item {
+  justify-content: center;
+  padding: 11px;
+}
+.sidebar-collapsed .sidebar-footer {
+  padding: 14px 10px;
+}
+

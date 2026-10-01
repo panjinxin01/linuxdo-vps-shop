@@ -1,0 +1,99 @@
+/* =====================================================
+   工单列表卡片
+   来源：css/tickets.css 原始第 15-109 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 列表卡片 === */
+.ticket-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ticket-item {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px 16px;
+  cursor: pointer;
+  transition: var(--transition);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+/* 状态顶边条（按状态着色，hover 展开） */
+.ticket-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  height: 3px;
+  background: var(--text-disabled);
+  opacity: 0.9;
+  transform: scaleX(0.32);
+  transform-origin: left;
+  transition: var(--transition);
+}
+.ticket-item.st-wait::before {
+  background: var(--warning);
+}
+.ticket-item.st-on::before {
+  background: var(--success);
+}
+.ticket-item.st-off::before {
+  background: var(--text-disabled);
+}
+.ticket-item:hover,
+.ticket-item:focus-visible {
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-focus);
+  transform: translateY(-1px);
+}
+.ticket-item:hover::before,
+.ticket-item:focus-visible::before {
+  transform: scaleX(1);
+}
+.ticket-item:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-md), 0 0 0 3px var(--primary-light);
+}
+.ticket-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.ticket-title {
+  font-weight: 600;
+  font-size: 14.5px;
+  color: var(--text-main);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ticket-status {
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+}
+.ticket-meta {
+  display: flex;
+  gap: 14px;
+  row-gap: 6px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.ticket-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.ticket-meta code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--primary);
+}
+

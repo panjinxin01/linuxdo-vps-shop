@@ -1,0 +1,177 @@
+/* =====================================================
+   头部导航三区布局
+   来源：css/style.css 原始第 285-457 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* =====================================================
+   头部导航（v20260404 重构）
+   三区布局：左区（移动端菜单 + 面包屑）/ 右区（主题 · 通知 · 用户）
+   ===================================================== */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(243, 245, 250, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  transition:
+    background 0.25s ease,
+    box-shadow var(--transition),
+    border-color var(--transition);
+}
+.dark .header {
+  background: rgba(7, 11, 22, 0.72);
+}
+/* 滚动后：背景加深 + 投影，保证浮层内容可读性 */
+.header.scrolled {
+  box-shadow: var(--shadow-md);
+}
+.light-theme .header.scrolled,
+html:not(.dark) .header.scrolled {
+  background: rgba(243, 245, 250, 0.94);
+}
+.dark .header.scrolled {
+  background: rgba(7, 11, 22, 0.9);
+}
+
+.header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 24px;
+  min-height: var(--header-h);
+}
+
+/* --- 左区：移动端菜单 + 面包屑 --- */
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  flex-shrink: 0;
+  border-radius: 11px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.menu-btn:hover {
+  color: var(--text-main);
+  background: var(--bg-hover);
+}
+.menu-btn:active {
+  transform: scale(0.95);
+}
+
+/* 面包屑 */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+  font-size: 15px;
+  line-height: 1.4;
+  /* 超长页名：整体横向滑动查看（隐藏滚动条，触摸平滑滚动） */
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.breadcrumb::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+.crumb {
+  color: var(--text-muted);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.crumb-link {
+  padding: 2px 4px;
+  border-radius: 7px;
+  transition: var(--transition);
+}
+.crumb-link:hover {
+  color: var(--primary);
+  background: var(--primary-light);
+}
+.crumb-sep {
+  color: var(--text-disabled);
+  flex-shrink: 0;
+  transition: opacity 0.2s ease;
+  /* 右侧补偿：抵消根链接内边距带来的间距差，使分隔符前后间隙对称 */
+  /* 注意：不能用负外边距方案——面包屑是滚动容器，负边距会裁剪首字符 */
+  margin-right: 4px;
+}
+.crumb.active {
+  color: var(--text-main);
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+/* 单层模式（主页）：隐藏根节点与分隔符，仅显示当前标题 */
+.breadcrumb.single .crumb-link {
+  display: none;
+}
+.breadcrumb.single .crumb-sep {
+  display: none;
+}
+
+/* --- 右区：主题 / 通知 / 用户 --- */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.icon-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  flex-shrink: 0;
+  border-radius: 11px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.icon-btn svg {
+  width: 19px;
+  height: 19px;
+}
+.icon-btn:hover {
+  color: var(--text-main);
+  background: var(--bg-hover);
+  transform: translateY(-1px);
+}
+.icon-btn:active {
+  transform: scale(0.95);
+}
+.icon-btn:focus-visible {
+  outline: none;
+  color: var(--primary);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+

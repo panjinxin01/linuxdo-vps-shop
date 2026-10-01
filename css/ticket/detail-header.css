@@ -1,0 +1,51 @@
+/* =====================================================
+   工单详情头部
+   来源：css/tickets.css 原始第 298-344 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 详情头部 === */
+.ticket-detail-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.ticket-detail-status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.ticket-detail-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+}
+.ticket-detail-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 8px 12px;
+  background: var(--bg-muted);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+  overflow: hidden;
+}
+.ticket-detail-meta-item span {
+  color: var(--text-main);
+  font-weight: 600;
+  margin-left: auto;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ticket-detail-meta-item code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--primary);
+}
+

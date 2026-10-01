@@ -1,0 +1,43 @@
+/* =====================================================
+   后台全局重置与基础
+   来源：css/admin.css 原始第 3-41 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* =====================================================
+   VPS积分商城 · 后台样式（重构版 v20260401）
+   深色质感侧边栏 · 玻璃拟态认证页 · 双主题
+   ===================================================== */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--bg-body);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  height: 100vh;
+  overflow: hidden;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgba(99, 131, 255, 0.28);
+}
+
+/* 细滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.55);
+}
+

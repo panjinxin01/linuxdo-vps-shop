@@ -1,0 +1,93 @@
+<!-- 仪表盘 tab -->
+<!-- 来源：admin/index.html · 由 js/core/partials.js 同步注入，请勿在此文件内写 <script> -->
+        <!--仪表盘 -->
+        <div class="tab-content active" id="dashboard">
+          <div class="page-header">
+            <h1 class="page-title">仪表盘</h1>
+          </div>
+          <!-- 统计卡片 -->
+          <div class="stats-grid">
+            <div class="stat-card primary">
+              <div class="stat-header"><div class="stat-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div></div>
+              <div class="stat-label">商品总数</div>
+              <div class="stat-value" id="statProducts">-</div>
+            </div>
+            <div class="stat-card info">
+              <div class="stat-header"><div class="stat-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div></div>
+              <div class="stat-label">注册用户</div>
+              <div class="stat-value" id="statUsers">-</div>
+            </div>
+            <div class="stat-card warning">
+              <div class="stat-header"><div class="stat-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div></div>
+              <div class="stat-label">待支付</div>
+              <div class="stat-value" id="statPending">-</div>
+            </div>
+            <div class="stat-card success">
+              <div class="stat-header"><div class="stat-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div></div>
+              <div class="stat-label">已完成</div>
+              <div class="stat-value" id="statPaid">-</div>
+            </div>
+            <div class="stat-card primary">
+              <div class="stat-header"><div class="stat-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div></div>
+              <div class="stat-label">总收入</div>
+              <div class="stat-value" id="statIncome">-</div>
+            </div>
+          </div>
+          <!-- 快捷操作 -->
+          <div class="quick-actions">
+            <div class="quick-btn" onclick="showAddProduct()">
+              <div class="icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+              <span>添加商品</span>
+            </div>
+            <div class="quick-btn" onclick="switchTab('orders')">
+              <div class="icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+              <span>查看订单</span>
+            </div>
+            <div class="quick-btn" onclick="switchTab('tickets')">
+              <div class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+              <span>处理工单</span>
+            </div>
+            <div class="quick-btn" onclick="showAddAnnouncement()">
+              <div class="icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+              <span>发布公告</span>
+            </div>
+            <div class="quick-btn" onclick="switchTab('settings')">
+              <div class="icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+              <span>系统设置</span>
+            </div>
+          </div>
+          <!-- 仪表盘卡片 -->
+          <div class="dashboard-grid">
+            <div class="dashboard-card">
+              <div class="dashboard-card-header">
+                <span class="dashboard-card-title"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>最近订单</span
+                ><span
+                  class="dashboard-card-action"
+                  onclick="switchTab('orders')"
+                  >查看全部</span
+                >
+              </div>
+              <div class="dashboard-card-body">
+                <div class="recent-list" id="recentOrders">
+                  <div class="empty">加载中...</div>
+                </div>
+              </div>
+            </div>
+            <div class="dashboard-card">
+              <div class="dashboard-card-header">
+                <span class="dashboard-card-title"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>待处理工单</span>
+                <span
+                  class="dashboard-card-action"
+                  onclick="switchTab('tickets')"
+                  >查看全部</span
+                >
+              </div>
+              <div class="dashboard-card-body">
+                <div class="recent-list" id="recentTickets">
+                  <div class="empty">加载中...</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+

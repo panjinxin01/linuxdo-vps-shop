@@ -1,0 +1,32 @@
+/* =====================================================
+   底部操作区 · 区域分隔
+   来源：css/tickets.css 原始第 840-867 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 底部操作区 === */
+.ticket-detail-actions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+.ticket-detail-actions .btn {
+  flex: 1;
+}
+.admin-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+.admin-inline-actions .btn {
+  min-height: 38px;
+  border-radius: var(--radius-md);
+}
+
+/* === 区域分隔 === */
+.ticket-detail-section-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 16px 0;
+  border: none;
+}
+

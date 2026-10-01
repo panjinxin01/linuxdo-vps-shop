@@ -578,6 +578,11 @@ try {
         case 'batch_delete':
             checkAdmin($pdo);
             $type = normalizeString(requestValue('type', 'expired'));
+            // 原先任何无法识别的 type 都会落到 statusCode = 0（待支付），
+            // 于是"批量清理过期订单"可能因参数拼写错误而误删全部待支付订单。
+            if (!in_array($type, ['expired', 'refunded', 'pending'], true)) {
+                jsonResponse(0, '清理类型不合法，仅支持 expired / refunded / pending');
+            }
             $statusCode = $type === 'expired' ? 3 : ($type === 'refunded' ? 2 : 0);
             $stmt = $pdo->query('SELECT order_no, user_id, product_id FROM orders WHERE status = ' . (int)$statusCode);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);

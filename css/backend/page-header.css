@@ -1,0 +1,25 @@
+/* =====================================================
+   页面标题头
+   来源：css/admin.css 原始第 524-544 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 页面头 === */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  gap: 14px;
+}
+.page-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+.page-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+

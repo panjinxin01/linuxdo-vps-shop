@@ -1,0 +1,68 @@
+/* =====================================================
+   加载骨架屏
+   来源：css/tickets.css 原始第 1002-1065 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 加载骨架屏 === */
+@keyframes tk-shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+.tk-skeleton {
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--bg-muted) 25%,
+    var(--bg-darker) 37%,
+    var(--bg-muted) 63%
+  );
+  background-size: 400px 100%;
+  animation: tk-shimmer 1.4s ease infinite;
+}
+.tk-skeleton-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg-card);
+}
+.tk-skeleton-line {
+  height: 12px;
+}
+.tk-skeleton-line.w60 {
+  width: 60%;
+}
+.tk-skeleton-line.w40 {
+  width: 40%;
+}
+.tk-skeleton-line.w80 {
+  width: 80%;
+}
+.tk-skeleton-line.tall {
+  height: 44px;
+  border-radius: var(--radius-md);
+}
+/* IM 气泡骨架（详情加载占位） */
+.tk-skeleton-msg {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.tk-skeleton-msg.is-right {
+  flex-direction: row-reverse;
+}
+.tk-skeleton-avatar {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  border-radius: 50%;
+}
+.tk-skeleton-msg .tk-skeleton-line {
+  margin-top: 2px;
+}
+

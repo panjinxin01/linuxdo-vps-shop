@@ -1,0 +1,78 @@
+/* =====================================================
+   欢迎卡片：问候语 / 头像 / 统计
+   来源：css/pages/home.css（第二轮细化拆分，内容零改动）
+   ===================================================== */
+/* === 欢迎卡片 === */
+.welcome-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 26px 28px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  position: relative;
+  overflow: hidden;
+}
+.welcome-card::before {
+  content: "";
+  position: absolute;
+  top: -80px;
+  right: -40px;
+  width: 240px;
+  height: 240px;
+  background: radial-gradient(circle, var(--primary-light) 0%, transparent 65%);
+  opacity: 0.55;
+  pointer-events: none;
+}
+.welcome-info {
+  flex: 1;
+  min-width: 0;
+}
+.welcome-greeting {
+  font-size: 21px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  letter-spacing: -0.01em;
+}
+.welcome-quote {
+  font-size: 14px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.welcome-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--primary-light);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.welcome-avatar.has-user {
+  background: var(--gradient-brand);
+  color: #fff;
+}
+.welcome-stats {
+  display: flex;
+  gap: 32px;
+}
+.welcome-stat {
+  text-align: center;
+}
+.welcome-stat-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--primary);
+}
+.welcome-stat-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+

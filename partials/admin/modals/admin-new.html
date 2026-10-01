@@ -1,0 +1,41 @@
+<!-- 新增管理员弹窗 -->
+<!-- 来源：admin/index.html · 由 js/core/partials.js 同步注入，请勿在此文件内写 <script> -->
+    <!-- 添加管理员弹窗 -->
+    <div class="modal-bg" id="adminModal">
+      <div class="modal" style="max-width: 420px">
+        <div class="modal-head">
+          <h3>添加管理员</h3>
+          <button class="modal-close" onclick="closeAdminModal()">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>用户名 *</label
+            ><input type="text" id="newAdminUser" placeholder="管理员用户名" />
+          </div>
+          <div class="form-group">
+            <label>密码 *</label
+            ><input type="password" id="newAdminPass" placeholder="至少6位" />
+          </div>
+          <div class="form-group">
+            <label style="font-size: 12px; color: var(--text-muted)"
+              >这里只用于新建管理员；已有普通用户请在页面右侧“提权已有用户”中选择。</label
+            >
+          </div>
+          <div class="form-group">
+            <label>角色</label>
+            <select id="newAdminRole">
+              <option value="admin">普通管理员</option>
+              <option value="super">超级管理员</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-outline" onclick="closeAdminModal()">
+            取消</button
+          ><button class="btn btn-primary" onclick="saveAdmin()">创建</button>
+        </div>
+      </div>
+    </div>
+

@@ -1,0 +1,159 @@
+/* =====================================================
+   用户区域 · 头像胶囊 · 下拉菜单
+   来源：css/style.css 原始第 2062-2216 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 用户区域 === */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--gradient-brand);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.user-name {
+  font-size: 14px;
+  font-weight: 500;
+}
+.user-role {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.login-btn {
+  padding: 8px 20px;
+  background: var(--gradient-brand);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: var(--shadow-primary);
+}
+.login-btn:hover {
+  filter: brightness(1.06);
+}
+
+/* 顶栏用户菜单（新增结构） */
+.user-area-wrap {
+  position: relative;
+}
+.user-menu-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 12px 5px 5px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  cursor: pointer;
+  transition: var(--transition);
+  max-width: 240px;
+}
+.user-menu-btn:hover {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+.user-menu-btn .avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--gradient-brand);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.user-menu-btn .meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.25;
+  min-width: 0;
+}
+.user-menu-btn .name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.user-menu-btn .balance {
+  font-size: 11px;
+  color: var(--primary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.user-menu-btn .chev {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+.user-menu-btn.open .chev {
+  transform: rotate(180deg);
+}
+.user-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 210px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-lg);
+  padding: 8px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
+  transition: all 0.18s ease;
+  z-index: 120;
+}
+.user-dropdown.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+.user-dropdown a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  font-size: 13px;
+  color: var(--text-light);
+  white-space: nowrap;
+}
+.user-dropdown a:hover {
+  background: var(--bg-hover);
+  color: var(--text-main);
+}
+.user-dropdown a svg {
+  width: 15px;
+  height: 15px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.user-dropdown a.danger {
+  color: var(--danger);
+}
+.user-dropdown-divider {
+  height: 1px;
+  background: var(--border-light);
+  margin: 6px 4px;
+}
+

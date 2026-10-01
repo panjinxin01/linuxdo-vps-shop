@@ -1,0 +1,26 @@
+/* =====================================================
+   AI 智能生成按钮
+   来源：css/admin.css 原始第 1571-1592 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === AI 生成按钮 === */
+.btn-ai-generate {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(99, 131, 255, 0.3);
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+.btn-ai-generate:hover {
+  background: var(--gradient-brand);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+}

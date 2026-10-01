@@ -1,0 +1,144 @@
+/* =====================================================
+   响应式适配
+   来源：css/admin.css 原始第 1414-1553 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 响应式 === */
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 900px) {
+  .admin-split-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 768px) {
+  .admin-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: 60px 1fr;
+    grid-template-areas:
+      "header"
+      "content";
+  }
+  .menu-toggle {
+    display: none;
+  }
+  /* 移动端：头部内汉堡按钮替代固定悬浮按钮 */
+  .top-header .menu-btn {
+    display: flex;
+  }
+  .header-inner {
+    padding: 0 12px;
+    gap: 8px;
+    min-height: 56px;
+  }
+  /* 移动端：汉堡按钮去底框、缩小；面包屑仅显示当前页标题 */
+  .top-header .menu-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+  }
+  .top-header .menu-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+  .breadcrumb {
+    font-size: 14px;
+  }
+  .crumb-link,
+  .crumb-sep {
+    display: none;
+  }
+  .icon-btn {
+    width: 38px;
+    height: 38px;
+  }
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 264px;
+    z-index: 1000;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-lg);
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  .main-content {
+    padding: 20px 16px;
+  }
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+  .page-header .btn {
+    width: 100%;
+  }
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .stat-card {
+    padding: 16px;
+  }
+  .stat-value {
+    font-size: 22px;
+  }
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  .quick-actions {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  /* 移动端隐藏用户胶囊文字，仅保留头像（与前台一致） */
+  .user-menu-btn .meta {
+    display: none;
+  }
+  .user-menu-btn .chev {
+    display: none;
+  }
+  .user-menu-btn {
+    padding: 5px;
+  }
+  body.auth-page .auth-layout {
+    padding: 24px 14px;
+  }
+  body.auth-page .auth-card {
+    padding: 26px 20px;
+    max-width: 100%;
+  }
+}
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  .quick-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+  th,
+  td {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+  .main-content {
+    padding: 16px 12px;
+  }
+  .page-title {
+    font-size: 19px;
+  }
+  body.auth-page .auth-layout {
+    padding: 16px 12px;
+  }
+  body.auth-page .auth-card {
+    padding: 22px 16px;
+  }
+}
+

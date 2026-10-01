@@ -1,0 +1,102 @@
+/* =====================================================
+   分页控件
+   来源：css/style.css 原始第 1738-1835 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 分页（旧版 .pagination） === */
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 24px;
+}
+.pagination button {
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.pagination button:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.pagination button.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+.pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* === 分页控件（通用渲染器） === */
+.pagination-widget {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 0 8px;
+  flex-wrap: wrap;
+}
+.pagination-info {
+  color: var(--text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.pagination-btns {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-light);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  line-height: 1;
+}
+.pagination-btn svg {
+  display: block;
+}
+.pagination-btn:hover:not(:disabled):not(.active) {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-light);
+}
+.pagination-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  pointer-events: none;
+}
+.pagination-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.pagination-dots {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 32px;
+  color: var(--text-muted);
+  font-size: 14px;
+  letter-spacing: 2px;
+  user-select: none;
+}
+

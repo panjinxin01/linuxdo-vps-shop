@@ -1,0 +1,21 @@
+/* =====================================================
+   标签 chip
+   来源：css/pages/home.css（第二轮细化拆分，内容零改动）
+   ===================================================== */
+.announcement-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 24px;
+}
+.tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--primary-light);
+  color: var(--primary);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* === 管理实例卡片 === */

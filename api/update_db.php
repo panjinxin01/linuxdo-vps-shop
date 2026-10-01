@@ -11,9 +11,12 @@ require_once __DIR__ . '/../includes/commerce.php';
 require_once __DIR__ . '/../includes/schema.php';
 
 $pdo = getDB();
-checkAdmin($pdo);
 
 $action = requestValue('action', '');
+// 数据库重置会 DROP 全部业务表（仅保留 admins / settings），属于高危操作，
+// 必须由超级管理员执行，普通管理员只能做增量更新与检查。
+checkAdmin($pdo, $action === 'reset');
+
 $csrfActions = ['update', 'reset', 'migrate_linuxdo'];
 if (in_array($action, $csrfActions, true)) {
     requireCsrf();

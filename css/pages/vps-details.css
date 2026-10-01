@@ -1,0 +1,69 @@
+/* =====================================================
+   VPS 凭据信息
+   来源：css/style.css 原始第 1612-1676 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === VPS 信息 === */
+.vps-info {
+  background: var(--bg-muted);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.vps-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+.vps-row:last-of-type {
+  border-bottom: none;
+}
+.vps-label,
+.vps-row > span {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  font-size: 12px;
+}
+.vps-value {
+  color: var(--text-main);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.vps-row code {
+  word-break: break-all;
+  white-space: normal;
+}
+.vps-copy-all {
+  margin-top: 12px;
+}
+.copy-btn {
+  padding: 4px 10px;
+  background: var(--primary-light);
+  color: var(--primary);
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: var(--transition);
+  font-weight: 500;
+}
+.copy-btn:hover {
+  background: var(--primary);
+  color: #fff;
+}
+.copy-btn.copied {
+  background: var(--success);
+  color: #fff;
+}
+

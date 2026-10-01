@@ -1,0 +1,44 @@
+/* =====================================================
+   表单控件
+   来源：css/style.css 原始第 1225-1264 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 表单 === */
+.form-group {
+  margin-bottom: 16px;
+}
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-light);
+  margin-bottom: 6px;
+}
+.form-group input,
+.form-group select,
+.form-group textarea,
+.modal input[type="text"],
+.modal input[type="password"],
+.modal input[type="email"],
+.modal select,
+.modal textarea {
+  width: 100%;
+  padding: 11px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  color: var(--text-main);
+  transition: var(--transition);
+  font-family: inherit;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus,
+.modal input:focus,
+.modal select:focus,
+.modal textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+

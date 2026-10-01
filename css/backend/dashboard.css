@@ -1,0 +1,251 @@
+/* =====================================================
+   统计卡片 · 快捷操作 · 仪表盘网格
+   来源：css/admin.css 原始第 545-791 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 统计卡片 === */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: var(--transition);
+  box-shadow: var(--shadow-sm);
+}
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(99, 131, 255, 0.35);
+}
+.stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  opacity: 0.09;
+  transform: translate(28%, -28%);
+}
+.stat-card.primary::before {
+  background: var(--primary);
+}
+.stat-card.success::before {
+  background: var(--success);
+}
+.stat-card.warning::before {
+  background: var(--warning);
+}
+.stat-card.info::before {
+  background: var(--info);
+}
+.stat-card.danger::before {
+  background: var(--danger);
+}
+.stat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+.stat-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+.stat-card.primary .stat-icon {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+.stat-card.success .stat-icon {
+  background: var(--success-bg);
+  color: var(--success);
+}
+.stat-card.warning .stat-icon {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+.stat-card.info .stat-icon {
+  background: var(--info-bg);
+  color: var(--info);
+}
+.stat-card.danger .stat-icon {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.stat-label {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+.stat-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1;
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* === 快捷操作 === */
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.quick-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: var(--transition);
+  box-shadow: var(--shadow-sm);
+}
+.quick-btn:hover {
+  border-color: rgba(99, 131, 255, 0.45);
+  background: var(--primary-light);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glow);
+}
+.quick-btn .icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--primary-light);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: var(--transition);
+}
+.quick-btn:hover .icon {
+  background: var(--gradient-brand);
+  color: #fff;
+}
+.quick-btn span {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-light);
+}
+
+/* === 仪表盘网格 === */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.dashboard-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.dashboard-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--border-light);
+}
+.dashboard-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.dashboard-card-action {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+.dashboard-card-action:hover {
+  background: var(--primary-light);
+}
+.dashboard-card-body {
+  padding: 14px 18px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.recent-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  background: var(--bg-hover);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.recent-item:hover {
+  background: var(--primary-light);
+  border-color: rgba(99, 131, 255, 0.25);
+}
+.recent-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.recent-icon.order {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+.recent-icon.ticket {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+.recent-info {
+  flex: 1;
+  min-width: 0;
+}
+.recent-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.recent-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+

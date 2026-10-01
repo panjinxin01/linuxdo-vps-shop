@@ -19,6 +19,18 @@ class TicketService
         return commerceGetTicketCategories();
     }
 
+    /**
+     * 去除工单中的管理员内部字段
+     *
+     * internal_note 是管理员内部备注，绝不能返回给普通用户。
+     * 之前 listMine()/detail() 直接 SELECT t.* 全量回传，工单所有者可在响应里直接看到。
+     */
+    private static function stripInternalForUser(array $ticket): array
+    {
+        unset($ticket['internal_note']);
+        return $ticket;
+    }
+
     /** 创建工单 */
     public static function create(PDO $pdo): void
     {
@@ -114,7 +126,10 @@ class TicketService
         checkUser();
         $stmt = $pdo->prepare('SELECT t.*, o.order_no FROM tickets t LEFT JOIN orders o ON t.order_id = o.id WHERE t.user_id = ? ORDER BY t.updated_at DESC');
         $stmt->execute([(int)$_SESSION['user_id']]);
-        jsonResponse(1, 'ok', $stmt->fetchAll(PDO::FETCH_ASSOC));
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // 列表接口属于普通用户视角，剔除管理员内部备注
+        $rows = array_map([self::class, 'stripInternalForUser'], $rows);
+        jsonResponse(1, 'ok', $rows);
     }
 
     /** 工单详情（本人或管理员） */
@@ -128,7 +143,8 @@ class TicketService
         if (!$ticket) {
             jsonResponse(0, '工单不存在');
         }
-        if (empty($_SESSION['admin_id']) && (!isset($_SESSION['user_id']) || (int)$_SESSION['user_id'] !== (int)$ticket['user_id'])) {
+        $adminId = self::currentAdminId($pdo);
+        if ($adminId <= 0 && (!isset($_SESSION['user_id']) || (int)$_SESSION['user_id'] !== (int)$ticket['user_id'])) {
             jsonResponse(0, '无权访问此工单');
         }
         $stmt = $pdo->prepare('SELECT r.*, u.username FROM ticket_replies r LEFT JOIN users u ON r.user_id = u.id WHERE r.ticket_id = ? ORDER BY r.created_at ASC');
@@ -146,13 +162,16 @@ class TicketService
         $ticket['events'] = [];
         if (commerceTableExists($pdo, 'ticket_events')) {
             $sql = 'SELECT e.*, a.username AS admin_name, u.username AS user_name FROM ticket_events e LEFT JOIN admins a ON e.actor_type = "admin" AND e.actor_id = a.id LEFT JOIN users u ON e.actor_type = "user" AND e.actor_id = u.id WHERE e.ticket_id = ?';
-            if (empty($_SESSION['admin_id'])) {
+            if ($adminId <= 0) {
                 $sql .= ' AND e.is_visible = 1';
             }
             $sql .= ' ORDER BY e.id ASC';
             $stmt = $pdo->prepare($sql);
             $stmt->execute([$ticketId]);
             $ticket['events'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+        if ($adminId <= 0) {
+            $ticket = self::stripInternalForUser($ticket);
         }
         jsonResponse(1, 'ok', $ticket);
     }
@@ -172,7 +191,7 @@ class TicketService
         if ((int)$ticket['status'] === 2) {
             jsonResponse(0, '工单已关闭，无法回复');
         }
-        [$isAdmin, $isOwner] = self::resolveActor($ticket);
+        [$isAdmin, $isOwner] = self::resolveActor($pdo, $ticket);
         if (!$isAdmin && !$isOwner) {
             jsonResponse(0, '无权回复此工单');
         }
@@ -201,7 +220,7 @@ class TicketService
         if (!$ticket) {
             jsonResponse(0, '工单不存在');
         }
-        [$isAdmin, $isOwner] = self::resolveActor($ticket);
+        [$isAdmin, $isOwner] = self::resolveActor($pdo, $ticket);
         if (!$isAdmin && !$isOwner) {
             jsonResponse(0, '无权关闭此工单');
         }
@@ -310,6 +329,11 @@ class TicketService
         if ($assigneeId > 0 && !self::adminExists($pdo, $assigneeId)) {
             jsonResponse(0, '指派的管理员不存在');
         }
+        // 必须先确认工单存在：UPDATE 影响 0 行时也会返回成功，
+        // 不校验就会给不存在的工单写入孤儿 ticket_events 与审计日志。
+        if (!self::findTicket($pdo, $ticketId)) {
+            jsonResponse(0, '工单不存在');
+        }
         $stmt = $pdo->prepare('UPDATE tickets SET assignee_admin_id = ?, handled_admin_id = ?, updated_at = NOW() WHERE id = ?');
         $stmt->execute([$assigneeId ?: null, $assigneeId ?: null, $ticketId]);
         commerceRecordTicketEvent($pdo, $ticketId, 'assign', $assigneeId ? '工单已指派' : '已取消指派', ['assignee_id' => $assigneeId], false);
@@ -384,9 +408,35 @@ class TicketService
         return $row ?: null;
     }
 
-    private static function resolveActor(array $ticket): array
+    /**
+     * 取得"仍然有效"的当前管理员 ID
+     *
+     * 不能只凭 $_SESSION['admin_id'] 判断：管理员账号被删除/清空后，
+     * 旧会话里的 admin_id 依然存在，会继续拥有读全部工单、回复、关闭工单的权限，
+     * 并把已不存在的管理员 ID 写进 handled_admin_id。
+     *
+     * @return int 有效管理员 ID，非管理员或已失效返回 0
+     */
+    private static function currentAdminId(PDO $pdo): int
     {
-        $isAdmin = !empty($_SESSION['admin_id']);
+        if (empty($_SESSION['admin_id'])) {
+            return 0;
+        }
+        $adminId = (int)$_SESSION['admin_id'];
+        if ($adminId <= 0) {
+            return 0;
+        }
+        if (!self::adminExists($pdo, $adminId)) {
+            // 账号已不存在，清理会话残留，避免后续逻辑继续把它当管理员
+            unset($_SESSION['admin_id'], $_SESSION['admin_name'], $_SESSION['admin_role']);
+            return 0;
+        }
+        return $adminId;
+    }
+
+    private static function resolveActor(PDO $pdo, array $ticket): array
+    {
+        $isAdmin = self::currentAdminId($pdo) > 0;
         $isOwner = !empty($_SESSION['user_id']) && isset($ticket['user_id']) && (int)$_SESSION['user_id'] === (int)$ticket['user_id'];
         return [$isAdmin, $isOwner];
     }

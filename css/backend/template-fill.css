@@ -1,0 +1,21 @@
+/* =====================================================
+   模板自动填充高亮
+   来源：css/admin.css 原始第 1554-1570 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* =====================================================
+   业务组件
+   ===================================================== */
+
+/* === 模板自动填充 === */
+.field-from-template {
+  border-color: rgba(99, 131, 255, 0.45) !important;
+  background: var(--primary-light) !important;
+}
+label.template-indicator::after {
+  content: " (来自模板)";
+  font-size: 10px;
+  color: var(--primary);
+  font-weight: 400;
+  margin-left: 4px;
+}
+

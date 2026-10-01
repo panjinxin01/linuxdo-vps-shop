@@ -1,0 +1,242 @@
+/* =====================================================
+   响应式适配
+   来源：css/style.css 原始第 2367-2604 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 响应式 === */
+@media (max-width: 1024px) {
+  .sidebar {
+    transform: translateX(-100%);
+    width: var(--sidebar-w) !important;
+  }
+  .sidebar-open .sidebar {
+    transform: translateX(0);
+    box-shadow: var(--shadow-lg);
+  }
+  .sidebar-open .sidebar-overlay {
+    opacity: 1;
+    visibility: visible;
+  }
+  .main-wrapper {
+    margin-left: 0 !important;
+  }
+  .menu-btn {
+    display: flex;
+  }
+  .sidebar-toggle {
+    display: none;
+  }
+  .dashboard-row.cols-2,
+  .dashboard-row.cols-3 {
+    grid-template-columns: 1fr;
+  }
+  .welcome-card {
+    flex-direction: column;
+    text-align: center;
+    gap: 16px;
+  }
+  .welcome-quote {
+    justify-content: center;
+  }
+  .welcome-stats {
+    justify-content: center;
+  }
+}
+@media (max-width: 768px) {
+  .container {
+    padding: 0 16px;
+  }
+  .global-notice-area {
+    padding: 12px 16px 0;
+  }
+  .hero h1 {
+    font-size: 32px;
+  }
+  .hero p {
+    font-size: 15px;
+    max-width: 100%;
+    margin-bottom: 24px;
+  }
+  .hero {
+    padding: 50px 16px 40px;
+  .header-inner {
+    padding: 10px 12px;
+    gap: 8px;
+    min-height: 56px;
+  }
+  /* 移动端：汉堡按钮去底框、缩小；面包屑仅显示当前页标题 */
+  .menu-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+  }
+  .menu-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+  .breadcrumb {
+    font-size: 14px;
+  }
+  .crumb-link,
+  .crumb-sep {
+    display: none;
+  }
+  .icon-btn {
+    width: 38px;
+    height: 38px;
+  }
+  }
+  #userArea .btn-primary {
+    padding: 8px 14px !important;
+    font-size: 13px !important;
+  }
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .page-header h2 {
+    font-size: 22px;
+  }
+  .page-content {
+    padding: 16px;
+  }
+  .products {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding-bottom: 32px;
+  }
+  .price {
+    font-size: 22px;
+  }
+  .query-box {
+    padding: 24px;
+    margin-top: 32px;
+  }
+  .order-item {
+    padding: 18px;
+  }
+  .order-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .modal {
+    width: 95%;
+    max-width: none;
+  }
+  .modal-head {
+    padding: 18px 20px;
+  }
+  .modal-body {
+    padding: 20px;
+  }
+  .modal-foot {
+    padding: 14px 20px;
+    flex-direction: column;
+  }
+  .modal-foot .btn {
+    width: 100%;
+  }
+  .vps-info {
+    padding: 14px 16px;
+    font-size: 12px;
+  }
+  .vps-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .vps-row code {
+    word-break: break-all;
+  }
+  .footer {
+    padding: 32px 0;
+    margin-top: 32px;
+  }
+  .notification-panel {
+    position: fixed;
+    top: 60px;
+    right: 8px;
+    left: 8px;
+    width: auto;
+    max-height: calc(100vh - 80px);
+    z-index: 1000;
+  }
+  .user-menu-btn .meta {
+    display: none;
+  }
+  .user-menu-btn .chev {
+    display: none;
+  }
+  .user-menu-btn {
+    padding: 5px;
+  }
+  .quick-action-card {
+    flex-direction: column;
+    text-align: center;
+    gap: 10px;
+    padding: 16px;
+  }
+}
+@media (max-width: 480px) {
+  .hero h1 {
+    font-size: 26px;
+  }
+  .btn-lg {
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+  .specs {
+    grid-template-columns: 1fr;
+  }
+  .card {
+    padding: 20px;
+  }
+  .card h3 {
+    font-size: 16px;
+  }
+  .card-footer {
+    flex-direction: column;
+    gap: 14px;
+    align-items: stretch;
+  }
+  .card-footer .btn {
+    width: 100%;
+    padding: 12px;
+  }
+  .price {
+    text-align: center;
+  }
+  .instance-stat-grid {
+    grid-template-columns: 1fr;
+  }
+  .quick-actions,
+  .quick-actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .login-required-card {
+    padding: 40px 20px 32px;
+  }
+  .login-required-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  .login-required-actions .btn {
+    width: 100%;
+  }
+  .pagination-widget {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .pagination-btn {
+    min-width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+  .announcement-item {
+    padding: 14px 16px;
+  }
+  .announcement-date {
+    display: none;
+  }
+}
+

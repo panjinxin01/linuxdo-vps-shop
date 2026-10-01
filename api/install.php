@@ -1,6 +1,10 @@
 <?php
 // 安装向导 API - 纯 JSON 接口
 header('Content-Type: application/json; charset=utf-8');
+// 安装向导会写入配置文件并执行建库/建表，属于高危操作，
+// 必须开启会话并校验 CSRF，否则可被跨站请求触发。
+require_once __DIR__ . '/../includes/security.php';
+startSecureSession();
 require_once __DIR__ . '/../includes/schema.php';
 
 function jsonOut(int $code, string $msg = '', $data = null): void {
@@ -118,6 +122,14 @@ $isInstalled = file_exists($installLockFile);
 $dangerousActions = ['run_install', 'save_config', 'test_db', 'generate_key'];
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
+
+// CSRF 校验：本文件不加载 db.php，因此不能使用 requireCsrf()（它依赖 jsonResponse()），
+// 这里直接用 security.php 提供的取 token / 验 token 函数自行校验。
+if (in_array($action, $dangerousActions, true)) {
+    if (!verifyCsrfToken(getCsrfTokenFromRequest())) {
+        jsonOut(0, '安全验证失败（CSRF Token 无效或已过期），请刷新页面后重试');
+    }
+}
 
 if ($isInstalled && in_array($action, $dangerousActions, true)) {
     jsonOut(0, '安装已完成，危险操作已被锁定。如需重新安装，请手动删除 .install_lock 文件（位于项目根目录）。');

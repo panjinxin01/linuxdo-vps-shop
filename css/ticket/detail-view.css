@@ -1,0 +1,160 @@
+/* =====================================================
+   查看工单页
+   来源：css/tickets.css 原始第 1545-1700 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 查看工单页 === */
+/* 已关闭警示条 */
+.tk-alert-closed {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: var(--radius-lg);
+  background: var(--danger-bg);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  font-size: 13px;
+  line-height: 1.6;
+  animation: tk-pop-in 0.28s var(--ease-spring) both;
+}
+.tk-alert-closed strong {
+  font-weight: 700;
+}
+.tk-alert-closed svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* 消息卡片流（截图4式全宽卡片） */
+.tk-msg-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.tk-msg-card {
+  position: relative;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+  animation: tk-pop-in 0.28s var(--ease-spring) both;
+}
+.tk-msg-card.is-admin {
+  border-left: 3px solid var(--primary);
+  background: linear-gradient(180deg, var(--primary-light), var(--bg-card) 90px);
+}
+.tk-msg-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.tk-msg-card-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  border-radius: 50%;
+  user-select: none;
+}
+.tk-msg-card.is-user .tk-msg-card-avatar {
+  background: var(--bg-darker);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+.tk-msg-card.is-admin .tk-msg-card-avatar {
+  background: var(--gradient-brand);
+  color: #fff;
+}
+.tk-msg-card-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-main);
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tk-msg-card-role {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: var(--radius-full);
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+}
+.tk-msg-card.is-user .tk-msg-card-role {
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+.tk-msg-card.is-admin .tk-msg-card-role {
+  background: var(--primary);
+  color: #fff;
+}
+.dark .tk-msg-card.is-admin .tk-msg-card-role {
+  color: #0b1226;
+}
+.tk-msg-card-time {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-disabled);
+  font-variant-numeric: tabular-nums;
+  cursor: default;
+  white-space: nowrap;
+}
+.tk-msg-card-body {
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--text-light);
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+.tk-msg-card-body a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+.tk-msg-card-body code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(127, 127, 127, 0.14);
+}
+
+/* 页面化详情头部 */
+.tk-view-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.tk-view-header-info {
+  min-width: 0;
+  flex: 1;
+}
+.tk-view-title {
+  margin: 0 0 8px;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--text-main);
+  word-break: break-word;
+  line-height: 1.45;
+}
+.tk-view-title .tk-cell-id {
+  margin-right: 6px;
+}
+.tk-view-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+

@@ -1,0 +1,40 @@
+/* =====================================================
+   徽章
+   来源：css/style.css 原始第 1096-1131 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 徽章 === */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.badge.on {
+  background: var(--success-bg);
+  color: var(--success);
+}
+.badge.wait {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+.badge.off {
+  background: var(--bg-muted);
+  color: var(--text-muted);
+}
+.badge-hot {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.badge-new {
+  background: var(--success-bg);
+  color: var(--success);
+}
+.badge-out {
+  background: var(--bg-muted);
+  color: var(--text-disabled);
+}
+

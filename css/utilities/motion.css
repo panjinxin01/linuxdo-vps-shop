@@ -1,0 +1,18 @@
+/* =====================================================
+   动效偏好 prefers-reduced-motion
+   来源：css/style.css 原始第 2605-2618 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 动效偏好 === */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+

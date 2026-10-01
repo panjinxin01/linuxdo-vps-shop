@@ -1,0 +1,132 @@
+/* =====================================================
+   登录 / 初始化 / 维护认证页
+   来源：css/admin.css 原始第 1226-1353 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 认证页（登录 / 初始化 / 维护） === */
+body.auth-page {
+  height: auto;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+.auth-layout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 60% 50% at 50% -10%, rgba(99, 102, 241, 0.16), transparent),
+    radial-gradient(ellipse 40% 40% at 85% 100%, rgba(14, 165, 233, 0.08), transparent),
+    var(--bg-body);
+}
+body.auth-page .auth-layout {
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 48px 20px;
+}
+.auth-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 36px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  overflow: visible;
+}
+.auth-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--gradient-brand);
+  border-radius: 20px 20px 0 0;
+}
+body.auth-page .auth-card {
+  margin: 0 auto;
+}
+body.setup-page .auth-card {
+  max-width: 520px;
+}
+body.setup-page .auth-card code {
+  word-break: break-all;
+}
+.auth-brand-badge {
+  width: 68px;
+  height: 68px;
+  margin: 0 auto 18px;
+  border-radius: 20px;
+  background: var(--gradient-brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  box-shadow: 0 10px 28px rgba(79, 70, 229, 0.4);
+}
+.auth-title {
+  font-size: 23px;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 8px;
+  letter-spacing: -0.3px;
+}
+.auth-subtitle {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.auth-field-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.auth-input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text-main);
+  font-size: 14px;
+  font-family: inherit;
+  transition: var(--transition);
+}
+.auth-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+  background: var(--bg-card);
+}
+.auth-input::placeholder {
+  color: var(--text-disabled);
+}
+.auth-footer-link {
+  color: var(--text-muted);
+  font-size: 13px;
+  text-decoration: none;
+  transition: var(--transition);
+}
+.auth-footer-link:hover {
+  color: var(--primary);
+}
+@supports (min-height: 100dvh) {
+  body.auth-page {
+    min-height: 100dvh;
+  }
+  body.auth-page .auth-layout {
+    min-height: 100dvh;
+  }
+}
+@supports (height: 100dvh) {
+  body:not(.auth-page) {
+    height: 100dvh;
+  }
+  .admin-layout {
+    height: 100dvh;
+  }
+}
+

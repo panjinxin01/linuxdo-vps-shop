@@ -1,0 +1,68 @@
+<!-- 公告编辑弹窗 -->
+<!-- 来源：admin/index.html · 由 js/core/partials.js 同步注入，请勿在此文件内写 <script> -->
+    <!-- 公告弹窗 -->
+    <div class="modal-bg" id="announcementModal">
+      <div class="modal" style="max-width: 540px">
+        <div class="modal-head">
+          <h3 id="announcementModalTitle">发布公告</h3>
+          <button class="modal-close" onclick="closeAnnouncementModal()">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="annId" />
+          <div class="form-group">
+            <label>标题 *</label
+            ><input type="text" id="annTitle" placeholder="公告标题" />
+          </div>
+          <div class="form-group">
+            <label>内容 *</label
+            ><textarea
+              id="annContent"
+              rows="6"
+              placeholder="公告内容..."
+              style="resize: vertical"
+            ></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>开始时间</label
+              ><input type="datetime-local" id="annPublishAt" />
+            </div>
+            <div class="form-group">
+              <label>结束时间</label
+              ><input type="datetime-local" id="annExpiresAt" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label
+                ><input
+                  type="checkbox"
+                  id="annTop"
+                  style="width: auto; margin-right: 6px"
+                />置顶</label
+              >
+            </div>
+            <div class="form-group">
+              <label
+                ><input
+                  type="checkbox"
+                  id="annStatus"
+                  checked
+                  style="width: auto; margin-right: 6px"
+                />显示</label
+              >
+            </div>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-outline" onclick="closeAnnouncementModal()">
+            取消</button
+          ><button class="btn btn-primary" onclick="saveAnnouncement()">
+            保存
+          </button>
+        </div>
+      </div>
+    </div>
+

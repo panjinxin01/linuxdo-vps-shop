@@ -1,0 +1,36 @@
+<!-- 商品管理 tab -->
+<!-- 来源：admin/index.html · 由 js/core/partials.js 同步注入，请勿在此文件内写 <script> -->
+        <!-- 商品管理 -->
+        <div class="tab-content" id="products">
+          <div class="page-header">
+            <h1 class="page-title">商品管理</h1>
+            <div class="page-actions">
+              <button class="btn btn-primary" onclick="showAddProduct()">
+                + 添加商品
+              </button>
+            </div>
+          </div>
+          <div class="table-container">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>名称</th>
+                    <th>配置</th>
+                    <th>价格</th>
+                    <th>IP</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="productTable">
+                  <tr>
+                    <td colspan="7" class="empty">加载中...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+

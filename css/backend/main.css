@@ -1,0 +1,34 @@
+/* =====================================================
+   后台主内容区
+   来源：css/admin.css 原始第 494-523 行（目录结构拆分，内容零改动）
+   ===================================================== */
+/* === 主内容 === */
+.main-content {
+  grid-area: content;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 26px 30px;
+  background:
+    radial-gradient(circle at 90% -10%, rgba(99, 102, 241, 0.06), transparent 42%),
+    radial-gradient(circle at -10% 110%, rgba(14, 165, 233, 0.05), transparent 40%),
+    var(--bg-body);
+}
+.tab-content {
+  display: none;
+  animation: fadeIn 0.28s ease;
+}
+.tab-content.active {
+  display: block;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+

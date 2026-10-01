@@ -31,8 +31,8 @@
         } catch (e) {}
       })();
     </script>
-    <link rel="stylesheet" id="mainCss" href="css/style.css?v=20260823" />
-    <link rel="stylesheet" href="css/tickets.css?v=20260926" />
+    <link rel="stylesheet" id="mainCss" href="css/style.css?v=20261001" />
+    <link rel="stylesheet" href="css/tickets.css?v=20261001" />
   </head>
   <body>
     <!-- ==================== 侧边栏 ==================== -->
@@ -182,394 +182,79 @@
         </div>
       </div>
 
-      <!-- ============ 首页 / 面板主页 ============ -->
-      <div class="page-content active" id="page-home">
-        <div class="dashboard-container">
-          <!-- 欢迎卡片 -->
-          <div class="welcome-card" id="welcomeCard">
-            <div class="welcome-avatar" id="welcomeAvatar">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-              </svg>
-            </div>
-            <div class="welcome-info">
-              <div class="welcome-greeting" id="welcomeGreeting">欢迎访问</div>
-              <div class="welcome-quote"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;flex-shrink:0"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> 请登录后查看并兑换高性能VPS云服务器</div>
-            </div>
-          </div>
-
-          <!-- 有效实例统计 -->
-          <div class="instance-stat-card" onclick="switchPage('orders')">
-            <div class="instance-stat-icon">
-              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
-              </svg>
-            </div>
-            <div class="instance-stat-info">
-              <div class="instance-stat-value"><span id="statInstances">0</span> 台</div>
-              <div class="instance-stat-label">有效实例</div>
-            </div>
-          </div>
-
-          <!-- 公告滚动区域 -->
-          <div class="announcement-scroll-card" id="announcementScrollCard">
-            <div class="announcement-scroll-header">
-              <span class="announcement-scroll-title">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l18-7-7 18-2.5-7.5L3 11z"/></svg>
-                平台公告
-              </span>
-            </div>
-            <div class="announcement-scroll-list" id="announcementScrollList">
-              <div class="announcement-scroll-empty">暂无公告</div>
-            </div>
-          </div>
-
-          <!-- 管理实例 -->
-          <div class="manage-instance-card" id="manageInstanceCard" style="display: none">
-            <div class="manage-instance-title">管理实例</div>
-            <div class="manage-instance-desc">点击下方实例进行管理</div>
-            <div class="manage-instance-tags" id="manageInstanceTags"></div>
-          </div>
-
-          <!-- 快速操作 -->
-          <div class="quick-actions">
-            <div class="quick-action-card" onclick="switchPage('instances')">
-              <div class="quick-action-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div>
-              <div class="quick-action-text">我的实例</div>
-            </div>
-            <div class="quick-action-card" onclick="switchPage('tickets')">
-              <div class="quick-action-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
-              <div class="quick-action-text">帮助支持</div>
-            </div>
-            <div class="quick-action-card" onclick="switchPage('announcements')">
-              <div class="quick-action-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
-              <div class="quick-action-text">新闻公告</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ============ 可用实例页 ============ -->
-      <div class="page-content" id="page-instances">
-        <div class="container">
-          <div class="page-header section-head">
-            <div>
-              <h2>可用实例</h2>
-              <p>这里显示您已经拥有的实例与交付信息</p>
-            </div>
-          </div>
-          <div class="products" id="productList"></div>
-        </div>
-      </div>
-
-      <!-- ============ 我的账户页 ============ -->
-      <div class="page-content" id="page-orders">
-        <div class="container">
-          <div class="page-header">
-            <h2>我的账户</h2>
-            <p>管理您的VPS订单、余额与服务</p>
-          </div>
-          <div class="account-summary-grid">
-            <div class="card balance-card">
-              <div class="stat-label">我的余额</div>
-              <div class="balance-value" id="creditBalanceSummary">--</div>
-              <div class="balance-hint" id="creditBalanceHint">余额可用于支付订单</div>
-            </div>
-            <div class="card tx-card">
-              <div class="tx-head">
-                <div class="stat-label">最近积分流水</div>
-                <button class="btn btn-outline btn-sm" onclick="loadCreditTransactions()">
-                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-                  刷新
-                </button>
-              </div>
-              <div id="creditTransactions" class="tx-list">暂无流水</div>
-            </div>
-          </div>
-          <div id="myOrders"></div>
-        </div>
-      </div>
-
-      <!-- ============ 我的工单页 ============ -->
-      <div class="page-content" id="page-tickets">
-        <div class="container">
-          <div class="page-header section-head">
-            <div>
-              <h2>我的工单</h2>
-              <p>提交问题反馈，获取技术支持</p>
-            </div>
-            <button
-              class="btn btn-primary"
-              onclick="showCreateTicket()"
-              id="tkNewEntryBtn"
-            >
-              + 发起新工单
-            </button>
-          </div>
-          <div id="myTickets"></div>
-        </div>
-      </div>
-
-      <!-- ============ 发起新工单页 ============ -->
-      <div class="page-content" id="page-ticket-new">
-        <div class="container">
-          <div class="page-header section-head">
-            <div>
-              <h2>发起新工单</h2>
-              <p>描述你遇到的问题，我们会尽快处理</p>
-            </div>
-          </div>
-          <div id="ticketNewBody"></div>
-        </div>
-      </div>
-
-      <!-- ============ 查看工单页 ============ -->
-      <div class="page-content" id="page-ticket-view">
-        <div class="container">
-          <div id="ticketViewBody"></div>
-        </div>
-      </div>
-
-      <!-- ============ 新建实例页 ============ -->
-      <div class="page-content" id="page-buy">
-        <div class="container">
-          <div class="page-header">
-            <h2>新建实例</h2>
-            <p>选择您需要的VPS配置，立即开通使用</p>
-          </div>
-          <div class="products" id="buyProductList"></div>
-        </div>
-      </div>
-
-      <!-- ============ 系统公告页 ============ -->
-      <div class="page-content" id="page-announcements">
-        <div class="container">
-          <div class="page-header">
-            <h2>系统公告</h2>
-            <p>了解最新的平台动态和通知</p>
-          </div>
-          <div class="announcement-list" id="announcementList"></div>
-        </div>
-      </div>
-
-      <!-- ============ 通知中心页 ============ -->
-      <div class="page-content" id="page-notifications">
-        <div class="container">
-          <div class="page-header">
-            <h2>通知中心</h2>
-            <p>查看所有系统通知和消息</p>
-          </div>
-          <div class="notification-page-actions">
-            <div class="notification-page-filter">
-              <button class="btn btn-sm" id="notifFilterAll" onclick="loadNotificationPage('all')">全部</button>
-              <button class="btn btn-sm" id="notifFilterUnread" onclick="loadNotificationPage('unread')">未读</button>
-            </div>
-            <button class="btn btn-sm" onclick="markAllNotificationsReadPage()">全部已读</button>
-          </div>
-          <div id="notificationPageList"></div>
-          <div id="notificationPagePagination" style="text-align: center; margin-top: 20px"></div>
-        </div>
-      </div>
-
-      <footer class="footer">
-        <div class="container">
-          <p>VPS积分商城 &copy; 2026 | Powered by Linux DO Credit</p>
-          <p style="margin-top: 8px; opacity: 0.6; font-size: 12px">极致性能 · 社区驱动 · 积分互联</p>
-        </div>
-      </footer>
+      <!-- 首页 / 面板主页 -->
+      <div data-partial="partials/front/pages/home.html"></div>
+      <!-- 可用实例页 -->
+      <div data-partial="partials/front/pages/instances.html"></div>
+      <!-- 我的账户页 -->
+      <div data-partial="partials/front/pages/account.html"></div>
+      <!-- 我的工单页 -->
+      <div data-partial="partials/front/pages/my-tickets.html"></div>
+      <!-- 发起新工单页 -->
+      <div data-partial="partials/front/pages/ticket-new.html"></div>
+      <!-- 查看工单页 -->
+      <div data-partial="partials/front/pages/ticket-view.html"></div>
+      <!-- 新建实例页 -->
+      <div data-partial="partials/front/pages/instance-new.html"></div>
+      <!-- 系统公告页 -->
+      <div data-partial="partials/front/pages/announcements.html"></div>
+      <!-- 通知中心页 -->
+      <div data-partial="partials/front/pages/notifications.html"></div>
     </div>
 
-    <!-- ==================== 登录/注册弹窗 ==================== -->
-    <div class="modal-bg" id="authModal">
-      <div class="modal">
-        <div class="modal-head">
-          <h3 id="authTitle">登录</h3>
-          <button class="modal-close" onclick="closeAuth()" aria-label="关闭">&times;</button>
-        </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label>用户名</label>
-            <input type="text" id="authUser" placeholder="请输入用户名" autocomplete="username" />
-          </div>
-          <div class="form-group">
-            <label>密码</label>
-            <input type="password" id="authPass" placeholder="请输入密码" autocomplete="current-password" />
-          </div>
-          <div class="form-group" id="emailGroup" style="display: none">
-            <label>邮箱（可选）</label>
-            <input type="email" id="authEmail" placeholder="用于找回密码" autocomplete="email" />
-          </div>
-          <button class="btn btn-primary auth-submit" id="authBtn" onclick="doAuth()">登录</button>
-          <div id="oauthDivider" class="oauth-divider" style="display: none"><span>或</span></div>
-          <button id="linuxdoLoginBtn" class="btn btn-linuxdo" style="display: none; width: 100%; padding: 12px; margin-top: 0" onclick="loginWithLinuxDO()">
-            <svg style="width: 18px; height: 18px; margin-right: 8px; vertical-align: middle" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
-            </svg>
-            使用 Linux DO 登录
-          </button>
-        </div>
-        <div class="modal-foot auth-foot">
-          <p><span id="authSwitch"></span></p>
-        </div>
-      </div>
-    </div>
+    <!-- 登录 / 注册弹窗（已页面化，保留空壳） -->
+    <div data-partial="partials/front/modals/auth.html"></div>
+    <!-- 购买确认弹窗 -->
+    <div data-partial="partials/front/modals/purchase.html"></div>
+    <!-- 下单成功弹窗 -->
+    <div data-partial="partials/front/modals/success.html"></div>
+    <!-- 创建工单弹窗（已废弃） -->
+    <div data-partial="partials/front/modals/create-ticket.html"></div>
+    <!-- 退款申请弹窗 -->
+    <div data-partial="partials/front/modals/refund.html"></div>
+        <!-- 工单详情弹窗（已废弃） -->
+        <div data-partial="partials/front/modals/ticket-detail.html"></div>
+    <!-- 商品详情弹窗 -->
+    <div data-partial="partials/front/modals/product-detail.html"></div>
+    <!-- 订单详情弹窗 -->
+    <div data-partial="partials/front/modals/order-detail.html"></div>
+    <!-- 公告详情弹窗 -->
+    <div data-partial="partials/front/modals/announcement-detail.html"></div>
 
-    <!-- ==================== 购买确认弹窗 ==================== -->
-    <div class="modal-bg" id="buyModal">
-      <div class="modal">
-        <div class="modal-head">
-          <h3>确认购买</h3>
-          <button class="modal-close" onclick="closeBuy()" aria-label="关闭">&times;</button>
-        </div>
-        <div class="modal-body">
-          <div class="summary" id="orderSummary"></div>
+    <!-- ========== 基础层：公共工具 / 主题路由 / 前台工具函数 ========== -->
 
-          <!-- 优惠券区域 -->
-          <div class="coupon-section">
-            <label class="coupon-label">优惠券</label>
-            <div class="coupon-input-group">
-              <input type="text" id="couponCode" placeholder="请输入优惠券码" />
-              <button class="btn btn-outline" style="padding: 0 16px" onclick="validateCoupon()">验证</button>
-            </div>
-            <div class="coupon-msg" id="couponMsg"></div>
-          </div>
-
-          <div class="balance-tip-box" id="buyBalanceBox">
-            当前余额：<strong id="buyBalanceAmount">--</strong>
-            <div style="margin-top: 6px">支持「优惠券后再余额支付」，余额不足时可继续使用 Linux DO Credit 积分支付。</div>
-          </div>
-
-          <p class="pay-hint">可选择余额支付或跳转 Linux DO Credit 进行外部支付。<br />支付成功后自动进入交付流程。</p>
-        </div>
-        <div class="modal-foot buy-foot">
-          <button class="btn btn-outline" style="flex: 1" onclick="closeBuy()">取消</button>
-          <button class="btn btn-outline" style="flex: 1" onclick="confirmBuy('balance')">余额支付</button>
-          <button class="btn btn-primary" style="flex: 1" onclick="confirmBuy('epay')">积分支付</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ==================== 成功弹窗 ==================== -->
-    <div class="modal-bg" id="successModal">
-      <div class="modal">
-        <div class="modal-head">
-          <h3 class="success-title"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:4px"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> 购买成功</h3>
-          <button class="modal-close" onclick="closeSuccess()" aria-label="关闭">&times;</button>
-        </div>
-        <div class="modal-body">
-          <p class="success-desc">您的VPS已开通，请妥善保管以下信息：</p>
-          <div class="vps-info" id="vpsInfoDisplay" style="margin: 0"></div>
-        </div>
-        <div class="modal-foot">
-          <button class="btn btn-primary" style="width: 100%" onclick="closeSuccess()">我知道了</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ==================== 创建工单弹窗（v20260824 已废弃 · v20260825 页面化替代） ==================== -->
-
-    <!-- ==================== 退款申请弹窗 ==================== -->
-    <div class="modal-bg" id="refundModal">
-      <div class="modal" style="max-width: 560px">
-        <div class="modal-head">
-          <h3>申请退款</h3>
-          <button class="modal-close" onclick="closeRefundModal()" aria-label="关闭">&times;</button>
-        </div>
-        <div class="modal-body">
-          <div class="refund-summary-card">
-            <div class="refund-summary-head">
-              <div>
-                <div class="refund-summary-label">订单号</div>
-                <div class="refund-summary-value" id="refundModalOrderNo">-</div>
-              </div>
-              <div style="text-align: right">
-                <div class="refund-summary-label">退款金额</div>
-                <div class="refund-summary-value" id="refundModalAmount">-</div>
-              </div>
-            </div>
-            <div class="refund-summary-tip">提交后会生成退款工单，管理员同意后自动退款。</div>
-          </div>
-          <input type="hidden" id="refundOrderId" />
-          <div class="form-group">
-            <label>退款到哪里 *</label>
-            <div class="refund-option-list">
-              <label class="refund-option-card">
-                <input type="radio" name="refundTarget" value="original" checked />
-                <div>
-                  <div class="refund-option-title">原路退回</div>
-                  <div class="refund-option-desc">退回到原支付路径 / 原钱包</div>
-                </div>
-              </label>
-              <label class="refund-option-card">
-                <input type="radio" name="refundTarget" value="balance" />
-                <div>
-                  <div class="refund-option-title">退回站内余额</div>
-                  <div class="refund-option-desc">退款后可继续在站内购买</div>
-                </div>
-              </label>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>退款原因 *</label>
-            <input type="text" id="refundReason" placeholder="例如：无法登录、交付异常、配置不符" />
-          </div>
-          <div class="form-group">
-            <label>补充说明</label>
-            <textarea id="refundContent" rows="4" placeholder="可填写更详细的问题描述、报错信息、已尝试的处理方式等"></textarea>
-          </div>
-        </div>
-        <div class="modal-foot">
-          <button class="btn btn-outline" style="flex: 1" onclick="closeRefundModal()">取消</button>
-          <button class="btn btn-primary" style="flex: 1" onclick="submitRefundRequest()">提交退款申请</button>
-        </div>
-      </div>
-    </div>
-
-        <!-- ==================== 工单详情弹窗（v20260824 已废弃 · v20260825 页面化替代，保留空壳防外部残留引用） ==================== -->
-
-    <!-- ==================== 商品详情弹窗 ==================== -->
-    <div class="modal-bg" id="productDetailModal">
-      <div class="modal" style="max-width: 520px">
-        <div class="modal-head">
-          <h3 id="productDetailTitle">商品详情</h3>
-          <button class="modal-close" onclick="closeProductDetail()" aria-label="关闭">&times;</button>
-        </div>
-        <div class="modal-body" id="productDetailBody"></div>
-        <div class="modal-foot">
-          <button class="btn btn-primary" style="width: 100%" id="productDetailBuyBtn" onclick="buyFromDetail()">立即购买</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ==================== 订单详情弹窗 ==================== -->
-    <div class="modal-bg" id="orderDetailModal">
-      <div class="modal" style="max-width: 760px">
-        <div class="modal-head">
-          <h3 id="orderDetailTitle">订单详情</h3>
-          <button class="modal-close" onclick="closeOrderDetail()" aria-label="关闭">&times;</button>
-        </div>
-        <div class="modal-body modal-scroll-lg" id="orderDetailBody"></div>
-        <div class="modal-foot"></div>
-      </div>
-    </div>
-
-    <!-- ==================== 公告详情弹窗 ==================== -->
-    <div class="modal-bg" id="announcementModal">
-      <div class="modal" style="max-width: 600px">
-        <div class="modal-head">
-          <h3 id="announcementTitle">公告详情</h3>
-          <button class="modal-close" onclick="closeAnnouncementModal()" aria-label="关闭">&times;</button>
-        </div>
-        <div class="modal-body modal-scroll" id="announcementBody"></div>
-        <div class="modal-foot"></div>
-      </div>
-    </div>
-
-    <script src="js/common.js?v=20260823"></script>
-    <script src="js/ui.js?v=20260823"></script>
-    <script src="js/orders.js?v=20260823"></script>
-    <script src="js/notifications.js?v=20260823"></script>
-    <script src="js/tickets.js?v=20260825"></script>
-    <script src="js/main.js?v=20260823"></script>
+    <!-- ========== HTML 片段注入（必须在所有占位符之后、业务脚本之前） ========== -->
+    <script src="js/core/partials.js?v=20261001"></script>
+    <script src="js/core/common.js?v=20261001"></script>
+    <script src="js/front/utils.js?v=20261001"></script>
+    <script src="js/front/ui.js?v=20261001"></script>
+    <!-- ========== 工单共享模块（前后台通用） ========== -->
+    <script src="js/ticket/core/constants.js?v=20261001"></script>
+    <script src="js/ticket/core/api.js?v=20261001"></script>
+    <script src="js/ticket/render/list.js?v=20261001"></script>
+    <script src="js/ticket/render/detail.js?v=20261001"></script>
+    <script src="js/ticket/render/states.js?v=20261001"></script>
+    <script src="js/ticket/core/helpers.js?v=20261001"></script>
+    <script src="js/ticket/user-controller.js?v=20261001"></script>
+    <script src="js/ticket/page/view.js?v=20261001"></script>
+    <script src="js/ticket/page/markdown.js?v=20261001"></script>
+    <script src="js/ticket/page/new.js?v=20261001"></script>
+    <script src="js/ticket/legacy-compat.js?v=20261001"></script>
+    <!-- ========== 前台业务模块 ========== -->
+    <script src="js/front/app.js?v=20261001"></script>
+    <script src="js/front/auth.js?v=20261001"></script>
+    <script src="js/front/user-area.js?v=20261001"></script>
+    <script src="js/front/home.js?v=20261001"></script>
+    <script src="js/front/dashboard.js?v=20261001"></script>
+    <script src="js/front/products.js?v=20261001"></script>
+    <script src="js/front/orders.js?v=20261001"></script>
+    <script src="js/front/order-credentials.js?v=20261001"></script>
+    <script src="js/front/announcements.js?v=20261001"></script>
+    <script src="js/front/credits.js?v=20261001"></script>
+    <script src="js/front/notifications/bell.js?v=20261001"></script>
+    <script src="js/front/notifications/panel.js?v=20261001"></script>
+    <script src="js/front/notifications/list.js?v=20261001"></script>
+    <script src="js/front/notifications/actions.js?v=20261001"></script>
+    <script src="js/front/notifications/center.js?v=20261001"></script>
   </body>
 </html>

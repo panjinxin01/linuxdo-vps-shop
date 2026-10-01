@@ -1,0 +1,48 @@
+<!-- 订单管理 tab -->
+<!-- 来源：admin/index.html · 由 js/core/partials.js 同步注入，请勿在此文件内写 <script> -->
+        <!-- 订单管理 -->
+        <div class="tab-content" id="orders">
+          <div class="page-header">
+            <h1 class="page-title">订单管理</h1>
+            <div class="page-actions">
+              <button class="btn btn-outline" onclick="exportData('orders')">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 导出CSV
+              </button>
+              <button
+                class="btn btn-outline"
+                onclick="batchDeleteOrders('expired')"
+              >
+                清理已取消
+              </button>
+              <button
+                class="btn btn-outline"
+                onclick="batchDeleteOrders('pending')"
+              >
+                清理待支付
+              </button>
+            </div>
+          </div>
+          <div class="table-container">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>订单号</th>
+                    <th>商品</th>
+                    <th>用户</th>
+                    <th>金额</th>
+                    <th>状态</th>
+                    <th>时间</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="orderTable">
+                  <tr>
+                    <td colspan="7" class="empty">加载中...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+

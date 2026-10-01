@@ -1,0 +1,80 @@
+<!-- 统计报表 tab -->
+<!-- 来源：admin/index.html · 由 js/core/partials.js 同步注入，请勿在此文件内写 <script> -->
+        <!-- 统计报表 -->
+        <div class="tab-content" id="reports">
+          <div class="page-header">
+            <h1 class="page-title">统计报表</h1>
+            <div class="page-actions">
+              <button class="btn btn-outline" onclick="loadReportDashboard()">
+                刷新
+              </button>
+            </div>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card primary">
+              <div class="stat-label">今日成交额</div>
+              <div class="stat-value" id="reportTodayIncome">-</div>
+            </div>
+            <div class="stat-card success">
+              <div class="stat-label">本月成交额</div>
+              <div class="stat-value" id="reportMonthIncome">-</div>
+            </div>
+            <div class="stat-card info">
+              <div class="stat-label">余额支付订单</div>
+              <div class="stat-value" id="reportBalanceOrders">-</div>
+            </div>
+            <div class="stat-card warning">
+              <div class="stat-label">外部支付订单</div>
+              <div class="stat-value" id="reportEpayOrders">-</div>
+            </div>
+            <div class="stat-card danger">
+              <div class="stat-label">异常订单</div>
+              <div class="stat-value" id="reportExceptionOrders">-</div>
+            </div>
+            <div class="stat-card primary">
+              <div class="stat-label">用户余额总量</div>
+              <div class="stat-value" id="reportBalanceTotal">-</div>
+            </div>
+          </div>
+          <div class="settings-grid">
+            <div class="card" style="padding: 24px">
+              <h3 style="margin-bottom: 16px">热门商品</h3>
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>商品</th>
+                      <th>订单数</th>
+                      <th>支付数</th>
+                      <th>收入</th>
+                    </tr>
+                  </thead>
+                  <tbody id="reportHotProducts">
+                    <tr>
+                      <td colspan="4" class="empty">加载中...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card" style="padding: 24px">
+              <h3 style="margin-bottom: 16px">工单分类占比</h3>
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>分类</th>
+                      <th>数量</th>
+                    </tr>
+                  </thead>
+                  <tbody id="reportTicketCategory">
+                    <tr>
+                      <td colspan="2" class="empty">加载中...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
