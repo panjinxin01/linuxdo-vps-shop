@@ -1,2 +1,7 @@
-.backup/
 api/config.local.php
+.install_lock
+.env
+*.log
+.backup/
+uploads/
+*.zip

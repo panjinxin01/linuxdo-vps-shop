@@ -919,9 +919,39 @@
   color: var(--text-main);
   word-break: break-word;
 }
+/* 退款审批：下拉框与备注输入框
+   v20260926 修复：此前仅有 width:100%，未定义边框 / 背景 / 内边距 /
+   字体等基础样式，控件回退到浏览器默认外观。以下参数与 admin.css
+   的 .form-group 输入框保持一致。 */
 .refund-admin-card textarea,
 .refund-admin-card select {
   width: 100%;
+  padding: 10px 13px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text-main);
+  font-size: 13px;
+  font-family: inherit;
+  transition: var(--transition);
+}
+.refund-admin-card select {
+  cursor: pointer;
+}
+.refund-admin-card textarea {
+  resize: vertical;
+  min-height: 56px;
+  line-height: 1.6;
+}
+.refund-admin-card textarea:focus,
+.refund-admin-card select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+  background: var(--bg-card);
+}
+.refund-admin-card textarea::placeholder {
+  color: var(--text-disabled);
 }
 .refund-approve-section {
   margin-top: 16px;
