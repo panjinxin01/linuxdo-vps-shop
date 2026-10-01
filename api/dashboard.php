@@ -41,22 +41,6 @@ try {
             jsonResponse(1, '', $summary);
             break;
 
-        case 'trends':
-            $days = validateInt(requestValue('days', 7), 1, 90) ?? 7;
-            $rows = [];
-            $stmt = $pdo->prepare("SELECT DATE(created_at) AS date,
-                    COUNT(*) AS order_count,
-                    SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) AS paid_count,
-                    SUM(CASE WHEN status = 1 THEN price ELSE 0 END) AS income
-                FROM orders
-                WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
-                GROUP BY DATE(created_at)
-                ORDER BY DATE(created_at) ASC");
-            $stmt->execute([$days]);
-            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            jsonResponse(1, '', $rows);
-            break;
-
         case 'hot_products':
             $limit = validateInt(requestValue('limit', 10), 1, 50) ?? 10;
             $stmt = $pdo->prepare("SELECT p.id, p.name,
@@ -85,18 +69,6 @@ try {
                 $data['category_breakdown'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
             }
             jsonResponse(1, '', $data);
-            break;
-
-        case 'recent':
-            $limit = validateInt(requestValue('limit', 10), 1, 50) ?? 10;
-            $orders = $pdo->query('SELECT order_no, status, delivery_status, price, created_at FROM orders ORDER BY id DESC LIMIT ' . (int)$limit)->fetchAll(PDO::FETCH_ASSOC);
-            $tickets = commerceTableExists($pdo, 'tickets') ? $pdo->query('SELECT id, title, status, category, updated_at FROM tickets ORDER BY id DESC LIMIT ' . (int)$limit)->fetchAll(PDO::FETCH_ASSOC) : [];
-            $credits = commerceTableExists($pdo, 'credit_transactions') ? $pdo->query('SELECT id, user_id, type, amount, created_at FROM credit_transactions ORDER BY id DESC LIMIT ' . (int)$limit)->fetchAll(PDO::FETCH_ASSOC) : [];
-            jsonResponse(1, '', [
-                'orders' => $orders,
-                'tickets' => $tickets,
-                'credits' => $credits,
-            ]);
             break;
 
         default:

@@ -52,7 +52,7 @@ try {
                 jsonResponse(0, '金额不合法');
             }
 
-            $res = validateCouponForAmount($pdo, $couponCode, (int)$_SESSION['user_id'], $amount, false);
+            $res = validateCouponForAmount($pdo, $couponCode, (int)$_SESSION['user_id'], $amount, false, $productId ? (int)$productId : null);
             if (!$res['ok']) {
                 jsonResponse(0, $res['msg'] ?? '优惠券不可用');
             }
@@ -100,6 +100,7 @@ try {
             $name = normalizeString(requestValue('name', ''), 100);
             $type = normalizeString(requestValue('type', ''), 20);
             $value = validateFloat(requestValue('value', null), 0.01);
+            $productId = validateInt(requestValue('product_id', 0), 0) ?? 0;
             $minAmount = validateFloat(requestValue('min_amount', 0), 0) ?? 0;
             $maxDiscount = requestValue('max_discount', null);
             $maxUses = validateInt(requestValue('max_uses', 0), 0) ?? 0;
@@ -148,12 +149,13 @@ try {
                 jsonResponse(0, '该优惠券码已存在');
             }
 
-            $stmt = $pdo->prepare('INSERT INTO coupons (code, name, type, value, min_amount, max_discount, max_uses, per_user_limit, used_count, starts_at, ends_at, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)');
+            $stmt = $pdo->prepare('INSERT INTO coupons (code, name, type, value, product_id, min_amount, max_discount, max_uses, per_user_limit, used_count, starts_at, ends_at, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)');
             $stmt->execute([
                 $code,
                 $name,
                 $type,
                 round($value, 2),
+                $productId > 0 ? $productId : null,
                 round($minAmount, 2),
                 $maxDiscount === null ? null : round($maxDiscount, 2),
                 $maxUses,

@@ -79,19 +79,26 @@ function copyAllVpsFromData(btn) {
   copyToClipboard(text, null);
 }
 
-// DOM 判断是否允许复制凭据
+// DOM 判断是否允许复制凭据（通过 data-status / data-delivery-status 属性判断）
 function credentialCopyAllowedFromDom(btn) {
   if (!btn) return true;
   const wrap = btn.closest("#orderDetailBody, .card, .order-item, [data-order-no]");
   if (!wrap) return true;
-  const text = (wrap.textContent || "").replace(/\s+/g, " ");
-  if (text.indexOf("已退款") !== -1) {
-    alert("当前订单已退款，不可复制连接信息");
-    return false;
+  // 优先使用 data 属性判断（防 XSS，更可靠）
+  const status = wrap.dataset ? wrap.dataset.status : undefined;
+  const deliveryStatus = wrap.dataset ? wrap.dataset.deliveryStatus : undefined;
+  if (status !== undefined) {
+    const numericStatus = parseInt(status || "0");
+    if (numericStatus !== 1) {
+      alert("当前订单状态不允许复制连接信息");
+      return false;
+    }
   }
-  if (text.indexOf("已取消") !== -1) {
-    alert("当前订单已取消，不可复制连接信息");
-    return false;
+  if (deliveryStatus !== undefined) {
+    if (["refunded", "cancelled", "exception"].indexOf(deliveryStatus) !== -1) {
+      alert("当前订单" + (deliveryStatus === "refunded" ? "已退款" : deliveryStatus === "cancelled" ? "已取消" : "状态异常") + "，不可复制连接信息");
+      return false;
+    }
   }
   return true;
 }

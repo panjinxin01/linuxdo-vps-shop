@@ -10,54 +10,46 @@ $pdo = getDB();
 try {
     checkAdmin($pdo);
 
-    switch ($action) {
-        case 'stats':
-            $stats = cacheStats();
-            $stats['size_human'] = formatBytes($stats['size']);
-            jsonResponse(1, '', $stats);
-            break;
-
-        case 'clear':
-            requireCsrf();
-            $count = cacheClear();
-            logAudit($pdo, 'cache.clear', ['count' => $count]);
-            jsonResponse(1, "已清理{$count}个缓存文件");
-            break;
-
-        case 'cleanup':
-            requireCsrf();
-            $count = cacheCleanup();
-            logAudit($pdo, 'cache.cleanup', ['count' => $count]);
-            jsonResponse(1, "已清理{$count}个过期缓存");
-            break;
-
-        case 'delete':
-            requireCsrf();
-            $key = normalizeString(requestValue('key', ''), 128);
-            if ($key === '') {
-                jsonResponse(0, '缓存键不能为空');
-            }
-            cacheDelete($key);
-            jsonResponse(1, '缓存已删除');
-            break;
-
-        case 'delete_prefix':
-            requireCsrf();
-            $prefix = normalizeString(requestValue('prefix', ''), 64);
-            if ($prefix === '') {
-                jsonResponse(0, '前缀不能为空');
-            }
-            $count = cacheDeleteByPrefix($prefix);
-            logAudit($pdo, 'cache.delete_prefix', ['prefix' => $prefix, 'count' => $count]);
-            jsonResponse(1, "已删除{$count}个缓存");
-            break;
-
-        default:
-            jsonResponse(0, '未知操作');
-    }
+    match ($action) {
+        'stats'         => handleCacheStats(),
+        'clear'         => handleCacheClear($pdo),
+        'cleanup'       => handleCacheCleanup($pdo),
+        'delete'        => handleCacheDelete(),
+        default         => jsonResponse(0, '未知操作'),
+    };
 } catch (Throwable $e) {
     logError($pdo, 'api.cache', $e->getMessage());
     jsonResponse(0, '服务器错误');
+}
+
+function handleCacheStats(): void {
+    $stats = cacheStats();
+    $stats['size_human'] = formatBytes($stats['size']);
+    jsonResponse(1, '', $stats);
+}
+
+function handleCacheClear(PDO $pdo): void {
+    requireCsrf();
+    $count = cacheClear();
+    logAudit($pdo, 'cache.clear', ['count' => $count]);
+    jsonResponse(1, "已清理{$count}个缓存文件");
+}
+
+function handleCacheCleanup(PDO $pdo): void {
+    requireCsrf();
+    $count = cacheCleanup();
+    logAudit($pdo, 'cache.cleanup', ['count' => $count]);
+    jsonResponse(1, "已清理{$count}个过期缓存");
+}
+
+function handleCacheDelete(): void {
+    requireCsrf();
+    $key = normalizeString(requestValue('key', ''), 128);
+    if ($key === '') {
+        jsonResponse(0, '缓存键不能为空');
+    }
+    cacheDelete($key);
+    jsonResponse(1, '缓存已删除');
 }
 
 function formatBytes(int $bytes): string {

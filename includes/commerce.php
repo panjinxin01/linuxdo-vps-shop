@@ -11,29 +11,31 @@ function commerceTableExists(PDO $pdo, string $table): bool {
 function commerceColumnExists(PDO $pdo, string $table, string $column): bool {
     static $cache = [];
     $key = $table . '.' . $column;
-    if (array_key_exists($key, $cache)) {
-        return $cache[$key];
+    if (($cache[$key] ?? false) === true) {
+        return true;
     }
     try {
         $stmt = $pdo->prepare('SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?');
         $stmt->execute([$table, $column]);
-        $cache[$key] = ((int)$stmt->fetchColumn() > 0);
+        $exists = ((int)$stmt->fetchColumn() > 0);
+        if ($exists) {
+            $cache[$key] = true;
+        }
+        return $exists;
     } catch (Throwable $e) {
         try {
             $safeTable = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
             $stmt = $pdo->query("SHOW COLUMNS FROM `{$safeTable}`");
-            $cache[$key] = false;
             while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 if (isset($row['Field']) && (string)$row['Field'] === $column) {
                     $cache[$key] = true;
-                    break;
+                    return true;
                 }
             }
         } catch (Throwable $inner) {
-            $cache[$key] = false;
         }
     }
-    return $cache[$key];
+    return false;
 }
 
 function commerceGetSetting(PDO $pdo, string $key, string $default = ''): string {
@@ -70,11 +72,13 @@ function commerceEnsurePaymentRequestTable(PDO $pdo): void {
         `external_order_no` VARCHAR(80) NOT NULL,
         `user_id` INT NOT NULL,
         `trade_no` VARCHAR(100) DEFAULT NULL,
+        `notify_id` VARCHAR(100) DEFAULT NULL,
         `status` TINYINT NOT NULL DEFAULT 0,
         `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
         `paid_at` DATETIME DEFAULT NULL,
         UNIQUE KEY `uniq_payment_requests_external` (`external_order_no`),
         INDEX `idx_payment_requests_order` (`order_no`),
+        INDEX `idx_payment_requests_notify` (`notify_id`),
         INDEX `idx_payment_requests_user_status` (`user_id`, `status`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 }
@@ -267,14 +271,6 @@ function commerceRecordTicketEvent(PDO $pdo, int $ticketId, string $eventType, s
     }
 }
 
-function commerceCreateTicketNotification(PDO $pdo, array $ticket, string $type, string $title, string $content): void {
-    try {
-        createNotification($pdo, (int)$ticket['user_id'], $type, $title, $content, (string)$ticket['id']);
-    } catch (Throwable $e) {
-    }
-}
-
-
 function commerceNormalizePaymentMethod(array &$order): void {
     $status = (int)($order['status'] ?? 0);
     $method = (string)($order['payment_method'] ?? '');
@@ -423,17 +419,21 @@ function commerceRefundOrder(PDO $pdo, array $order, string $refundTarget = 'ori
         $refundTarget = $externalPaid > 0 ? 'original' : 'balance';
     }
 
-    $externalRatio = $totalPaid > 0 ? ($externalPaid / $totalPaid) : 0;
-    $externalRefundAmount = min($externalPaid, round($refundTotal * $externalRatio, 2));
-    $refundToBalanceAmount = round($refundTotal - $externalRefundAmount, 2);
-    if ($refundToBalanceAmount > $balancePaid) {
-        $overflow = round($refundToBalanceAmount - $balancePaid, 2);
-        $refundToBalanceAmount = $balancePaid;
-        $externalRefundAmount = min($externalPaid, round($externalRefundAmount + $overflow, 2));
-    }
+    // 文档 3.2 限制：平台仅支持对已成功的积分流转服务进行【全额】退回，
+    // money 必须等于原积分流转服务的积分数量。
+    // 因此外部渠道退款金额只能是 0（不退外部）或 externalPaid（全额退回）。
     if ($refundTarget === 'balance') {
-        $refundToBalanceAmount = $refundTotal;
         $externalRefundAmount = 0.00;
+    } elseif ($refundTotal + 0.00001 >= $externalPaid) {
+        // 可退金额足以覆盖外部支付部分 → 外部渠道全额原路退回
+        $externalRefundAmount = $externalPaid;
+    } else {
+        // 可退金额（按剩余时长折算）不足以发起外部全额退款 → 全部退回站内余额
+        $externalRefundAmount = 0.00;
+    }
+    $refundToBalanceAmount = round($refundTotal - $externalRefundAmount, 2);
+    if ($refundToBalanceAmount > $balancePaid + 0.00001) {
+        throw new RuntimeException('退款金额超出已支付金额，无法执行退款');
     }
 
     $refundTradeNo = null;
@@ -441,44 +441,13 @@ function commerceRefundOrder(PDO $pdo, array $order, string $refundTarget = 'ori
         if (empty($order['trade_no'])) {
             throw new RuntimeException('订单缺少平台交易号，无法发起外部退款');
         }
-        $paymentMethod = (string)($order['payment_method'] ?? 'epay');
-        $refundOk = false;
-
-        // 优先尝试 LDC Pay 退款 (Ed25519)，再降级到易支付 (MD5)
+        // 统一走易支付兼容退款接口（文档 3.2：pid + key 认证，仅支持全额退回）
         require_once __DIR__ . '/ldcpay.php';
-
-        // 1) 尝试 LDC Pay
-        if (!$refundOk) {
-            $ldcClientId = commerceGetSetting($pdo, 'ldcpay_client_id');
-            $ldcClientSecret = commerceGetSetting($pdo, 'ldcpay_client_secret');
-            if ($ldcClientId !== '' && $ldcClientSecret !== '') {
-                $refundResult = ldcpay_refund($pdo, $order['trade_no'], $externalRefundAmount, $orderNo);
-                if ((int)($refundResult['code'] ?? 0) === 1) {
-                    $refundTradeNo = $refundResult['trade_no'] ?? $order['trade_no'];
-                    $refundOk = true;
-                }
-            }
+        $refundResult = epay_refund($pdo, (string)$order['trade_no'], $externalRefundAmount, $orderNo);
+        if ((int)($refundResult['code'] ?? 0) !== 1) {
+            throw new RuntimeException((string)($refundResult['msg'] ?? '平台退款失败'));
         }
-
-        // 2) 降级到易支付 (MD5)
-        if (!$refundOk) {
-            $pid = commerceGetSetting($pdo, 'epay_pid');
-            $key = commerceGetSetting($pdo, 'epay_key');
-            if ($pid === '' || $key === '') {
-                throw new RuntimeException('退款配置不完整（LDC Pay 和易支付均未配置）');
-            }
-            $refundData = ['pid' => $pid, 'key' => $key, 'trade_no' => $order['trade_no'], 'money' => $externalRefundAmount, 'out_trade_no' => $orderNo];
-            $refundResponse = httpRequest('https://credit.linux.do/epay/api.php', ['method' => 'POST', 'data' => $refundData, 'timeout' => 30, 'ssl_verify_peer' => true, 'ssl_verify_host' => 2]);
-            if (!$refundResponse['ok']) {
-                throw new RuntimeException('请求退款接口失败: ' . ($refundResponse['error'] ?: 'network error'));
-            }
-            $result = json_decode((string)$refundResponse['body'], true);
-            if (!$result || (int)($result['code'] ?? 0) !== 1) {
-                throw new RuntimeException($result['msg'] ?? '退款失败');
-            }
-            $refundTradeNo = $result['trade_no'] ?? $order['trade_no'];
-            $refundOk = true;
-        }
+        $refundTradeNo = (string)($refundResult['trade_no'] ?? $order['trade_no']);
     }
 
     try {
@@ -577,7 +546,7 @@ function commerceUpdateOrderDelivery(PDO $pdo, string $orderNo, string $delivery
 }
 
 function commerceAdjustBalance(PDO $pdo, int $userId, string $type, float $amount, array $options = []): array {
-    if ($userId <= 0 || $amount == 0.0) {
+    if ($userId <= 0 || abs($amount) < 0.00001) {
         throw new InvalidArgumentException('invalid balance params');
     }
     $stmt = $pdo->prepare('SELECT id, credit_balance FROM users WHERE id = ? FOR UPDATE');

@@ -113,42 +113,101 @@ function renderUserArea() {
   const username = getCurrentUserName();
   const balance = getCurrentBalance();
   if (currentUser) {
-    const adminBtn = currentRole === "admin" ? '<a href="admin/index.html" class="nav-link" style="color:var(--primary)">返回后台</a>' : "";
-    if (area) area.innerHTML = `<div class="flex items-center gap-4"><span style="color:var(--text-light)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:2px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> ${escapeHtml(username)}</span>${currentRole === "user" ? `<span style="font-size:12px;color:var(--primary)">余额 ${balance.toFixed(2)}</span>` : ""}${adminBtn}<a href="#" class="nav-link" onclick="logout();return false;">退出</a></div>`;
-    if (sidebarUserArea) sidebarUserArea.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:4px 0;"><div style="width:36px;height:36px;background:var(--primary-light);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--primary);font-weight:600;">${escapeHtml((username || "?").charAt(0).toUpperCase())}</div><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:500;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(username)}</div><div style="font-size:12px;color:var(--text-muted);">${currentRole === "admin" ? "管理员" : `普通用户 · 余额 ${balance.toFixed(2)}`}</div></div></div>`;
-    if (userNavSection) userNavSection.style.display = currentRole === "user" ? "block" : "none";
+    const initial = escapeHtml((username || "?").charAt(0).toUpperCase());
+    const isAdmin = currentRole === "admin";
+    // 顶栏：头像胶囊 + 下拉菜单
+    if (area) {
+      const metaHtml = isAdmin
+        ? `<span class="name">${escapeHtml(username)}</span><span class="balance">管理员</span>`
+        : `<span class="name">${escapeHtml(username)}</span><span class="balance"><span data-role="user-balance">${balance.toFixed(2)}</span> 积分</span>`;
+      const menuItems = [
+        isAdmin ? '<a href="admin/index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>返回后台</a>' : "",
+        '<a href="#" onclick="switchPage(\'orders\');return false;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>我的账户</a>',
+        '<div class="user-dropdown-divider"></div>',
+        '<a href="#" class="danger" onclick="logout();return false;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>退出登录</a>',
+      ].join("");
+      area.innerHTML = `<div class="user-area-wrap" id="userMenuWrap">
+        <button type="button" class="user-menu-btn" id="userMenuBtn" onclick="toggleUserMenu(event)" aria-haspopup="true">
+          <span class="avatar">${initial}</span>
+          <span class="meta">${metaHtml}</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="user-dropdown" id="userDropdown">${menuItems}</div>
+      </div>`;
+    }
+    // 侧边栏底部用户卡片
+    if (sidebarUserArea) {
+      sidebarUserArea.innerHTML = `<div class="sidebar-user-card">
+        <div class="avatar">${initial}</div>
+        <div class="info">
+          <div class="name">${escapeHtml(username)}</div>
+          <div class="sub">${isAdmin ? "管理员" : `普通用户 · 余额 ${balance.toFixed(2)}`}</div>
+        </div>
+      </div>`;
+    }
+    if (userNavSection) userNavSection.style.display = !isAdmin ? "block" : "none";
   } else {
-    if (area) area.innerHTML = '<div class="flex items-center gap-2"><a href="#" class="btn btn-primary" style="padding:6px 16px;font-size:13px" onclick="showLogin();return false;">登录</a></div>';
-    if (sidebarUserArea) sidebarUserArea.innerHTML = '<button class="btn btn-primary" style="width:100%;padding:10px;" onclick="showLogin()">登录</button>';
+    if (area)
+      area.innerHTML =
+        '<div class="flex items-center gap-2"><a href="#" class="btn btn-primary btn-sm" style="padding:8px 18px;font-size:13px" onclick="showLogin();return false;">登录</a></div>';
+    if (sidebarUserArea)
+      sidebarUserArea.innerHTML =
+        '<button class="btn btn-primary" style="width:100%;padding:10px;" onclick="showLogin()">登录</button>';
     if (userNavSection) userNavSection.style.display = "none";
   }
   updateWelcomeCard();
   updateHomeStats();
+  updateTicketEntryVisibility();
 }
 
-function setGuestHomeInstanceCards() {
-  const statCard = document.querySelector("#page-home .instance-stat-card");
-  if (statCard) {
-    if (!statCard.dataset.originalHtml) statCard.dataset.originalHtml = statCard.innerHTML;
-    if (!statCard.dataset.originalOnclick) statCard.dataset.originalOnclick = statCard.getAttribute("onclick") || "";
-    statCard.innerHTML = '<div class="instance-stat-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><div class="instance-stat-info"><div class="instance-stat-value">--</div><div class="instance-stat-label">登录后查看有效实例</div><div style="font-size:12px;color:var(--text-muted);margin-top:6px">查看已开通实例、交付信息与实例管理入口</div></div>';
-    statCard.setAttribute("onclick", "showLogin()");
+/* ==================== 「发起新工单」按钮可见性控制 ====================
+ * 修复：未登录用户和管理员账号在前台也能看到 + 发起新工单 按钮的问题。
+ * 规则：仅普通用户（已登录且 role === "user"）可见。
+ */
+function updateTicketEntryVisibility() {
+  const btn = document.getElementById("tkNewEntryBtn");
+  if (!btn) return;
+  const visible = !!currentUser && currentRole !== "admin";
+  btn.style.display = visible ? "" : "none";
+}
+
+// 用户下拉菜单开关
+function toggleUserMenu(e) {
+  if (e) e.stopPropagation();
+  const wrap = document.getElementById("userMenuWrap");
+  const dd = document.getElementById("userDropdown");
+  if (!wrap || !dd) return;
+  const open = dd.classList.toggle("show");
+  const btn = document.getElementById("userMenuBtn");
+  if (btn) btn.classList.toggle("open", open);
+}
+document.addEventListener("click", function (e) {
+  const wrap = document.getElementById("userMenuWrap");
+  if (wrap && !wrap.contains(e.target)) {
+    const dd = document.getElementById("userDropdown");
+    const btn = document.getElementById("userMenuBtn");
+    if (dd) dd.classList.remove("show");
+    if (btn) btn.classList.remove("open");
   }
+});
+
+function setGuestHomeInstanceCards() {
+  // 新仪表盘：游客态显示提示
+  const bal = document.getElementById("dashBalance");
+  if (bal) bal.textContent = "登录后查看";
+  const tags = document.getElementById("manageInstanceTags");
+  const empty = document.getElementById("manageInstanceEmpty");
+  if (tags) tags.innerHTML = "";
+  if (empty) empty.style.display = "block";
 
   const manageCard = document.getElementById("manageInstanceCard");
   if (manageCard) {
     if (!manageCard.dataset.originalHtml) manageCard.dataset.originalHtml = manageCard.innerHTML;
-    manageCard.innerHTML = '<div class="manage-instance-title">实例管理</div><div class="manage-instance-desc">登录后查看您的有效实例、连接信息与管理入口</div><div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px"><button class="btn btn-primary" onclick="event.stopPropagation();showLogin()">登录</button></div>';
-    manageCard.style.display = "block";
+    manageCard.innerHTML = '<div class="dash-card-title">实例管理</div><div class="dash-card-body"><div class="dash-empty">登录后查看您的有效实例、连接信息与管理入口 <a href="#" onclick="showLogin();return false;">立即登录 →</a></div></div>';
   }
 }
 
 function restoreHomeInstanceCards() {
-  const statCard = document.querySelector("#page-home .instance-stat-card");
-  if (statCard && statCard.dataset.originalHtml) {
-    if (statCard.innerHTML !== statCard.dataset.originalHtml) statCard.innerHTML = statCard.dataset.originalHtml;
-    if (statCard.dataset.originalOnclick) statCard.setAttribute("onclick", statCard.dataset.originalOnclick);
-  }
   const manageCard = document.getElementById("manageInstanceCard");
   if (manageCard && manageCard.dataset.originalHtml && manageCard.innerHTML !== manageCard.dataset.originalHtml) {
     manageCard.innerHTML = manageCard.dataset.originalHtml;
@@ -159,6 +218,14 @@ function updateHomeStats() {
   if (!currentUser) setGuestHomeInstanceCards();
   else restoreHomeInstanceCards();
 
+  // 仪表盘三统计卡
+  const bal = document.getElementById("dashBalance");
+  if (bal) bal.textContent = currentUser ? getCurrentBalance().toFixed(2) + " 积分" : "登录后查看";
+  const inst = document.getElementById("dashInstances");
+  if (inst) inst.textContent = (currentUser && currentRole === "user") ? (orderPagination.total || 0) + " 台" : "0 台";
+  updateDashExpiring();
+
+  // 旧的 statInstances 兼容
   const s = document.getElementById("statInstances");
   if (s) s.textContent = (currentUser && currentRole === "user") ? (orderPagination.total || "0") : "0";
   // 首页订单余额卡片在未登录时也做友好提示
@@ -171,11 +238,91 @@ function updateHomeStats() {
   updateManageInstances();
 }
 
+// ==================== 仪表盘：即将过期统计 ====================
+function updateDashExpiring() {
+  const el = document.getElementById("dashExpiring");
+  if (!el) return;
+  const list = currentRole === "user" ? (cachedOrderList || []) : [];
+  const count = list.filter((o) => {
+    if (parseInt(o.status || 0) !== 1) return false;
+    if (!o.expire_at) return false;
+    const diff = new Date(o.expire_at.replace(/-/g, "/")).getTime() - Date.now();
+    return diff > 0 && diff < 7 * 24 * 3600 * 1000; // 7天内到期
+  }).length;
+  el.textContent = count + " 台";
+}
+
+// ==================== 仪表盘：待办工单表格 ====================
+function updateDashTickets(ticketList) {
+  const body = document.getElementById("dashTicketBody");
+  const empty = document.getElementById("dashTicketEmpty");
+  const table = document.querySelector("#dashTicketTable .dash-table");
+  if (!body || !empty || !table) return;
+  // 进行中的工单 = 状态非关闭的工单（status: 0=待回复 1=已回复/处理中，2=已关闭）
+  const list = (Array.isArray(ticketList) ? ticketList : (typeof TicketState !== "undefined" && TicketState.myTicketsCache) || [])
+    .filter((t) => parseInt(t.status || 0) !== 2);
+  if (!list.length) {
+    table.style.display = "none";
+    empty.style.display = "block";
+    return;
+  }
+  empty.style.display = "none";
+  table.style.display = "";
+  const stMap = { 0: "待回复", 1: "处理中" };
+  body.innerHTML = list.slice(0, 6).map((t) => `<tr onclick="showTicketDetail(${parseInt(t.id)})">
+      <td>#${parseInt(t.id)}</td>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis">${escapeHtml(t.title || "-")}</td>
+      <td>${escapeHtml((t.created_at || "").slice(0, 16))}</td>
+      <td>${escapeHtml((t.updated_at || "-").slice(0, 16))}</td>
+      <td>${escapeHtml(stMap[parseInt(t.status)] || "处理中")}</td>
+      <td><span style="color:var(--primary)">查看</span></td>
+    </tr>`).join("");
+}
+
+// ==================== 仪表盘：公告轮播 + 右侧公告列表 ====================
+function updateDashAnnouncements(announcements) {
+  const swiper = document.getElementById("announcementSwiper");
+  const sideList = document.getElementById("dashAnnouncementList");
+  const list = Array.isArray(announcements) ? announcements : [];
+  if (swiper) {
+    if (!list.length) {
+      swiper.innerHTML = '<h5 class="swiper-h5">🈚 暂无公告</h5><p class="swiper-p">最近没有啥新鲜事，值得挂在这里。</p>';
+    } else {
+      // 简易轮播：每 5 秒切换一条
+      swiper.dataset.annList = JSON.stringify(list.map((a) => ({ t: a.title, c: (a.content || "").replace(/<[^>]+>/g, "").slice(0, 120) })));
+      if (!swiper.dataset.timerSet) {
+        swiper.dataset.timerSet = "1";
+        let idx = 0;
+        setInterval(() => {
+          let arr = [];
+          try { arr = JSON.parse(swiper.dataset.annList || "[]"); } catch (e) {}
+          if (arr.length > 1) {
+            idx = (idx + 1) % arr.length;
+            swiper.innerHTML = '<h5 class="swiper-h5">📌 ' + escapeHtml(arr[idx].t) + '</h5><p class="swiper-p">' + escapeHtml(arr[idx].c) + "</p>";
+          }
+        }, 5000);
+      }
+    }
+  }
+  if (sideList) {
+    if (!list.length) {
+      sideList.innerHTML = '<div class="dash-ann-item dash-ann-empty">暂无公告</div>';
+    } else {
+      sideList.innerHTML = list.slice(0, 5).map((a) => {
+        const tagMap = { announcement: "公告", notice: "公告", maintenance: "维护", security: "安全" };
+        const tag = tagMap[a.type] || a.type || "公告";
+        const date = (a.publish_at || a.created_at || "").slice(5, 10);
+        return `<div class="dash-ann-item" onclick="showAnnouncement(${a.id})"><span class="dash-ann-tag">${escapeHtml(tag)}</span><span class="dash-ann-title">${escapeHtml(a.title)}</span><span class="dash-ann-date">${escapeHtml(date)}</span></div>`;
+      }).join("");
+    }
+  }
+}
+
 function updateWelcomeCard() {
   currentUser = normalizeCurrentUserValueDeep(currentUser);
   const greeting = document.getElementById("welcomeGreeting");
   const avatar = document.getElementById("welcomeAvatar");
-  const quote = document.querySelector("#welcomeCard .welcome-quote");
+  const quote = document.getElementById("welcomeQuote");
   if (!greeting) return;
   const h = new Date().getHours();
   let tg = "您好";
@@ -184,11 +331,11 @@ function updateWelcomeCard() {
   const un = safeUserNameFrom(currentUser);
   greeting.textContent = un ? tg + "！" + un : "欢迎访问";
   if (quote) {
-    quote.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:2px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> ' + (un ? '使用积分兑换高性能VPS云服务器' : '请登录后查看并兑换高性能VPS云服务器');
+    quote.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;flex-shrink:0"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span>' + (un ? '使用积分兑换高性能VPS云服务器' : '登录后查看并兑换高性能VPS云服务器') + '</span>';
   }
   if (!avatar) return;
   if (un) { avatar.classList.add("has-user"); avatar.innerHTML = '<span style="font-size:24px;font-weight:600;">' + escapeHtml(un.charAt(0).toUpperCase()) + "</span>"; }
-  else { avatar.classList.remove("has-user"); avatar.innerHTML = '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'; }
+  else { avatar.classList.remove("has-user"); avatar.innerHTML = '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'; }
 }
 
 function updateManageInstances(orderList) {
@@ -222,32 +369,11 @@ function updateManageInstances(orderList) {
   renderAvailableInstances(list);
 }
 
-// ==================== 登录 / 注册弹窗 ====================
-function showLogin() {
-  isLoginMode = true;
-  document.getElementById("authTitle").textContent = "登录";
-  document.getElementById("authBtn").textContent = "登录";
-  document.getElementById("emailGroup").style.display = "none";
-  document.getElementById("authSwitch").innerHTML = '没有账号？<a href="#" style="color:var(--primary)" onclick="showRegister();return false;">立即注册</a>';
-  document.getElementById("authUser").value = "";
-  document.getElementById("authPass").value = "";
-  const od = document.getElementById("oauthDivider"), lb = document.getElementById("linuxdoLoginBtn");
-  if (linuxdoOAuthConfigured) { od.style.display = "flex"; lb.style.display = "flex"; }
-  else { od.style.display = "none"; lb.style.display = "none"; }
-  document.getElementById("authModal").classList.add("show");
-}
-function showRegister() {
-  isLoginMode = false;
-  document.getElementById("authTitle").textContent = "注册";
-  document.getElementById("authBtn").textContent = "注册";
-  document.getElementById("emailGroup").style.display = "block";
-  document.getElementById("authSwitch").innerHTML = '已有账号？<a href="#" style="color:var(--primary)" onclick="showLogin();return false;">立即登录</a>';
-  document.getElementById("authUser").value = "";
-  document.getElementById("authPass").value = "";
-  document.getElementById("authEmail").value = "";
-  document.getElementById("authModal").classList.add("show");
-}
-function closeAuth() { document.getElementById("authModal").classList.remove("show"); }
+// ==================== 登录 / 注册（v20260828 起独立页面化：login.html） ====================
+// showLogin / showRegister 由原弹窗改为跳转独立登录页，保留函数名以兼容旧调用点。
+function showLogin() { window.location.href = "login.html"; }
+function showRegister() { window.location.href = "login.html?mode=register"; }
+function closeAuth() { window.location.href = "login.html"; }
 
 function doAuth() {
   const username = document.getElementById("authUser").value.trim();
@@ -332,7 +458,7 @@ function buyProductById(id) { const p = productCache[id]; if (p) buyProduct(p.id
 function buyProduct(id, name, price) {
   if (!currentUser) { showLogin(); return; }
   const p = productCache[id] || { id, name, price };
-  if (p.can_buy === false) { alert(p.buy_block_reason || "当前商品暂不可购买"); return; }
+  if (p.can_buy === false || p.can_buy === 0 || p.can_buy === "0") { alert(p.buy_block_reason || "当前商品暂不可购买"); return; }
   selectedProduct = p; currentCoupon = null;
   const ci = document.getElementById("couponCode"), cm = document.getElementById("couponMsg");
   if (ci) ci.value = ""; if (cm) { cm.textContent = ""; cm.className = "coupon-msg"; }
@@ -411,7 +537,7 @@ function loadMyOrders(page = 1) {
     updateManageInstances(orders);
     if (!container) return;
     if (!orders.length) { container.innerHTML = '<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><p>暂无订单记录</p></div>'; return; }
-    const pmMap = { pending: "待支付", balance: "余额支付", epay: "EasyPay" };
+    const pmMap = { pending: "待支付", balance: "余额支付", epay: "Linux DO Credit", ldcpay: "Linux DO Credit" };
     const dmMap = { pending: "待支付", paid_waiting: "待开通", provisioning: "处理中", delivered: "已交付", exception: "异常", refunded: "已退款", cancelled: "已取消" };
     container.innerHTML = orders.map((o) => {
       const ns = parseInt(o.status || 0);
@@ -484,7 +610,9 @@ function loadAnnouncements() {
   apiFetch("api/announcements.php?action=list").then((r) => r.json()).then((data) => {
     const container = document.getElementById("announcementList");
     const scrollList = document.getElementById("announcementScrollList");
-    if (data.code !== 1 || !data.data || data.data.length === 0) {
+    const hasData = data.code === 1 && data.data && data.data.length > 0;
+    updateDashAnnouncements(hasData ? data.data : []);
+    if (!hasData) {
       if (container) container.innerHTML = '<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div><p>暂无公告</p></div>';
       if (scrollList) scrollList.innerHTML = '<div class="announcement-scroll-empty">暂无公告</div>';
       return;
@@ -510,104 +638,6 @@ function showAnnouncement(id) {
 }
 function closeAnnouncementModal() { document.getElementById("announcementModal").classList.remove("show"); }
 
-// ==================== 工单模块 ====================
-function loadMyTickets() {
-  const c = document.getElementById("myTickets"); if (!c) return;
-  if (!currentUser) {
-    c.innerHTML = renderLoginRequired('登录后查看工单记录', {
-      icon: 'ticket',
-      sub: '提交问题反馈、查看处理进度，获取技术支持'
-    });
-    return;
-  }
-  apiFetch("api/tickets.php?action=my").then((r) => r.json()).then((data) => {
-    if (data.code !== 1 || !data.data || data.data.length === 0) { c.innerHTML = '<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><p>暂无工单记录</p></div>'; return; }
-    const pMap = ["低", "中", "高", "紧急"];
-    c.innerHTML = data.data.map((t) => {
-      const sc = t.status == 0 ? "wait" : t.status == 1 ? "on" : "off";
-      const st = t.status == 0 ? "待回复" : t.status == 1 ? "已回复" : "已关闭";
-      return `<div class="order-item" onclick="showTicketDetail(${t.id})" style="cursor:pointer"><div class="order-header"><span style="font-weight:600">${escapeHtml(t.title)}</span><span class="badge ${sc}">${st}</span></div>
-        <div style="font-size:13px;color:var(--text-muted);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div>工单ID：<code style="color:var(--text-light)">#${t.id}</code>${t.order_no ? `<span style="margin:0 8px">|</span>关联订单：${escapeHtml(t.order_no)}` : ""}</div><div>分类：${escapeHtml(t.category || "other")} · 优先级：${pMap[parseInt(t.priority || 1)] || "中"}</div><div>${escapeHtml(t.updated_at)}</div></div></div>`;
-    }).join("");
-  });
-}
-
-function showCreateTicket(orderId = null) {
-  if (!currentUser) { showLogin(); return; }
-  apiFetch("api/orders.php?action=my&page_size=100").then((r) => r.json()).then((data) => {
-    const sel = document.getElementById("ticketOrder"); if (!sel) return;
-    sel.innerHTML = '<option value="">不关联订单</option>';
-    if (data.code === 1 && data.data && data.data.list) data.data.list.forEach((o) => { sel.innerHTML += `<option value="${o.id}">${escapeHtml(o.order_no)} - ${escapeHtml(o.product_name || "商品已删除")}</option>`; });
-    if (orderId) sel.value = String(orderId);
-  });
-  document.getElementById("ticketTitle").value = "";
-  document.getElementById("ticketContent").value = "";
-  const cat = document.getElementById("ticketCategory"), pri = document.getElementById("ticketPriority");
-  if (cat) cat.value = "other"; if (pri) pri.value = "1";
-  document.getElementById("ticketModal").classList.add("show");
-}
-function closeTicketModal() { document.getElementById("ticketModal").classList.remove("show"); }
-
-function submitTicket() {
-  const title = document.getElementById("ticketTitle").value.trim(), content = document.getElementById("ticketContent").value.trim();
-  const orderId = document.getElementById("ticketOrder").value;
-  const category = document.getElementById("ticketCategory") ? document.getElementById("ticketCategory").value : "other";
-  const priority = document.getElementById("ticketPriority") ? document.getElementById("ticketPriority").value : "1";
-  if (!title || !content) { alert("请填写标题和问题描述"); return; }
-  const body = new FormData(); body.append("action", "create"); body.append("title", title); body.append("content", content); body.append("category", category); body.append("priority", priority);
-  if (orderId) body.append("order_id", orderId);
-  apiFetch("api/tickets.php", { method: "POST", body }).then((r) => r.json()).then((data) => {
-    if (data.code === 1) { showToast("工单提交成功"); closeTicketModal(); loadMyTickets(); } else { alert(data.msg || "提交失败"); }
-  });
-}
-
-function showTicketDetail(id) {
-  Promise.all([
-    apiFetch("api/tickets.php?action=detail&id=" + id).then((r) => r.json()),
-    apiFetch("api/upload.php?action=list&ticket_id=" + id).then((r) => r.json()).catch(() => ({ code: 0, data: [] })),
-  ]).then(([tRes, aRes]) => {
-    if (tRes.code !== 1 || !tRes.data) { alert("获取工单详情失败"); return; }
-    const t = tRes.data, att = aRes.code === 1 ? aRes.data : [];
-    const sc = t.status == 0 ? "wait" : t.status == 1 ? "on" : "off";
-    const st = t.status == 0 ? "待回复" : t.status == 1 ? "已回复" : "已关闭";
-    document.getElementById("ticketDetailTitle").textContent = t.title;
-    const rHtml = (t.replies || []).map((r) => `<div class="ticket-reply ${r.user_id ? "user" : "admin"}"><div class="reply-header"><span class="reply-author">${r.user_id ? escapeHtml(r.username || "用户") : "客服"}</span><span class="reply-time">${escapeHtml(r.created_at)}</span></div><div class="reply-content">${escapeHtml(r.content)}</div></div>`).join("");
-    const evHtml = (t.events || []).length ? `<div style="margin:18px 0 10px;font-weight:600">处理时间线</div>` + t.events.map((e) => `<div style="padding:8px 0;border-bottom:1px dashed var(--border);font-size:12px;color:var(--text-muted)"><strong style="color:var(--text-main)">${escapeHtml(e.event_type || "event")}</strong> · ${escapeHtml(e.content || "")}<div style="margin-top:4px">${escapeHtml(e.created_at || "")}</div></div>`).join("") : "";
-    let atHtml = "";
-    if (att.length > 0) {
-      atHtml = `<div class="ticket-attachments"><div class="ticket-attachments-title"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> 附件 (${att.length})</div><div class="ticket-attachments-grid">` + att.map((a) => {
-        const u = `api/upload.php?action=download&id=${a.id}`, n = escapeHtml(a.original_name || "附件");
-        return (a.mime_type || "").startsWith("image/") ? `<a class="ticket-attachment image" href="${u}" target="_blank"><img src="${u}" alt="${n}"><span class="ticket-attachment-name">${n}</span></a>` : `<a class="ticket-attachment file" href="${u}" target="_blank"><span class="ticket-attachment-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span><span class="ticket-attachment-name">${n}</span></a>`;
-      }).join("") + "</div></div>";
-    }
-    const fileAccept = "image/" + "*,.txt,.log,.pdf";
-    document.getElementById("ticketDetailBody").innerHTML = `<div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)"><span class="badge ${sc}" style="margin-right:12px">${st}</span>${t.order_no ? `<span style="color:var(--text-muted);font-size:13px">关联订单：${escapeHtml(t.order_no)}</span>` : ""}<div style="margin-top:8px;font-size:12px;color:var(--text-muted)">分类：${escapeHtml(t.category || "other")} · 优先级：${escapeHtml(String(t.priority ?? "1"))} · 更新时间：${escapeHtml(t.updated_at || "")}</div></div><div class="ticket-replies">${rHtml}</div>${evHtml}${atHtml}${t.status != 2 ? `<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)"><textarea id="replyContent" rows="3" placeholder="输入回复内容..." style="width:100%;resize:vertical"></textarea><div style="margin-top:8px;display:flex;align-items:center;gap:10px"><input type="file" id="ticketFile" accept="${fileAccept}" style="font-size:12px"><button class="btn btn-outline" style="padding:4px 10px;font-size:12px" onclick="uploadUserTicketAttachment(${t.id})">上传</button></div></div>` : ""}`;
-    document.getElementById("ticketDetailFoot").innerHTML = t.status != 2 ? `<button class="btn btn-outline" style="flex:1" onclick="closeTicket(${t.id})">关闭工单</button><button class="btn btn-primary" style="flex:1" onclick="replyTicket(${t.id})">发送回复</button>` : `<button class="btn btn-primary" style="width:100%" onclick="closeTicketDetail()">关闭</button>`;
-    document.getElementById("ticketDetailModal").classList.add("show");
-  });
-}
-function closeTicketDetail() { document.getElementById("ticketDetailModal").classList.remove("show"); }
-
-function replyTicket(ticketId) {
-  const content = document.getElementById("replyContent").value.trim();
-  if (!content) { alert("请输入回复内容"); return; }
-  const body = new FormData(); body.append("action", "reply"); body.append("ticket_id", ticketId); body.append("content", content);
-  apiFetch("api/tickets.php", { method: "POST", body }).then((r) => r.json()).then((data) => { if (data.code === 1) { showTicketDetail(ticketId); loadMyTickets(); } else { alert(data.msg); } });
-}
-
-function uploadUserTicketAttachment(ticketId) {
-  const fi = document.getElementById("ticketFile");
-  if (!fi || !fi.files || !fi.files[0]) { alert("请选择文件"); return; }
-  const file = fi.files[0]; if (file.size > 5 * 1024 * 1024) { alert("文件大小不能超过5MB"); return; }
-  const body = new FormData(); body.append("action", "ticket"); body.append("ticket_id", ticketId); body.append("file", file);
-  apiFetch("api/upload.php", { method: "POST", body }).then((r) => r.json()).then((data) => { if (data.code === 1) { alert("附件上传成功"); fi.value = ""; showTicketDetail(ticketId); } else { alert(data.msg || "上传失败"); } }).catch(() => alert("上传请求失败"));
-}
-
-function closeTicket(ticketId) {
-  if (!confirm("确定要关闭此工单吗？关闭后无法再回复。")) return;
-  const body = new FormData(); body.append("action", "close"); body.append("ticket_id", ticketId);
-  apiFetch("api/tickets.php", { method: "POST", body }).then((r) => r.json()).then((data) => { if (data.code === 1) { closeTicketDetail(); loadMyTickets(); } else { alert(data.msg); } });
-}
 
 // ==================== 余额 / 资料 ====================
 function getCurrentUserName() { currentUser = normalizeCurrentUserValueDeep(currentUser); return safeUserNameFrom(currentUser); }

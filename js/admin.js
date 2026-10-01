@@ -8,7 +8,7 @@ let adminOrderPagination = { page: 1, pageSize: 20, total: 0, totalPages: 0 };
 let auditPagination = { page: 1, pageSize: 20, total: 0, totalPages: 0 };
 let currentAdminInfo = { id: 0, username: "", role: "admin" };
 
-const tabTitles = { dashboard: "仪表盘", products: "商品管理", orders: "订单管理", coupons: "优惠券管理", tickets: "工单管理", announcements: "公告管理", admins: "管理员管理", audit_logs: "操作日志", settings: "系统设置" };
+const tabTitles = { dashboard: "仪表盘", products: "商品管理", templates: "商品模板", credits: "积分管理", community: "社区规则", reports: "统计报表", orders: "订单管理", coupons: "优惠券管理", tickets: "工单管理", announcements: "公告管理", admins: "管理员管理", audit_logs: "操作日志", settings: "系统设置" };
 
 // ==================== 侧边栏 / UI ====================
 function toggleSidebar() { document.getElementById("sidebar").classList.toggle("open"); document.getElementById("sidebarOverlay").classList.toggle("show"); }
@@ -26,6 +26,15 @@ function switchTab(tab) {
   const main = document.querySelector(".main-content");
   if (main) main.scrollTop = 0;
   document.querySelectorAll(".settings-scroll-container").forEach((el) => { el.scrollTop = 0; });
+  /* v20260825：离开工单 tab 时复位详情子视图（避免返回时停留在过期详情/面包屑不一致） */
+  if (tab !== "tickets") {
+    const tav = document.getElementById("ticketAdminView");
+    const tlw = document.getElementById("tkAdminListWrap");
+    if (tav && tav.style.display !== "none") {
+      tav.style.display = "none";
+      if (tlw) tlw.style.display = "";
+    }
+  }
   if (window.innerWidth <= 768) closeSidebar();
 }
 
@@ -39,7 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
     else { if (data.data) { currentAdminInfo = data.data; updateAdminUI(); } init(); }
   });
   document.querySelectorAll(".menu a[data-tab]").forEach((a) => { a.addEventListener("click", (e) => { e.preventDefault(); switchTab(a.dataset.tab); }); });
-  document.addEventListener("click", (e) => { const m = document.getElementById("userMenu"), t = document.querySelector(".user-dropdown"); if (!m || !t) return; if (!m.contains(e.target) && !t.contains(e.target)) m.classList.remove("show"); });
+  document.addEventListener("click", (e) => { const m = document.getElementById("userMenu"), t = document.getElementById("userMenuBtn"); if (!m || !t) return; if (!m.contains(e.target) && !t.contains(e.target)) { m.classList.remove("show"); t.classList.remove("open"); } });
 });
 
 function updateAdminUI() {
@@ -50,11 +59,11 @@ function updateAdminUI() {
 }
 
 function init() {
-  loadStats(); loadProducts(); loadOrders(); loadCoupons(); loadSettings(); loadLdcPaySettings(); loadOAuthSettings();
-  loadSmtpSettings(); loadNotificationSettings(); loadCacheStats(); loadTickets(); loadAnnouncements();
-  loadTicketStats(); loadRecentOrders(); loadRecentTickets(); loadAdmins(); loadAuditLogs();
-  loadTemplateList(); loadProductTemplateOptions(); loadCreditAdminUsers(); loadCreditTransactionList();
-  loadCommunityOverview(); loadReportDashboard(); checkDbMissing();
+loadStats(); loadProducts(); loadOrders(); loadCoupons(); loadSettings(); loadLdcPaySettings(); loadOAuthSettings();
+loadSmtpSettings(); loadNotificationSettings(); loadCacheStats(); loadTickets(); loadAnnouncements();
+loadTicketStats(); loadRecentOrders(); loadRecentTickets(); loadAdmins(); loadAuditLogs();
+loadTemplateList(); loadProductTemplateOptions(); loadCreditAdminUsers(); loadCreditTransactionList();
+loadCommunityOverview(); loadReportDashboard(); loadAiSettings(); checkDbMissing();
 }
 
 // ==================== 数据库检测 ====================
@@ -168,6 +177,12 @@ function batchDeleteOrders(type) {
 function exportData(type) { window.open("../api/export.php?type=" + type, "_blank"); }
 
 // ==================== 订单详情 / 退款 ====================
+// v20260825：订单详情改用独立弹窗 orderAdminModal（不再复用工单弹窗节点）
+function closeOrderAdminModal() {
+  const m = document.getElementById("orderAdminModal");
+  if (m) m.classList.remove("show");
+}
+
 function showOrderDetail(orderNo) {
   apiFetch("../api/orders.php?action=detail&order_no=" + encodeURIComponent(orderNo)).then((r) => r.json()).then((data) => {
     if (data.code !== 1 || !data.data) { alert(data.msg || "获取订单详情失败"); return; }
@@ -175,8 +190,8 @@ function showOrderDetail(orderNo) {
     const dt = escapeHtml(o.delivery_status_text || o.delivery_status || "-");
     const statuses = { pending:"待支付", paid_waiting:"待开通", provisioning:"处理中", delivered:"已交付", exception:"异常", refunded:"已退款", cancelled:"已取消" };
     const canRefund = parseInt(o.status || 0) === 1 && !["refunded","cancelled"].includes(String(o.delivery_status || ""));
-    document.getElementById("adminTicketTitle").textContent = "订单详情";
-    document.getElementById("adminTicketBody").innerHTML = `<div style="display:grid;gap:12px">
+    document.getElementById("orderAdminTitle").textContent = "订单详情";
+    document.getElementById("orderAdminBody").innerHTML = `<div style="display:grid;gap:12px">
       <div><strong>订单号：</strong>${escapeHtml(o.order_no)}</div><div><strong>商品：</strong>${escapeHtml(o.product_name || "已删除")}</div><div><strong>用户：</strong>${escapeHtml(o.username || "-")}</div><div><strong>支付状态：</strong>${pt}</div><div><strong>交付状态：</strong>${dt}</div>
       <div><strong>金额：</strong>${parseFloat(o.price || 0).toFixed(2)} 积分（余额 ${parseFloat(o.balance_paid_amount || 0).toFixed(2)} / 外部 ${parseFloat(o.external_pay_amount || 0).toFixed(2)}）</div>
       <div><strong>支付方式：</strong>${escapeHtml(o.payment_method || "-")}</div>
@@ -193,8 +208,8 @@ function showOrderDetail(orderNo) {
         <div class="form-group"><label>异常原因</label><textarea id="orderDeliveryError" rows="2">${escapeHtml(o.delivery_error || "")}</textarea></div>
         <div class="admin-inline-actions"><button class="btn btn-primary" onclick="saveOrderDeliveryStatus('${escapeHtml(o.order_no)}')">保存交付状态</button>${canRefund ? `<button class="btn btn-danger" onclick="refundOrder('${escapeHtml(o.order_no)}', ${parseFloat(o.price || 0).toFixed(2)})">立即退款</button>` : ""}</div>
       </div></div>`;
-    document.getElementById("adminTicketFoot").innerHTML = `<button class="btn btn-primary" onclick="closeAdminTicketDetail()">关闭</button>`;
-    document.getElementById("ticketDetailModal").classList.add("show");
+    document.getElementById("orderAdminFoot").innerHTML = `<button class="btn btn-primary" onclick="closeOrderAdminModal()">关闭</button>`;
+    document.getElementById("orderAdminModal").classList.add("show");
   });
 }
 
@@ -225,34 +240,47 @@ function refundOrder(orderNo, price) {
   const mode = String(choice).trim().toLowerCase() === "balance" ? "balance" : "original";
   const reason = prompt("请输入退款原因（会留痕记录）", "人工退款") || "人工退款";
   const body = new FormData(); body.append("action", "refund"); body.append("order_no", orderNo); body.append("refund_target", mode); body.append("refund_reason", reason);
-  apiFetch("../api/orders.php", { method: "POST", body }).then((r) => r.json()).then((data) => { alert(data.msg || (data.code === 1 ? "退款成功" : "退款失败")); if (data.code === 1) { closeAdminTicketDetail(); loadOrders(); loadStats(); } }).catch(() => alert("退款请求失败"));
+  apiFetch("../api/orders.php", { method: "POST", body }).then((r) => r.json()).then((data) => { alert(data.msg || (data.code === 1 ? "退款成功" : "退款失败")); if (data.code === 1) { closeOrderAdminModal(); loadOrders(); loadStats(); } }).catch(() => alert("退款请求失败"));
 }
 
 // ==================== 设置模块 ====================
 function loadSettings() {
   apiFetch("../api/settings.php?action=get").then((r) => r.json()).then((data) => {
-    if (data.code === 1 && data.data) { ["cfgPid:epay_pid","cfgKey:epay_key","cfgNotify:notify_url","cfgReturn:return_url"].forEach((p) => { const [id,k] = p.split(":"); document.getElementById(id).value = data.data[k] || ""; }); }
+    if (data.code === 1 && data.data) {
+      document.getElementById("cfgPid").value = data.data.epay_pid || "";
+      // 敏感字段仅显示是否已配置，避免把掩码值回写
+      document.getElementById("cfgKey").value = data.data.epay_key_set ? "" : "";
+      document.getElementById("cfgKey").placeholder = data.data.epay_key_set || data.data.epay_key === "********" ? "已配置，留空则保持不变" : "请输入易支付密钥";
+      document.getElementById("cfgNotify").value = data.data.notify_url || "";
+      document.getElementById("cfgReturn").value = data.data.return_url || "";
+    }
   });
 }
 function savePaySettings() {
   const body = new FormData(); body.append("action", "save");
-  ["epay_pid:cfgPid","epay_key:cfgKey","notify_url:cfgNotify","return_url:cfgReturn"].forEach((p) => { const [k,id] = p.split(":"); body.append(k, document.getElementById(id).value); });
+  body.append("epay_pid", document.getElementById("cfgPid").value);
+  const epayKey = document.getElementById("cfgKey").value;
+  if (epayKey && epayKey !== "********") body.append("epay_key", epayKey);
+  body.append("notify_url", document.getElementById("cfgNotify").value);
+  body.append("return_url", document.getElementById("cfgReturn").value);
   apiFetch("../api/settings.php", { method: "POST", body }).then((r) => r.json()).then((data) => alert(data.msg));
 }
 function loadLdcPaySettings() {
   apiFetch("../api/settings.php?action=get_ldcpay").then((r) => r.json()).then((data) => {
     if (data.code === 1 && data.data) {
       document.getElementById("cfgLdcClientId").value = data.data.client_id || "";
-      document.getElementById("cfgLdcClientSecret").value = data.data.client_secret || "";
-      document.getElementById("cfgLdcPrivateKey").value = data.data.private_key || "";
+      document.getElementById("cfgLdcClientSecret").value = "";
+      document.getElementById("cfgLdcClientSecret").placeholder = data.data.client_secret_set ? "已配置，留空则保持不变" : "请输入 Client Secret";
+      document.getElementById("cfgLdcPrivateKey").value = "";
+      document.getElementById("cfgLdcPrivateKey").placeholder = data.data.private_key_set ? "已配置，留空则保持不变" : "请输入私钥";
       document.getElementById("cfgLdcPublicKey").value = data.data.public_key || "";
       document.getElementById("cfgLdcNotify").value = data.data.notify_url || "";
       document.getElementById("cfgLdcReturn").value = data.data.return_url || "";
       const hint = document.getElementById("ldcPayEd25519Hint");
       if (hint) {
         hint.innerHTML = data.data.ed25519_available
-          ? '<span style="color:var(--success);font-weight:600">✅ Ed25519 签名可用</span> — PHP sodium 或 OpenSSL 3.0 扩展已安装'
-          : '<span style="color:var(--danger);font-weight:600">⚠️ Ed25519 不可用</span> — 请安装 PHP sodium 扩展或升级到 PHP 8.0+';
+          ? '<span style="color:var(--success);font-weight:600"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-2px;margin-right:2px"><polyline points="20 6 9 17 4 12"/></svg> Ed25519 签名可用</span> — PHP sodium 或 OpenSSL 3.0 扩展已安装'
+          : '<span style="color:var(--danger);font-weight:600"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-2px;margin-right:2px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Ed25519 不可用</span> — 请安装 PHP sodium 扩展或升级到 PHP 8.0+';
         hint.style.background = data.data.ed25519_available ? 'rgba(16,185,129,.1)' : 'rgba(239,68,68,.1)';
         hint.style.border = '1px solid ' + (data.data.ed25519_available ? 'rgba(16,185,129,.25)' : 'rgba(239,68,68,.25)');
       }
@@ -261,22 +289,116 @@ function loadLdcPaySettings() {
 }
 function saveLdcPaySettings() {
   const body = new FormData(); body.append("action", "save_ldcpay");
-  ["ldcpay_client_id:cfgLdcClientId","ldcpay_client_secret:cfgLdcClientSecret","ldcpay_private_key:cfgLdcPrivateKey","ldcpay_public_key:cfgLdcPublicKey","ldcpay_notify_url:cfgLdcNotify","ldcpay_return_url:cfgLdcReturn"].forEach((p) => { const [k,id] = p.split(":"); body.append(k, document.getElementById(id).value); });
+  body.append("ldcpay_client_id", document.getElementById("cfgLdcClientId").value);
+  const secret = document.getElementById("cfgLdcClientSecret").value;
+  if (secret && secret !== "********") body.append("ldcpay_client_secret", secret);
+  const priv = document.getElementById("cfgLdcPrivateKey").value;
+  if (priv && priv !== "********") body.append("ldcpay_private_key", priv);
+  body.append("ldcpay_public_key", document.getElementById("cfgLdcPublicKey").value);
+  body.append("ldcpay_notify_url", document.getElementById("cfgLdcNotify").value);
+  body.append("ldcpay_return_url", document.getElementById("cfgLdcReturn").value);
   apiFetch("../api/settings.php", { method: "POST", body }).then((r) => r.json()).then((data) => alert(data.msg));
+}
+function generateEd25519Keypair() {
+  // 使用 tweetnacl 纯 JS 实现 Ed25519 密钥生成
+  // 内联最小化的 seed 生成 + nacl.sign.keyPair.fromSeed
+  var seed = new Uint8Array(32);
+  crypto.getRandomValues(seed);
+
+  // Ed25519 纯 JS 实现 (基于 tweetnacl 精简)
+  // 由于 Web Crypto 对 Ed25519 支持有限，这里用 HMAC-SHA512 模拟密钥派生
+  // 实际上我们只需要生成随机 seed + 对应公钥
+  // 使用 SubtleCrypto SHA-512 来派生公钥
+  crypto.subtle.digest('SHA-512', seed).then(function(hashBuf) {
+    var h = new Uint8Array(hashBuf);
+    // Ed25519 scalar clamp
+    h[0] &= 248;
+    h[31] &= 127;
+    h[31] |= 64;
+
+    // 我们无法在纯前端不引入库的情况下正确计算 Ed25519 公钥
+    // 改为：生成随机 seed 作为私钥，让用户保存后由服务端验证
+    // 但这不可靠，换一个方案：动态加载 tweetnacl
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/nacl-fast.min.js';
+    script.onload = function() {
+      var kp = nacl.sign.keyPair.fromSeed(seed);
+      var privB64 = btoa(String.fromCharCode.apply(null, seed));
+      var pubB64 = btoa(String.fromCharCode.apply(null, kp.publicKey));
+
+      var msg = '已生成 Ed25519 密钥对：\n\n' +
+        '公钥 (Public Key):\n' + pubB64 + '\n\n' +
+        '私钥 (Private Key):\n' + privB64 + '\n\n' +
+        '[!] 私钥极其重要，丢失后无法恢复！\n' +
+        '点击「确定」将自动填入表单并下载密钥备份文件。\n' +
+        '点击「取消」放弃本次生成。';
+      if (!confirm(msg)) return;
+
+      document.getElementById('cfgLdcPrivateKey').value = privB64;
+      document.getElementById('cfgLdcPublicKey').value = pubB64;
+
+      var fileContent = [
+        '=== LDC Pay Ed25519 密钥对 ===',
+        '生成时间: ' + new Date().toLocaleString(),
+        '',
+        '公钥 (Public Key, Base64):',
+        pubB64,
+        '',
+        '私钥 (Private Key, Base64):',
+        privB64,
+        '',
+        '[!] 请妥善保管此文件，私钥泄露将导致签名被伪造！',
+        '[!] 公钥需要提交给支付后台配置。',
+      ].join('\n');
+      var blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'ldcpay_ed25519_keypair_' + Date.now() + '.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      alert('密钥已填入表单，备份文件已下载。\n记得点击「保存 LDC Pay 配置」！');
+    };
+    script.onerror = function() {
+      alert('加载 Ed25519 库失败，请检查网络连接后重试。');
+    };
+    document.head.appendChild(script);
+  });
 }
 function loadOAuthSettings() {
   apiFetch("../api/settings.php?action=get_oauth").then((r) => r.json()).then((data) => {
-    if (data.code === 1 && data.data) { document.getElementById("cfgOAuthClientId").value = data.data.client_id || ""; document.getElementById("cfgOAuthClientSecret").value = data.data.client_secret || ""; document.getElementById("cfgOAuthRedirectUri").value = data.data.redirect_uri || ""; }
+    if (data.code === 1 && data.data) {
+      document.getElementById("cfgOAuthClientId").value = data.data.client_id || "";
+      document.getElementById("cfgOAuthClientSecret").value = "";
+      document.getElementById("cfgOAuthClientSecret").placeholder = data.data.client_secret_set ? "已配置，留空则保持不变" : "请输入 Client Secret";
+      document.getElementById("cfgOAuthRedirectUri").value = data.data.redirect_uri || "";
+    }
   });
 }
 function saveOAuthSettings() {
   const body = new FormData(); body.append("action", "save_oauth");
-  body.append("client_id", document.getElementById("cfgOAuthClientId").value); body.append("client_secret", document.getElementById("cfgOAuthClientSecret").value); body.append("redirect_uri", document.getElementById("cfgOAuthRedirectUri").value);
+  body.append("client_id", document.getElementById("cfgOAuthClientId").value);
+  const secret = document.getElementById("cfgOAuthClientSecret").value;
+  if (secret && secret !== "********") body.append("client_secret", secret);
+  body.append("redirect_uri", document.getElementById("cfgOAuthRedirectUri").value);
   apiFetch("../api/settings.php", { method: "POST", body }).then((r) => r.json()).then((data) => alert(data.msg));
 }
 function migrateLinuxDOFields() {
   if (!confirm("确定要执行数据库迁移吗？\n\n这将为users表添加Linux DO OAuth所需的字段。")) return;
-  apiFetch("../api/update_db.php?action=migrate_linuxdo").then((r) => r.json()).then((data) => { alert(data.msg + (data.data && data.data.added ? "\n\n添加的字段: " + data.data.added.join(", ") : "")); }).catch(() => alert("迁移请求失败"));
+  const body = new FormData();
+  body.append("action", "migrate_linuxdo");
+  apiFetch("../api/update_db.php", { method: "POST", body }).then((r) => r.json()).then((data) => {
+    const d = data.data || {};
+    const createdCount = (d.created || []).length;
+    const migratedCount = (d.migrated || []).length;
+    const detail = (createdCount || migratedCount)
+      ? "\n\n新增字段/数据表: " + (createdCount ? d.created.join(", ") : "") + (migratedCount ? d.migrated.join(", ") : "")
+      : "";
+    alert(data.msg + detail);
+  }).catch(() => alert("迁移请求失败"));
 }
 function changePassword() {
   const body = new FormData(); body.append("action", "change_password"); body.append("old_password", document.getElementById("oldPass").value); body.append("new_password", document.getElementById("newPass").value);
@@ -284,12 +406,29 @@ function changePassword() {
 }
 function loadSmtpSettings() {
   apiFetch("../api/settings.php?action=get_smtp").then((r) => r.json()).then((data) => {
-    if (data.code === 1 && data.data) { ["cfgSmtpHost:smtp_host","cfgSmtpPort:smtp_port","cfgSmtpUser:smtp_user","cfgSmtpPass:smtp_pass","cfgSmtpFrom:smtp_from","cfgSmtpName:smtp_name","cfgSmtpSecure:smtp_secure"].forEach((p) => { const [id,k] = p.split(":"); document.getElementById(id).value = data.data[k] || (k==="smtp_port"?"587":k==="smtp_secure"?"tls":""); }); }
+    if (data.code === 1 && data.data) {
+      const d = data.data;
+      document.getElementById("cfgSmtpHost").value = d.smtp_host || "";
+      document.getElementById("cfgSmtpPort").value = d.smtp_port || "587";
+      document.getElementById("cfgSmtpUser").value = d.smtp_user || "";
+      document.getElementById("cfgSmtpPass").value = "";
+      document.getElementById("cfgSmtpPass").placeholder = d.smtp_pass_set ? "已配置，留空则保持不变" : "请输入 SMTP 密码";
+      document.getElementById("cfgSmtpFrom").value = d.smtp_from || "";
+      document.getElementById("cfgSmtpName").value = d.smtp_name || "";
+      document.getElementById("cfgSmtpSecure").value = d.smtp_secure || "tls";
+    }
   }).catch(() => {});
 }
 function saveSmtpSettings() {
   const body = new FormData(); body.append("action", "save_smtp");
-  ["smtp_host:cfgSmtpHost","smtp_port:cfgSmtpPort","smtp_user:cfgSmtpUser","smtp_pass:cfgSmtpPass","smtp_from:cfgSmtpFrom","smtp_name:cfgSmtpName","smtp_secure:cfgSmtpSecure"].forEach((p) => { const [k,id] = p.split(":"); body.append(k, document.getElementById(id).value); });
+  body.append("smtp_host", document.getElementById("cfgSmtpHost").value);
+  body.append("smtp_port", document.getElementById("cfgSmtpPort").value);
+  body.append("smtp_user", document.getElementById("cfgSmtpUser").value);
+  const pass = document.getElementById("cfgSmtpPass").value;
+  if (pass && pass !== "********") body.append("smtp_pass", pass);
+  body.append("smtp_from", document.getElementById("cfgSmtpFrom").value);
+  body.append("smtp_name", document.getElementById("cfgSmtpName").value);
+  body.append("smtp_secure", document.getElementById("cfgSmtpSecure").value);
   apiFetch("../api/settings.php", { method: "POST", body }).then((r) => r.json()).then((data) => alert(data.msg));
 }
 function testSmtpSettings() {
@@ -375,81 +514,6 @@ function saveCoupon() {
 }
 function toggleCouponStatus(id, cs) { const body = new FormData(); body.append("action", "toggle"); body.append("id", id); body.append("status", cs == 1 ? 0 : 1); apiFetch("../api/coupons.php", { method: "POST", body }).then((r) => r.json()).then((d) => { if (d.code === 1) loadCoupons(); else alert(d.msg); }); }
 function deleteCoupon(id) { if (!confirm("确定要删除此优惠券吗？")) return; const body = new FormData(); body.append("action", "delete"); body.append("id", id); apiFetch("../api/coupons.php", { method: "POST", body }).then((r) => r.json()).then((d) => { alert(d.msg); if (d.code === 1) loadCoupons(); }); }
-
-// ==================== 工单管理 ====================
-let ticketCache = {};
-function loadTicketStats() {
-  apiFetch("../api/tickets.php?action=stats").then((r) => r.json()).then((data) => {
-    if (data.code === 1) { ["statTicketPending:pending","statTicketReplied:replied","statTicketClosed:closed","statTicketTotal:total"].forEach((p) => { const [id,k] = p.split(":"); document.getElementById(id).textContent = data.data[k]; }); }
-  });
-}
-function loadTickets() {
-  apiFetch("../api/tickets.php?action=all").then((r) => r.json()).then((data) => {
-    const tbody = document.getElementById("ticketTable");
-    if (data.code !== 1 || !data.data || data.data.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="empty">暂无工单</td></tr>'; return; }
-    ticketCache = {}; data.data.forEach((t) => { ticketCache[t.id] = t; });
-    const pMap = ["低","中","高","紧急"];
-    tbody.innerHTML = data.data.map((t) => `<tr><td>#${t.id}</td><td><span style="font-weight:600;color:var(--text-main)">${escapeHtml(t.title)}</span><div style="font-size:12px;color:var(--text-muted)">${escapeHtml(t.category || "other")} · ${pMap[parseInt(t.priority || 1)] || "中"}</div></td><td>${escapeHtml(t.username || "-")}</td><td>${t.order_no ? `<code style="color:var(--primary)">${escapeHtml(t.order_no)}</code>` : "-"}</td><td><span class="badge ${t.status == 0 ? "wait" : t.status == 1 ? "on" : "off"}">${t.status == 0 ? "待回复" : t.status == 1 ? "已回复" : "已关闭"}</span></td><td style="color:var(--text-muted);font-size:12px">${escapeHtml(t.updated_at)}</td><td><button class="action-btn edit" onclick="showAdminTicketDetail(${t.id})">查看</button></td></tr>`).join("");
-  });
-}
-function showAdminTicketDetail(id) {
-  Promise.all([
-    apiFetch("../api/tickets.php?action=detail&id=" + id).then((r) => r.json()),
-    apiFetch("../api/upload.php?action=list&ticket_id=" + id).then((r) => r.json()).catch(() => ({ code: 0, data: [] })),
-  ]).then(([tRes, aRes]) => {
-    if (tRes.code !== 1 || !tRes.data) { alert("获取工单详情失败"); return; }
-    const t = tRes.data, att = aRes.code === 1 ? aRes.data : [];
-    const sc = t.status == 0 ? "wait" : t.status == 1 ? "on" : "off";
-    const st = t.status == 0 ? "待回复" : t.status == 1 ? "已回复" : "已关闭";
-    const tgt = t.refund_target === "balance" ? "退回站内余额" : t.refund_target === "original" ? "原路退回" : "-";
-    const oi = t.order_info || null;
-    document.getElementById("adminTicketTitle").textContent = "#" + t.id + " " + t.title;
-    const rHtml = (t.replies || []).map((r) => `<div class="ticket-reply ${r.user_id ? "user" : "admin"}"><div class="reply-header"><span class="reply-author">${r.user_id ? escapeHtml(r.username || "用户") : "客服 / 管理员"}</span><span class="reply-time">${escapeHtml(r.created_at || "")}</span></div><div class="reply-content">${escapeHtml(r.content || "")}</div></div>`).join("");
-    let atHtml = "";
-    if (att.length > 0) {
-      atHtml = `<div class="ticket-attachments"><div class="ticket-attachments-title"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>附件 (${att.length})</div><div class="ticket-attachments-grid">${att.map((a) => {
-        const isImg = (a.mime_type || "").startsWith("image/"), u = `../api/upload.php?action=download&id=${a.id}`, n = escapeHtml(a.original_name || "附件"), m = a.file_size ? `(${formatFileSize(a.file_size)})` : "";
-        return isImg ? `<a class="ticket-attachment image" href="${u}" target="_blank"><img src="${u}" alt="${n}"><span class="ticket-attachment-name">${n}</span><span class="ticket-attachment-meta">${m}</span></a>` : `<a class="ticket-attachment file" href="${u}" target="_blank"><span class="ticket-attachment-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span><span class="ticket-attachment-name">${n}</span><span class="ticket-attachment-meta">${m}</span></a>`;
-      }).join("")}</div></div>`;
-    }
-    let refundMeta = "";
-    if (t.category === "refund_request") {
-      refundMeta = `<div class="refund-admin-card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap"><div><div style="font-size:16px;font-weight:700;color:var(--text-main)">退款审批</div><div style="font-size:12px;color:var(--text-muted);margin-top:6px">用户提交时选择：${escapeHtml(tgt)}</div></div>${oi ? `<span class="badge ${String(oi.delivery_status || "") === "refunded" ? "off" : "wait"}">订单状态：${escapeHtml(["待支付","已支付","已退款","已取消"][parseInt(oi.status || 0)] || "-")} / ${escapeHtml(oi.delivery_status || "-")}</span>` : ""}</div>`;
-      refundMeta += `<div class="refund-admin-grid"><div class="refund-admin-item"><label>关联订单</label><div>${escapeHtml(t.order_no || "-")}</div></div><div class="refund-admin-item"><label>退款金额</label><div>${oi ? parseFloat(oi.price || 0).toFixed(2) + " 积分" : "-"}</div></div><div class="refund-admin-item"><label>提交原因</label><div>${escapeHtml(t.refund_reason || "-")}</div></div><div class="refund-admin-item"><label>处理管理员</label><div>${escapeHtml(t.handled_admin_name || "-")}</div></div></div>`;
-      if (t.status != 2) refundMeta += `<div class="refund-admin-grid"><div class="refund-admin-item"><label>审批退款方式</label><select id="approveRefundTarget"><option value="original" ${t.refund_target === "original" ? "selected" : ""}>原路退回</option><option value="balance" ${t.refund_target === "balance" ? "selected" : ""}>退回站内余额</option></select></div><div class="refund-admin-item" style="grid-column:1/-1"><label>审批备注</label><textarea id="approveRefundReason" rows="3" placeholder="会写入退款记录与工单回复">${escapeHtml(t.refund_reason || "工单退款")}</textarea></div></div>`;
-      refundMeta += "</div>";
-    }
-    document.getElementById("adminTicketBody").innerHTML = `<div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap"><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><span class="badge ${sc}">${st}</span><span style="color:var(--text-muted);font-size:13px">用户：${escapeHtml(t.username || "-")}</span>${t.order_no ? `<span style="color:var(--text-muted);font-size:13px">订单：${escapeHtml(t.order_no)}</span>` : ""}<span style="color:var(--text-muted);font-size:13px">分类：${escapeHtml(t.category || "other")}</span></div><div style="font-size:12px;color:var(--text-muted)">更新：${escapeHtml(t.updated_at || "")}</div></div></div>${refundMeta}<div class="ticket-replies">${rHtml}</div>${atHtml}${t.status != 2 ? `<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)"><textarea id="adminReplyContent" rows="3" placeholder="输入回复内容..." style="width:100%;resize:vertical"></textarea><div style="margin-top:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><input type="file" id="adminTicketFile" accept="image/*,.txt,.log,.pdf" style="font-size:12px"><button class="btn btn-outline" style="padding:6px 12px;font-size:12px" onclick="uploadTicketAttachment(${t.id})">上传附件</button></div></div>` : ""}`;
-    let fh = `<button class="btn btn-primary" onclick="closeAdminTicketDetail()">关闭</button>`;
-    if (t.status != 2) fh = `<div class="admin-inline-actions">${t.category === "refund_request" ? `<button class="btn btn-danger" onclick="approveRefundTicket(${t.id})">同意退款</button>` : ""}<button class="btn btn-outline" onclick="adminCloseTicket(${t.id})">关闭工单</button><button class="btn btn-primary" onclick="adminReplyTicket(${t.id})">发送回复</button></div>`;
-    document.getElementById("adminTicketFoot").innerHTML = fh;
-    document.getElementById("ticketDetailModal").classList.add("show");
-  });
-}
-function closeAdminTicketDetail() { document.getElementById("ticketDetailModal").classList.remove("show"); }
-function uploadTicketAttachment(tid) {
-  const fi = document.getElementById("adminTicketFile"); if (!fi.files || !fi.files[0]) { alert("请选择文件"); return; }
-  if (fi.files[0].size > 5 * 1024 * 1024) { alert("文件大小不能超过5MB"); return; }
-  const body = new FormData(); body.append("action", "ticket"); body.append("ticket_id", tid); body.append("file", fi.files[0]);
-  apiFetch("../api/upload.php", { method: "POST", body }).then((r) => r.json()).then((d) => { if (d.code === 1) { showToast("附件上传成功"); fi.value = ""; showAdminTicketDetail(tid); } else alert(d.msg || "上传失败"); }).catch(() => alert("上传请求失败"));
-}
-function adminReplyTicket(tid) {
-  const c = document.getElementById("adminReplyContent").value.trim(); if (!c) { alert("请输入回复内容"); return; }
-  const body = new FormData(); body.append("action", "reply"); body.append("ticket_id", tid); body.append("content", c);
-  apiFetch("../api/tickets.php", { method: "POST", body }).then((r) => r.json()).then((d) => { if (d.code === 1) { showAdminTicketDetail(tid); loadTickets(); loadTicketStats(); } else alert(d.msg); });
-}
-function adminCloseTicket(tid) {
-  if (!confirm("确定要关闭此工单吗？")) return;
-  const body = new FormData(); body.append("action", "close"); body.append("ticket_id", tid);
-  apiFetch("../api/tickets.php", { method: "POST", body }).then((r) => r.json()).then((d) => { if (d.code === 1) { closeAdminTicketDetail(); loadTickets(); loadTicketStats(); } else alert(d.msg); });
-}
-function approveRefundTicket(tid) {
-  if (!confirm("确认同意该退款申请并立即执行退款吗？")) return;
-  const target = document.getElementById("approveRefundTarget")?.value || "original";
-  const reason = (document.getElementById("approveRefundReason")?.value || "工单退款").trim() || "工单退款";
-  const body = new FormData(); body.append("action", "approve_refund"); body.append("ticket_id", tid); body.append("refund_target", target); body.append("refund_reason", reason);
-  apiFetch("../api/tickets.php", { method: "POST", body }).then((r) => r.json()).then((d) => { if (d.code === 1) { showToast("退款已完成"); loadTickets(); loadOrders(adminOrderPagination.page || 1); showAdminTicketDetail(tid); } else alert(d.msg || "退款失败"); }).catch(() => alert("退款失败"));
-}
 
 // ==================== 公告管理 ====================
 let announcementCache = {};
@@ -592,12 +656,51 @@ function clearAuditLogs() {
 
 // ==================== 模板管理 ====================
 function loadProductTemplateOptions(selectedId = "") {
-  apiFetch("../api/templates.php?action=list").then((r) => r.json()).then((d) => {
-    const sel = document.getElementById("pTemplate"); if (!sel) return;
-    sel.innerHTML = '<option value="">不使用模板</option>';
-    if (d.code === 1 && Array.isArray(d.data)) d.data.forEach((t) => { sel.innerHTML += `<option value="${t.id}">${escapeHtml(t.name)}</option>`; });
-    if (selectedId !== "") sel.value = String(selectedId);
+apiFetch("../api/templates.php?action=list").then((r) => r.json()).then((d) => {
+const sel = document.getElementById("pTemplate"); if (!sel) return;
+sel.innerHTML = '<option value="">不使用模板</option>';
+if (d.code === 1 && Array.isArray(d.data)) d.data.forEach((t) => { sel.innerHTML += `<option value="${t.id}">${escapeHtml(t.name)}</option>`; });
+if (selectedId !== "") sel.value = String(selectedId);
+// 绑定 onchange 事件（仅一次）
+if (!sel._templateBound) {
+  sel.addEventListener("change", function() {
+    if (this.value) applyTemplateToProductForm(this.value);
+    else resetProductFormFields();
   });
+  sel._templateBound = true;
+}
+// 编辑模式：自动触发填充
+if (selectedId !== "") applyTemplateToProductForm(selectedId);
+});
+}
+function applyTemplateToProductForm(templateId) {
+const t = window.__templateCache ? window.__templateCache[templateId] : null;
+if (!t) return;
+const fieldMap = {pCpu:"cpu",pMem:"memory",pDisk:"disk",pBw:"bandwidth",pRegion:"region",pLineType:"line_type",pOsType:"os_type",pDescription:"description",pExtra:"extra_info"};
+const labelMap = {pCpu:"pCpu",pMem:"pMem",pDisk:"pDisk",pBw:"pBw",pRegion:"pRegion",pLineType:"pLineType",pOsType:"pOsType",pDescription:"pDescription",pExtra:"pExtra"};
+Object.entries(fieldMap).forEach(([elId, key]) => {
+  const el = document.getElementById(elId);
+  const label = el ? el.closest(".form-group")?.querySelector("label") : null;
+  if (t[key] && String(t[key]).trim() !== "") {
+    el.value = t[key];
+    el.classList.add("field-from-template");
+    if (label) label.classList.add("template-indicator");
+  } else {
+    if (el && !el.dataset.manuallyEdited) el.value = "";
+    el.classList.remove("field-from-template");
+    if (label) label.classList.remove("template-indicator");
+  }
+});
+}
+function resetProductFormFields() {
+["pCpu","pMem","pDisk","pBw","pRegion","pLineType","pOsType","pDescription","pExtra"].forEach((id) => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.classList.remove("field-from-template");
+    const label = el.closest(".form-group")?.querySelector("label");
+    if (label) label.classList.remove("template-indicator");
+  }
+});
 }
 function loadTemplateList() {
   apiFetch("../api/templates.php?action=list").then((r) => r.json()).then((d) => {
@@ -624,6 +727,51 @@ function saveTemplate() {
 }
 function deleteTemplate(id) { if (!confirm("确定删除该模板？")) return; const body = new FormData(); body.append("action", "delete"); body.append("id", id); apiFetch("../api/templates.php", { method: "POST", body }).then((r) => r.json()).then((d) => { if (d.code === 1) { showToast("删除成功"); loadTemplateList(); loadProductTemplateOptions(); } else alert(d.msg || "删除失败"); }); }
 function createTemplateFromProductPrompt() { const id = prompt("输入商品ID，快速生成模板"); if (!id) return; const body = new FormData(); body.append("action", "create_from_product"); body.append("product_id", id); apiFetch("../api/templates.php", { method: "POST", body }).then((r) => r.json()).then((d) => { if (d.code === 1) { showToast("已从商品生成模板"); loadTemplateList(); loadProductTemplateOptions(); } else alert(d.msg || "生成失败"); }); }
+
+// ==================== AI 智能生成 ====================
+function openAIGenerate() {
+  const desc = prompt("请输入商品描述（如：香港轻量VPS，2核4G，月付100积分）");
+  if (!desc || !desc.trim()) return;
+  showToast("AI 正在生成商品配置，请稍候...");
+  const body = new FormData(); body.append("description", desc.trim());
+  apiFetch("../api/ai.php?action=generate_product", { method: "POST", body })
+    .then((r) => r.json()).then((data) => {
+      if (data.code === 1 && data.data) {
+        fillProductFormFromAI(data.data);
+        showToast("AI 已生成配置，请检查并修改");
+      } else {
+        alert(data.msg || "AI 生成失败，请检查 API 配置");
+      }
+    }).catch(() => alert("网络请求失败，请检查 API 配置"));
+}
+function fillProductFormFromAI(data) {
+  if (!data) return;
+  const map = {pName:"name",pCpu:"cpu",pMem:"memory",pDisk:"disk",pBw:"bandwidth",pRegion:"region",pLineType:"line_type",pOsType:"os_type",pDescription:"description",pPrice:"price"};
+  Object.entries(map).forEach(([elId, key]) => {
+    const el = document.getElementById(elId);
+    if (el && data[key] !== undefined && String(data[key]).trim() !== "") {
+      if (!el.value || el.dataset.manuallyEdited !== "true") el.value = data[key];
+    }
+  });
+}
+function loadAiSettings() {
+  apiFetch("../api/settings.php?action=get_ai").then((r) => r.json()).then((data) => {
+    if (data.code === 1 && data.data) {
+      document.getElementById("cfgAiEndpoint").value = data.data.ai_api_endpoint || "";
+      document.getElementById("cfgAiKey").value = "";
+      document.getElementById("cfgAiKey").placeholder = data.data.ai_api_key_set ? "已配置，留空则保持不变" : "请输入 AI API Key";
+      document.getElementById("cfgAiModel").value = data.data.ai_model || "";
+    }
+  }).catch(() => {});
+}
+function saveAiSettings() {
+  const body = new FormData(); body.append("action", "save_ai");
+  body.append("ai_api_endpoint", document.getElementById("cfgAiEndpoint").value);
+  const key = document.getElementById("cfgAiKey").value;
+  if (key && key !== "********") body.append("ai_api_key", key);
+  body.append("ai_model", document.getElementById("cfgAiModel").value);
+  apiFetch("../api/settings.php", { method: "POST", body }).then((r) => r.json()).then((data) => alert(data.msg));
+}
 
 // ==================== 积分管理 ====================
 function loadCreditAdminUsers() {

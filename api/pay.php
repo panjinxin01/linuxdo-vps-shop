@@ -1,4 +1,15 @@
 <?php
+/**
+ * 支付发起页（依据《LD支付文档》实现）
+ *
+ * 协议自动选择：
+ *   1. 官方 LDC 接口 (type=ldcpay, Ed25519 签名) —— 配置了 ldcpay_private_key 时优先
+ *   2. 易支付兼容接口 (type=epay, MD5 签名)      —— 兜底
+ *
+ * 两协议提交地址均为 https://credit.linux.do/epay/pay/submit.php (POST 表单)
+ * 支付结果通过异步通知(api/notify.php) + 订单查询(api.php)同步。
+ */
+
 require_once __DIR__ . '/../includes/security.php';
 startSecureSession();
 require_once __DIR__ . '/../includes/db.php';
@@ -8,20 +19,9 @@ require_once __DIR__ . '/../includes/ldcpay.php';
 
 $pdo = getDB();
 
-function makeSign(array $params, string $key): string {
-    ksort($params);
-    $str = '';
-    foreach ($params as $k => $v) {
-        if ($k !== 'sign' && $k !== 'sign_type' && $v !== '') {
-            $str .= $k . '=' . $v . '&';
-        }
-    }
-    $str = rtrim($str, '&') . $key;
-    return md5($str);
-}
-
-
-
+/**
+ * 生成本次支付请求的外部单号（payment_requests 映射表）
+ */
 function createExternalOrderNo(string $orderNo): string {
     $base = preg_replace('/[^A-Za-z0-9]/', '', $orderNo);
     $base = substr($base !== '' ? $base : 'VPS', 0, 28);
@@ -80,6 +80,8 @@ if ($statusCode !== 0) {
     exit('订单状态不允许支付');
 }
 
+/* ---------- 过期检查：超过 15 分钟的待支付订单自动关闭 ---------- */
+
 try {
     $createdAtTs = strtotime((string)$order['created_at']);
     if ($createdAtTs && $createdAtTs < time() - 15 * 60) {
@@ -97,9 +99,21 @@ try {
                 if (commerceColumnExists($pdo, 'orders', 'cancelled_at')) {
                     $updateSql .= ', cancelled_at = NOW()';
                 }
+                if (commerceColumnExists($pdo, 'orders', 'delivery_status')) {
+                    $updateSql .= ", delivery_status = 'cancelled', delivery_updated_at = NOW()";
+                }
                 $updateSql .= ' WHERE order_no = ? AND status = 0';
                 $pdo->prepare($updateSql)->execute([$orderNo]);
                 releaseCouponByOrder($pdo, $orderNo);
+                // 释放因本待支付订单锁定的商品库存
+                $productId = (int)($fresh['product_id'] ?? 0);
+                if ($productId > 0) {
+                    $paid = $pdo->prepare('SELECT COUNT(*) FROM orders WHERE product_id = ? AND status = 1');
+                    $paid->execute([$productId]);
+                    if ((int)$paid->fetchColumn() === 0) {
+                        $pdo->prepare('UPDATE products SET status = 1 WHERE id = ? AND status = 0')->execute([$productId]);
+                    }
+                }
                 $pdo->commit();
                 exit('订单已过期，请重新下单');
             }
@@ -111,31 +125,52 @@ try {
         $pdo->rollBack();
     }
 }
+
+/* ---------- 生成外部支付请求号 ---------- */
+
 try {
     $externalOrderNo = reserveExternalOrderNo($pdo, (string)$order['order_no'], (int)$_SESSION['user_id']);
 } catch (Throwable $e) {
     exit('支付请求初始化失败，请刷新后重试');
 }
 
-// ========== 支付协议自动选择 ==========
-// 同一平台 (Linux DO Credit)，优先 LDC Pay (Ed25519)，降级到易支付 (MD5)
-$submitUrl = 'https://credit.linux.do/epay/pay/submit.php';
+// 商品名称：优先使用下单时的快照（商品可能已被删除或改名），并截断到 64 字符
+$productName = trim((string)(
+    $order['product_name_snapshot']
+    ?? $order['product_name']
+    ?? ''
+));
+if ($productName === '') {
+    $productName = '商品订单';
+}
+$payProductName = $productName . ' - 1个月';
+$payMoney = ldcpay_format_money($order['price'] ?? 0);
+
+// 回调地址：订单级 notify_url / return_url 会参与签名，长度不超过 100
+$notifyUrl = mb_substr_safe(trim(commerceGetSetting($pdo, 'notify_url')), 100);
+$returnUrl = mb_substr_safe(trim(commerceGetSetting($pdo, 'return_url')), 100);
+
+/* ---------- 支付协议自动选择 ---------- */
+
+$submitUrl = LDCPAY_SUBMIT_URL;
 $params = [];
 $payLabel = '';
 $ldcPayError = '';
 
-// 检查 LDC Pay 是否已配置
-$ldcClientId = commerceGetSetting($pdo, 'ldcpay_client_id');
-$ldcClientSecret = commerceGetSetting($pdo, 'ldcpay_client_secret');
-$ldcPrivateKey = commerceGetSetting($pdo, 'ldcpay_private_key');
+// 1) 官方 LDC 接口 (Ed25519)：需要 client_id / client_secret / 私钥齐备
+[$ldcClientId, $ldcClientSecret] = ldcpay_get_credentials($pdo);
+$ldcPrivateKey = ldcpay_get_private_key($pdo);
 
 if ($ldcClientId !== '' && $ldcClientSecret !== '' && $ldcPrivateKey !== '') {
-    $ldcResult = ldcpay_submit($pdo, $order, [
+    $ldcResult = ldcpay_submit($pdo, [
+        'order_no' => (string)$order['order_no'],
+        'price' => $order['price'],
+        'product_name' => $payProductName,
+    ], [
         'external_order_no' => $externalOrderNo,
-        'order_name' => ($order['product_name'] ?: '商品') . ' - 1个月',
     ]);
     if ($ldcResult['success']) {
-        $payLabel = 'LDC Pay (Ed25519)';
+        $payLabel = 'Linux DO Credit · 官方接口';
         $params = $ldcResult['params'];
         $submitUrl = $ldcResult['url'];
     } else {
@@ -143,36 +178,33 @@ if ($ldcClientId !== '' && $ldcClientSecret !== '' && $ldcPrivateKey !== '') {
     }
 }
 
-// 降级到易支付 (MD5)
-if ($payLabel === '') {
-    $pid = commerceGetSetting($pdo, 'epay_pid');
-    $key = commerceGetSetting($pdo, 'epay_key');
-    $notifyUrl = commerceGetSetting($pdo, 'notify_url');
-    $returnUrl = commerceGetSetting($pdo, 'return_url');
-
-    if ($pid === '' || $key === '') {
+// 2) 降级到易支付兼容接口 (MD5)
+if ($payLabel === '' || empty($params)) {
+    if ($ldcClientId === '' || $ldcClientSecret === '') {
         $msg = '支付未配置，请联系管理员';
         if ($ldcPayError !== '') {
-            $msg = 'LDC Pay 失败：' . $ldcPayError . '；易支付也未配置';
+            $msg = '官方支付接口失败：' . $ldcPayError . '；易支付兼容接口也无法使用（凭证缺失）';
         }
         exit($msg);
     }
 
     $payLabel = $ldcPayError !== ''
-        ? 'EasyPay (MD5) — LDC Pay 不可用，已自动降级'
-        : 'EasyPay (MD5)';
+        ? 'Linux DO Credit · 易支付兼容'
+        : 'Linux DO Credit';
 
-    $params = [
-        'pid' => $pid,
-        'type' => 'epay',
-        'out_trade_no' => $externalOrderNo,
-        'name' => ($order['product_name'] ?: '商品') . ' - 1个月',
-        'money' => $order['price'],
-        'notify_url' => $notifyUrl,
-        'return_url' => $returnUrl
-    ];
-    $params['sign'] = makeSign($params, $key);
-    $params['sign_type'] = 'MD5';
+    try {
+        $params = epay_submit_params(
+            [$ldcClientId, $ldcClientSecret],
+            $externalOrderNo,
+            $payProductName,
+            $payMoney,
+            $notifyUrl,
+            $returnUrl
+        );
+    } catch (Throwable $e) {
+        logError($pdo, 'pay.submit', $e->getMessage(), ['order_no' => $orderNo]);
+        exit('支付参数生成失败，请稍后重试');
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -206,7 +238,7 @@ if ($payLabel === '') {
 <body>
     <div class="loading">
         <div class="spinner"></div>
-        <p>正在跳转到支付页面，请稍候...</p>
+        <p>正在跳转到 Linux DO Credit 支付页面，请稍候...</p>
         <p class="pay-label">支付方式：<?= htmlspecialchars($payLabel, ENT_QUOTES, 'UTF-8') ?></p>
     </div>
     <form id="payForm" method="POST" action="<?= htmlspecialchars($submitUrl, ENT_QUOTES, 'UTF-8') ?>">

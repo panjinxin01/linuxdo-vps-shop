@@ -57,7 +57,7 @@ function verifyCsrfToken(?string $token): bool {
 function requireCsrf(): void {
     $token = getCsrfTokenFromRequest();
     if (!verifyCsrfToken($token)) {
-        jsonResponse(0, 'CSRF token invalid');
+        jsonResponse(0, '安全验证失败（CSRF Token 无效或已过期），请刷新页面后重试');
     }
 }
 
@@ -85,18 +85,18 @@ function getClientIp(): string {
 
 function securityTableExists(PDO $pdo, string $table): bool {
     static $cache = [];
-    if (array_key_exists($table, $cache)) {
-        return $cache[$table];
+    if (($cache[$table] ?? false) === true) {
+        return true;
     }
     try {
-        // 直接尝试查询表，比SHOW TABLES LIKE 更可靠
-        $stmt = $pdo->query("SELECT 1 FROM `" . preg_replace('/[^a-zA-Z0-9_]/', '', $table) . "` LIMIT 0");
+        // 直接尝试查询表，比SHOW TABLES LIKE 更可靠。
+        // 只缓存存在=true，避免同一请求内迁移建表后仍读取旧的 false。
+        $pdo->query("SELECT 1 FROM `" . preg_replace('/[^a-zA-Z0-9_]/', '', $table) . "` LIMIT 0");
         $cache[$table] = true;
+        return true;
     } catch (Throwable $e) {
-        // 如果表不存在会抛出异常
-        $cache[$table] = false;
+        return false;
     }
-    return $cache[$table];
 }
 
 function rateLimit(PDO $pdo, string $action, string $identity = '', int $limit = 5, int $windowSeconds = 300, int $blockSeconds = 900): void {
@@ -247,8 +247,7 @@ function httpRequest(string $url, array $options = []): array {
     $ctx = stream_context_create([
         'http' => [
             'method' => $method,
-            'header' => implode("
-", $headerLines),
+            'header' => implode("\n", $headerLines),
             'content' => $content,
             'timeout' => $timeout,
             'ignore_errors' => true,

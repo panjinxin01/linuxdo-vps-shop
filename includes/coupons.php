@@ -46,7 +46,7 @@ function computeCouponDiscount(array $coupon, float $amount): array {
 /**
  * @return array { ok: bool, msg?: string, coupon?: array, discount?: float, final?: float, code?: string }
  */
-function validateCouponForAmount(PDO $pdo, string $code, ?int $userId, float $amount, bool $forUpdate = false): array {
+function validateCouponForAmount(PDO $pdo, string $code, ?int $userId, float $amount, bool $forUpdate = false, ?int $productId = null): array {
     $code = normalizeCouponCode($code);
     if ($code === '') {
         return ['ok' => false, 'msg' => '优惠券码不能为空'];
@@ -74,6 +74,17 @@ function validateCouponForAmount(PDO $pdo, string $code, ?int $userId, float $am
     }
     if ((int)($coupon['status'] ?? 0) !== 1) {
         return ['ok' => false, 'msg' => '优惠券已停用'];
+    }
+
+    // 检查优惠券是否限定了商品
+    $couponProductId = isset($coupon['product_id']) ? (int)$coupon['product_id'] : 0;
+    if ($couponProductId > 0) {
+        if ($productId === null || $productId <= 0) {
+            return ['ok' => false, 'msg' => '该优惠券仅限指定商品使用'];
+        }
+        if ($couponProductId !== $productId) {
+            return ['ok' => false, 'msg' => '该优惠券不适用于当前商品'];
+        }
     }
 
     $now = time();
@@ -125,6 +136,23 @@ function reserveCouponUsage(PDO $pdo, int $couponId, int $userId, string $orderN
     if (!securityTableExists($pdo, 'coupon_usages')) {
         return false;
     }
+    // 在事务中先锁定优惠券行，防止并发超用
+    try {
+        $lockStmt = $pdo->prepare('SELECT used_count, max_uses FROM coupons WHERE id = ? FOR UPDATE');
+        $lockStmt->execute([$couponId]);
+        $couponRow = $lockStmt->fetch(PDO::FETCH_ASSOC);
+        if (!$couponRow) {
+            return false;
+        }
+        $maxUses = (int)($couponRow['max_uses'] ?? 0);
+        $usedCount = (int)($couponRow['used_count'] ?? 0);
+        if ($maxUses > 0 && $usedCount >= $maxUses) {
+            return false;
+        }
+    } catch (Throwable $e) {
+        return false;
+    }
+
     $stmt = $pdo->prepare('INSERT INTO coupon_usages (coupon_id, user_id, order_no, status) VALUES (?, ?, ?, 0)');
     $ok = $stmt->execute([$couponId, $userId, $orderNo]);
     if ($ok && securityTableExists($pdo, 'coupons')) {

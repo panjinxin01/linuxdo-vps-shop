@@ -109,7 +109,9 @@ try {
     switch ($action) {
         case 'list':
             $sql = productSelectSql($pdo, true);
-            $sql = preg_replace('/ ORDER BY .*$/', ' WHERE p.status = 1' . (commerceColumnExists($pdo, 'products', 'sort_order') ? ' ORDER BY p.sort_order DESC, p.id DESC' : ' ORDER BY p.id DESC'), $sql);
+            // 直接在 FROM/LEFT JOIN 之后插入 WHERE p.status = 1，避免正则替换 ORDER BY 不可靠
+            $orderByClause = commerceColumnExists($pdo, 'products', 'sort_order') ? ' ORDER BY p.sort_order DESC, p.id DESC' : ' ORDER BY p.id DESC';
+            $sql = preg_replace('/ ORDER BY .*$/', '', $sql) . ' WHERE p.status = 1' . $orderByClause;
             $stmt = $pdo->query($sql);
             $list = $stmt->fetchAll(PDO::FETCH_ASSOC);
             $currentUser = null;

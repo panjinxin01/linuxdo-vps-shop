@@ -11,10 +11,20 @@ $status = [
     'tables_ok' => false,
     'admin_ok' => false,
     'admin_count' => 0,
+    // 仅回传是否启用恢复模式，不回传密钥是否已配置，避免信息泄露
     'recovery_enabled' => defined('ADMIN_RECOVERY_ENABLED') ? (bool)ADMIN_RECOVERY_ENABLED : false,
-    'recovery_key_set' => defined('ADMIN_RECOVERY_KEY') && trim((string)ADMIN_RECOVERY_KEY) !== '',
+    'recovery_local_allowed' => false,
     'missing_tables' => []
 ];
+
+// 本机可执行标记：供 setup 页面决定是否展示恢复操作区
+$remoteAddr = (string)($_SERVER['REMOTE_ADDR'] ?? '');
+$isLocal = $remoteAddr === '127.0.0.1' || $remoteAddr === '::1' || strpos($remoteAddr, '127.') === 0;
+if (stripos($remoteAddr, '::ffff:') === 0) {
+    $mapped = substr($remoteAddr, 7);
+    $isLocal = $isLocal || strpos($mapped, '127.') === 0;
+}
+$status['recovery_local_allowed'] = $isLocal;
 
 // 检查配置是否存在
 if (!defined('DB_HOST') || !defined('DB_USER') || !defined('DB_NAME')) {

@@ -1,43 +1,46 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>创建管理员 - VPS积分商城</title>
-    <link rel="stylesheet" href="../css/admin.css?v=20260315j">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/admin.css?v=20260822">
     <script>
-        // 自动缓存破坏
-        (function() {
-            const v = Date.now();
-            document.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
-                if (link.href && !link.href.includes('fonts.googleapis.com')) {
-                    link.href = link.href.split('?')[0] + '?v=' + v;
+        // 主题防闪烁：默认深色，与前台共享 localStorage.theme（v20260822 与前台逻辑统一）
+        (function () {
+            try {
+                if (localStorage.getItem("theme") === "light") {
+                    document.documentElement.classList.remove("dark");
                 }
-            });
+            } catch (e) {}
         })();
     </script>
 </head>
 <body class="auth-page setup-page">
     <div class="auth-layout">
         <div class="auth-card">
-            <div style="text-align:center;margin-bottom:32px">
-                <div style="font-size:48px;margin-bottom:16px"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
-                <h1 style="font-size:24px;font-weight:700;color:var(--text-main);margin-bottom:8px">创建管理员</h1>
-                <p id="setupSubtitle" style="color:var(--text-muted);font-size:14px">初始化系统，设置首个管理员账号</p>
+            <div style="text-align:center;margin-bottom:30px">
+                <div class="auth-brand-badge">
+                    <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </div>
+                <h1 class="auth-title">创建管理员</h1>
+                <p id="setupSubtitle" class="auth-subtitle">初始化系统，设置首个管理员账号</p>
+            </div>
 
-            </div>
-            
             <div class="form-group">
-                <label>管理员用户名</label>
-                <input type="text" id="username" placeholder="请设置用户名">
+                <label class="auth-field-label" for="username">管理员用户名</label>
+                <input type="text" id="username" class="auth-input" placeholder="请设置用户名" autocomplete="username">
             </div>
             <div class="form-group">
-                <label>密码</label>
-                <input type="password" id="password" placeholder="请设置密码（至少6位）">
+                <label class="auth-field-label" for="password">密码</label>
+                <input type="password" id="password" class="auth-input" placeholder="请设置密码（至少6位）" autocomplete="new-password">
             </div>
             <div class="form-group">
-                <label>确认密码</label>
-                <input type="password" id="password2" placeholder="请再次输入密码">
+                <label class="auth-field-label" for="password2">确认密码</label>
+                <input type="password" id="password2" class="auth-input" placeholder="请再次输入密码" autocomplete="new-password">
             </div>
 
             <div id="existingAdminNotice" style="display:none;margin:16px 0;padding:14px 16px;border:1px solid rgba(245,158,11,.35);background:rgba(245,158,11,.08);border-radius:12px;color:#fbbf24;font-size:13px;line-height:1.7">
@@ -45,12 +48,12 @@
                 <div>因此不能重复创建首个管理员。如果这不是你预期的情况，说明你现在连接的数据库里原本就有旧的管理员数据。你可以直接跳过管理员初始化前往登录，或在下方执行重置管理员操作。</div>
             </div>
 
-            <div id="recoveryGuide" style="display:none;margin:16px 0;padding:16px;border:1px solid var(--border);background:rgba(255,255,255,.03);border-radius:12px;color:var(--text-muted);font-size:13px;line-height:1.8">
+            <div id="recoveryGuide" style="display:none;margin:16px 0;padding:16px;border:1px solid var(--border);background:var(--bg-hover);border-radius:12px;color:var(--text-muted);font-size:13px;line-height:1.8">
                 <div style="color:var(--text-main);font-weight:700;margin-bottom:8px">管理员恢复操作说明</div>
-                <div>如需重新创建首个管理员，请先到项目根目录的 <code style="color:#fff">/api/config.php</code> 手动配置下面两项：</div>
-                <div style="margin-top:8px;padding:12px;border-radius:10px;background:rgba(0,0,0,.18);font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;color:#e5e7eb">define('ADMIN_RECOVERY_ENABLED', true);<br>define('ADMIN_RECOVERY_KEY', '请替换为你自己设置的高强度恢复密钥');</div>
+                <div>如需重新创建首个管理员，请先到项目根目录的 <code style="color:var(--primary)">/api/config.local.php</code> 手动配置下面两项：</div>
+                <div style="margin-top:8px;padding:12px;border-radius:10px;background:var(--bg-darker);border:1px solid var(--border-light);font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;color:var(--text-light)">return [<br>&nbsp;&nbsp;'ADMIN_RECOVERY_ENABLED' =&gt; true,<br>&nbsp;&nbsp;'ADMIN_RECOVERY_KEY' =&gt; '请替换为你自己设置的高强度恢复密钥',<br>];</div>
                 <div style="margin-top:8px">配置完成并保存后，刷新当前页面，再使用下方“恢复模式”清空旧管理员数据。</div>
-                <div style="margin-top:8px;color:#fbbf24">注意：恢复完成后，请立即把 <code style="color:#fff">ADMIN_RECOVERY_ENABLED</code> 改回 <code style="color:#fff">false</code>。</div>
+                <div style="margin-top:8px;color:#fbbf24">注意：恢复完成后，请立即把 <code style="color:var(--primary)">ADMIN_RECOVERY_ENABLED</code> 改回 <code style="color:var(--primary)">false</code>。</div>
             </div>
 
             <div id="recoveryPanel" style="display:none;margin:16px 0 4px;padding:16px;border:1px solid rgba(239,68,68,.28);background:rgba(239,68,68,.06);border-radius:12px">
@@ -58,7 +61,7 @@
                 <div style="color:var(--text-muted);font-size:13px;line-height:1.7;margin-bottom:14px">该操作会删除当前数据库中的所有管理员账号，仅在你确认这是旧数据且无法登录时使用。</div>
                 <div class="form-group">
                     <label>恢复密钥</label>
-                    <input type="password" id="recoveryKey" placeholder="请输入 /api/config.php 中配置的 ADMIN_RECOVERY_KEY">
+                    <input type="password" id="recoveryKey" placeholder="请输入 /api/config.local.php 中配置的 ADMIN_RECOVERY_KEY">
                 </div>
                 <div class="form-group">
                     <label>确认文本</label>
@@ -129,7 +132,7 @@
                     setTimeout(() => recoveryKeyInput.focus(), 250);
                 }
             } else {
-                alert('当前恢复模式尚未启用，已为你定位到重置管理员操作说明。请先按说明配置 /api/config.php。');
+                alert('当前恢复模式尚未启用，已为你定位到重置管理员操作说明。请先按说明配置 /api/config.local.php。');
             }
         }
 
@@ -153,21 +156,25 @@
                 resetBtn.className = installState.recovery_enabled ? 'btn btn-danger' : 'btn btn-outline';
             }
             if (guide) guide.style.display = locked ? 'block' : 'none';
-            if (panel) panel.style.display = locked && installState.recovery_enabled ? 'block' : 'none';
+            const recoveryActionable = !!(installState.recovery_enabled && installState.recovery_local_allowed);
+            if (panel) panel.style.display = locked && recoveryActionable ? 'block' : 'none';
             if (subtitle) {
                 subtitle.textContent = locked
-                    ? (installState.recovery_enabled
+                    ? (recoveryActionable
                         ? '当前数据库中已存在管理员账号。你可以跳过管理员初始化前往登录，或使用已启用的恢复模式重新初始化管理员。'
                         : '当前数据库中已存在管理员账号。你可以直接跳过前往登录，或按下方说明启用恢复模式后再重置管理员。')
                     : '初始化系统，设置首个管理员账号';
             }
             if (guide) {
-                const hint = installState.recovery_enabled
-                    ? '已检测到恢复模式处于启用状态：请谨慎输入恢复密钥后再执行清空。'
-                    : '当前恢复模式未启用，所以页面只会显示操作说明，不会直接提供危险操作按钮。';
+                let hint = '当前恢复模式未启用，所以页面只会显示操作说明，不会直接提供危险操作按钮。';
+                if (installState.recovery_enabled && !installState.recovery_local_allowed) {
+                    hint = '恢复模式已启用，但当前访问来源不是服务器本机，因此不会展示危险操作面板。请在本机访问后执行。';
+                } else if (recoveryActionable) {
+                    hint = '已检测到恢复模式处于启用状态：请谨慎输入恢复密钥后再执行清空。';
+                }
                 guide.dataset.extraHint = hint;
                 guide.innerHTML = guide.innerHTML.replace(/<div id="recoveryDynamicHint"[\s\S]*?<\/div>/, '');
-                guide.insertAdjacentHTML('beforeend', '<div id="recoveryDynamicHint" style="margin-top:8px;color:' + (installState.recovery_enabled ? '#fca5a5' : '#93c5fd') + '">' + hint + '</div>');
+                guide.insertAdjacentHTML('beforeend', '<div id="recoveryDynamicHint" style="margin-top:8px;color:' + (recoveryActionable ? '#fca5a5' : '#93c5fd') + '">' + hint + '</div>');
             }
         }
 
@@ -189,7 +196,7 @@
             const user = document.getElementById('username').value.trim();
             const pass = document.getElementById('password').value;
             const pass2 = document.getElementById('password2').value;
-            
+
             if (!user || !pass) {
                 alert('请填写完整');
                 return;
@@ -202,12 +209,12 @@
                 alert('两次密码不一致');
                 return;
             }
-            
+
             const body = new FormData();
             body.append('action', 'setup');
             body.append('username', user);
             body.append('password', pass);
-            
+
             apiFetch('../api/admin.php', { method: 'POST', body })
                 .then(r => r.json())
                 .then(data => {
@@ -227,7 +234,7 @@
 
         function doRecoveryReset() {
             if (!installState.recovery_enabled) {
-                alert('恢复模式尚未启用，请先到 /api/config.php 中把 ADMIN_RECOVERY_ENABLED 改为 true，并设置 ADMIN_RECOVERY_KEY。');
+                alert('恢复模式尚未启用，请先到 /api/config.local.php 中把 ADMIN_RECOVERY_ENABLED 改为 true，并设置 ADMIN_RECOVERY_KEY。');
                 return;
             }
 

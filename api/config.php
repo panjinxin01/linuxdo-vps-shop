@@ -1,33 +1,56 @@
 <?php
-// 数据库配置 - 请修改为实际配置
-define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
-define('DB_PORT', getenv('DB_PORT') ? (int)getenv('DB_PORT') : 3306);
-define('DB_USER', getenv('DB_USER') ?: 'root');
-define('DB_PASS', getenv('DB_PASS') ?: '');
-define('DB_NAME', getenv('DB_NAME') ?: 'vps_shop');
+/**
+ * 配置加载器
+ *
+ * 同时支持两种使用方式：
+ *   1. 传统 define() 常量（旧代码兼容）：DB_HOST, DB_USER, LINUXDO_CLIENT_ID …
+ *   2. AppConfig 对象（新代码推荐）：AppConfig::getInstance()->dbHost
+ *
+ * 配置优先级（高→低）：
+ *   环境变量 → config.local.php（部署私有配置）→ 内置默认值
+ *
+ * 部署私有配置示例（config.local.php）：
+ *   <?php
+ *   return [
+ *       'DB_HOST' => '127.0.0.1',
+ *       'DB_USER' => 'your_user',
+ *       'DB_PASS' => 'your_pass',
+ *       'DB_NAME' => 'your_db',
+ *       'DATA_ENCRYPTION_KEY' => '你的32位以上加密密钥',
+ *       'ADMIN_RECOVERY_ENABLED' => false,
+ *       'ADMIN_RECOVERY_KEY' => '恢复密钥',
+ *       'LINUXDO_CLIENT_ID' => '',
+ *       'LINUXDO_CLIENT_SECRET' => '',
+ *       'LINUXDO_REDIRECT_URI' => '',
+ *   ];
+ */
 
-// 站点配置
-define('SITE_NAME', 'VPS积分商城');
+// ── 1. 从 config.local.php + 环境变量构建 AppConfig ──
+require_once __DIR__ . '/../includes/AppConfig.php';
+$appConfig = AppConfig::fromEnv(__DIR__ . '/config.local.php');
+// 同步单例，避免后续 getInstance() 重复加载配置
+AppConfig::setInstance($appConfig);
 
-// 加密密钥（用于敏感字段加密，请替换为32位以上随机字符串）
-// 示例: openssl rand -base64 32
-define('DATA_ENCRYPTION_KEY', getenv('DATA_ENCRYPTION_KEY') ?: '');
-
-// 管理员恢复模式（仅用于忘记管理员账号时的紧急恢复）
-// 操作位置：项目根目录 /api/config.php
-// 使用方法：临时将 ADMIN_RECOVERY_ENABLED 改为 true，并设置 ADMIN_RECOVERY_KEY；恢复完成后请立即改回 false
-// 示例：define('ADMIN_RECOVERY_ENABLED', true);
-define('ADMIN_RECOVERY_ENABLED', filter_var(getenv('ADMIN_RECOVERY_ENABLED') ?: 'false', FILTER_VALIDATE_BOOLEAN));
-define('ADMIN_RECOVERY_KEY', getenv('ADMIN_RECOVERY_KEY') ?: '');
-
-// Linux DO Connect OAuth2 配置
-// 请在 https://connect.linux.do 申请接入后填写以下信息
-define('LINUXDO_CLIENT_ID', '');
-define('LINUXDO_CLIENT_SECRET', '');
-define('LINUXDO_REDIRECT_URI', '');
-
-// Linux DO OAuth2 端点
-define('LINUXDO_AUTH_URL', 'https://connect.linux.do/oauth2/authorize');
-define('LINUXDO_TOKEN_URL', 'https://connect.linux.do/oauth2/token');
-define('LINUXDO_USER_URL', 'https://connect.linux.do/api/user');
-
+// ── 2. 定义传统常量（向后兼容） ──
+$defineMap = [
+    'DB_HOST'                => $appConfig->dbHost,
+    'DB_PORT'                => $appConfig->dbPort,
+    'DB_USER'                => $appConfig->dbUser,
+    'DB_PASS'                => $appConfig->dbPass,
+    'DB_NAME'                => $appConfig->dbName,
+    'SITE_NAME'              => $appConfig->siteName,
+    'DATA_ENCRYPTION_KEY'    => $appConfig->dataEncryptionKey,
+    'ADMIN_RECOVERY_ENABLED' => $appConfig->adminRecoveryEnabled,
+    'ADMIN_RECOVERY_KEY'     => $appConfig->adminRecoveryKey,
+    'LINUXDO_CLIENT_ID'      => $appConfig->linuxdoClientId,
+    'LINUXDO_CLIENT_SECRET'  => $appConfig->linuxdoClientSecret,
+    'LINUXDO_REDIRECT_URI'   => $appConfig->linuxdoRedirectUri,
+    'LINUXDO_AUTH_URL'       => $appConfig->linuxdoAuthUrl,
+    'LINUXDO_TOKEN_URL'      => $appConfig->linuxdoTokenUrl,
+    'LINUXDO_USER_URL'       => $appConfig->linuxdoUserUrl,
+];
+foreach ($defineMap as $name => $value) {
+    if (!defined($name)) {
+        define($name, $value);
+    }
+}

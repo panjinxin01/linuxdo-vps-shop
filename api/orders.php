@@ -66,6 +66,18 @@ function autoCancelExpiredOrders(PDO $pdo): void {
         foreach ($orderNos as $no) {
             releaseCouponByOrder($pdo, $no);
         }
+        // 超时取消后释放仍未被其他已支付订单占用的商品库存
+        $productIds = array_values(array_unique(array_filter(array_map('intval', $productIds))));
+        foreach ($productIds as $pid) {
+            if ($pid <= 0) {
+                continue;
+            }
+            $paid = $pdo->prepare('SELECT COUNT(*) FROM orders WHERE product_id = ? AND status = 1');
+            $paid->execute([$pid]);
+            if ((int)$paid->fetchColumn() === 0) {
+                $pdo->prepare('UPDATE products SET status = 1 WHERE id = ? AND status = 0')->execute([$pid]);
+            }
+        }
         $pdo->commit();
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) {
@@ -167,7 +179,14 @@ function buildOrderSelectSql(bool $forAdmin = false): string {
     return 'SELECT ' . implode(', ', $fields) . ' FROM orders o' . $join;
 }
 
-autoCancelExpiredOrders($pdo);
+// 限制 autoCancelExpiredOrders 扫描频率：使用文件缓存标记，每分钟最多执行一次
+$autoCancelLockFile = sys_get_temp_dir() . '/vps_shop_autocancel.lock';
+$autoCancelInterval = 60; // 秒
+$autoCancelLast = @filemtime($autoCancelLockFile);
+if ($autoCancelLast === false || (time() - $autoCancelLast) >= $autoCancelInterval) {
+    autoCancelExpiredOrders($pdo);
+    @touch($autoCancelLockFile);
+}
 
 try {
     switch ($action) {
@@ -209,6 +228,8 @@ try {
                 if ($existingPendingOrder) {
                     $createdTs = strtotime((string)($existingPendingOrder['created_at'] ?? ''));
                     if ($createdTs && $createdTs >= time() - 15 * 60) {
+                        // 兼容旧待支付订单：若商品仍为在售，补锁库存
+                        $pdo->prepare('UPDATE products SET status = 0 WHERE id = ? AND status = 1')->execute([$productId]);
                         $pdo->commit();
                         jsonResponse(1, '您已有待支付订单，已直接跳转支付', buildPendingOrderResponse($existingPendingOrder, $product));
                     }
@@ -231,7 +252,7 @@ try {
                 $couponDiscount = 0.0;
                 $normalizedCode = null;
                 if ($useCoupons) {
-                    $res = validateCouponForAmount($pdo, $couponCode, (int)$user['id'], $priceAfterTrust, true);
+                    $res = validateCouponForAmount($pdo, $couponCode, (int)$user['id'], $priceAfterTrust, true, (int)$product['id']);
                     if (!$res['ok']) {
                         $pdo->rollBack();
                         jsonResponse(0, $res['msg'] ?? '优惠券不可用');
@@ -243,25 +264,25 @@ try {
                 }
                 $orderNo = 'VPS' . date('YmdHis') . bin2hex(random_bytes(4));
                 $deliveryStatus = 'pending';
-                $insertColumns = ['order_no', 'user_id', 'product_id', 'original_price', 'trust_discount_amount', 'trust_level_snapshot', 'coupon_id', 'coupon_code', 'coupon_discount', 'price', 'payment_method', 'balance_paid_amount', 'external_pay_amount', 'delivery_status', 'delivery_note'];
-                $insertValues = [
-                    $orderNo,
-                    (int)$user['id'],
-                    $productId,
-                    $listPrice,
-                    round($trustDiscount['discount_amount'], 2),
-                    (int)($user['linuxdo_trust_level'] ?? 0),
-                    $couponId,
-                    $normalizedCode,
-                    round($couponDiscount, 2),
-                    round($finalPrice, 2),
-                    'pending',
-                    0,
-                    round($finalPrice, 2),
-                    $deliveryStatus,
-                    !empty($access['risk_review']) ? '命中社区规则，支付后需人工审核' : null,
+                // 基础必填列 + 扩展列按存在性动态写入，兼容旧库未升级场景
+                $insertMap = [
+                    'order_no' => $orderNo,
+                    'user_id' => (int)$user['id'],
+                    'product_id' => $productId,
+                    'price' => round($finalPrice, 2),
                 ];
-                $snapshotMap = [
+                $optionalMap = [
+                    'original_price' => $listPrice,
+                    'trust_discount_amount' => round($trustDiscount['discount_amount'], 2),
+                    'trust_level_snapshot' => (int)($user['linuxdo_trust_level'] ?? 0),
+                    'coupon_id' => $couponId,
+                    'coupon_code' => $normalizedCode,
+                    'coupon_discount' => round($couponDiscount, 2),
+                    'payment_method' => 'pending',
+                    'balance_paid_amount' => 0,
+                    'external_pay_amount' => round($finalPrice, 2),
+                    'delivery_status' => $deliveryStatus,
+                    'delivery_note' => !empty($access['risk_review']) ? '命中社区规则，支付后需人工审核' : null,
                     'product_name_snapshot' => $product['name'] ?? null,
                     'cpu_snapshot' => $product['cpu'] ?? null,
                     'memory_snapshot' => $product['memory'] ?? null,
@@ -277,14 +298,16 @@ try {
                     'ssh_user_snapshot' => $product['ssh_user'] ?? null,
                     'ssh_password_snapshot' => $product['ssh_password'] ?? null,
                 ];
-                foreach ($snapshotMap as $column => $value) {
+                foreach ($optionalMap as $column => $value) {
                     if (commerceColumnExists($pdo, 'orders', $column)) {
-                        $insertColumns[] = $column;
-                        $insertValues[] = $value;
+                        $insertMap[$column] = $value;
                     }
                 }
-                $columnSql = implode(', ', array_merge($insertColumns, ['delivery_updated_at']));
-                $valueSql = implode(', ', array_merge(array_fill(0, count($insertValues), '?'), ['NOW()']));
+                $insertColumns = array_keys($insertMap);
+                $insertValues = array_values($insertMap);
+                $hasDeliveryUpdatedAt = commerceColumnExists($pdo, 'orders', 'delivery_updated_at');
+                $columnSql = implode(', ', $insertColumns) . ($hasDeliveryUpdatedAt ? ', delivery_updated_at' : '');
+                $valueSql = implode(', ', array_fill(0, count($insertValues), '?')) . ($hasDeliveryUpdatedAt ? ', NOW()' : '');
                 $stmt = $pdo->prepare("INSERT INTO orders ({$columnSql}) VALUES ({$valueSql})");
                 $stmt->execute($insertValues);
                 $orderId = (int)$pdo->lastInsertId();
@@ -294,6 +317,13 @@ try {
                         $pdo->rollBack();
                         jsonResponse(0, '优惠券占用失败');
                     }
+                }
+                // 独享库存：创建待支付订单时立即锁定商品，防止并发超卖
+                $lockProduct = $pdo->prepare('UPDATE products SET status = 0 WHERE id = ? AND status = 1');
+                $lockProduct->execute([$productId]);
+                if ($lockProduct->rowCount() === 0) {
+                    $pdo->rollBack();
+                    jsonResponse(0, '商品刚刚被抢购或已下架，请刷新后重试');
                 }
                 $pdo->commit();
                 jsonResponse(1, '订单创建成功', [
@@ -339,6 +369,15 @@ try {
                 if ($price <= 0) {
                     $pdo->rollBack();
                     jsonResponse(0, '订单金额无效');
+                }
+                // 防止同一商品被多个待支付订单并发支付成功
+                if (!empty($order['product_id'])) {
+                    $dup = $pdo->prepare('SELECT order_no FROM orders WHERE product_id = ? AND status = 1 AND order_no <> ? LIMIT 1 FOR UPDATE');
+                    $dup->execute([(int)$order['product_id'], $orderNo]);
+                    if ($dup->fetchColumn()) {
+                        $pdo->rollBack();
+                        jsonResponse(0, '该商品已被其他订单购买，当前订单无法支付');
+                    }
                 }
                 $balanceResult = commerceAdjustBalance($pdo, (int)$_SESSION['user_id'], 'consume', -$price, [
                     'related_order_id' => (int)$order['id'],
@@ -518,10 +557,12 @@ try {
             }
             try {
                 $pdo->beginTransaction();
+                // 若订单状态为待支付，释放商品库存（恢复 products.status）
+                if ((int)$order['status'] === 0 && !empty($order['product_id']) && commerceTableExists($pdo, 'products')) {
+                    $pdo->prepare('UPDATE products SET status = 1 WHERE id = ? AND status = 0')->execute([(int)$order['product_id']]);
+                }
                 releaseCouponByOrder($pdo, $orderNo);
                 $pdo->prepare('DELETE FROM orders WHERE order_no = ?')->execute([$orderNo]);
-                if ((int)$order['status'] === 0) {
-                    }
                 $pdo->commit();
             } catch (Throwable $e) {
                 if ($pdo->inTransaction()) {
@@ -651,25 +692,6 @@ try {
             }
             logAudit($pdo, 'order.mark_delivered', ['delivery_info_length' => utf8Length($deliveryInfo)], $orderNo);
             jsonResponse(1, '已标记为交付');
-            break;
-
-        case 'update_delivery_info':
-            checkAdmin($pdo);
-            $orderNo = normalizeString(requestValue('order_no', ''));
-            $deliveryInfo = normalizeString(requestValue('delivery_info', ''), 5000);
-            if ($orderNo === '') {
-                jsonResponse(0, '订单号不能为空');
-            }
-            if (!commerceColumnExists($pdo, 'orders', 'delivery_info')) {
-                jsonResponse(0, '数据库未升级，请先执行数据库更新');
-            }
-            $stmt = $pdo->prepare('UPDATE orders SET delivery_info = ?, delivery_updated_at = NOW() WHERE order_no = ?');
-            $stmt->execute([$deliveryInfo !== '' ? $deliveryInfo : null, $orderNo]);
-            if ($stmt->rowCount() === 0) {
-                jsonResponse(0, '订单不存在');
-            }
-            logAudit($pdo, 'order.update_delivery_info', ['info_length' => utf8Length($deliveryInfo)], $orderNo);
-            jsonResponse(1, '交付信息已更新');
             break;
 
         case 'detail':

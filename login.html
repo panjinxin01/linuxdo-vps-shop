@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="zh-CN" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#101014" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f7f7fa" media="(prefers-color-scheme: light)" />
+    <meta name="description" content="VPS积分商城 - 登录你的账户，管理云端资源与服务" />
+    <title>登录 - VPS积分商城</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+    <script>
+      // 防主题闪烁：在渲染前恢复主题（默认深色）
+      (function () {
+        try {
+          if (localStorage.getItem("theme") === "light") {
+            document.documentElement.classList.remove("dark");
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <style>
+      :root {
+        --primary: #18a058;
+        --primary-hover: #36ad6a;
+        --radius: 10px;
+        --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+      html.dark {
+        --bg: #101014;
+        --card-bg: #18181c;
+        --card-border: #2a2a30;
+        --text-main: rgba(255, 255, 255, 0.92);
+        --text-sub: rgba(255, 255, 255, 0.6);
+        --text-muted: rgba(255, 255, 255, 0.4);
+        --input-bg: #26262a;
+        --input-border: #333338;
+        --input-hover-border: #4a4a52;
+        --hover-bg: rgba(255, 255, 255, 0.06);
+        --alert-bg: rgba(24, 160, 88, 0.12);
+        --alert-border: rgba(24, 160, 88, 0.35);
+        --alert-text: #63e2b7;
+        --divider: #2a2a30;
+        --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+      }
+      html:not(.dark) {
+        --bg: #f7f7fa;
+        --card-bg: #ffffff;
+        --card-border: #e5e5ea;
+        --text-main: rgba(31, 34, 37, 0.92);
+        --text-sub: rgba(31, 34, 37, 0.6);
+        --text-muted: rgba(31, 34, 37, 0.4);
+        --input-bg: #f2f2f5;
+        --input-border: #e0e0e6;
+        --input-hover-border: #c8c8d0;
+        --hover-bg: rgba(0, 0, 0, 0.04);
+        --alert-bg: rgba(24, 160, 88, 0.08);
+        --alert-border: rgba(24, 160, 88, 0.3);
+        --alert-text: #18a058;
+        --divider: #e5e5ea;
+        --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text-main);
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        transition: background 0.3s, color 0.3s;
+      }
+      /* ==================== 顶栏 ==================== */
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 20px;
+      }
+      .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text-main); }
+      .brand-icon {
+        width: 34px; height: 34px; border-radius: 9px;
+        background: linear-gradient(135deg, var(--primary), #36ad6a);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 18px; color: #fff;
+      }
+      .brand-name { font-size: 17px; font-weight: 700; letter-spacing: 0.2px; }
+      .topbar-actions { display: flex; align-items: center; gap: 8px; }
+      .icon-btn {
+        width: 36px; height: 36px; border-radius: 8px;
+        border: none; background: transparent; color: var(--text-sub);
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; transition: background 0.2s, color 0.2s;
+      }
+      .icon-btn:hover { background: var(--hover-bg); color: var(--text-main); }
+
+      /* ==================== 主体 ==================== */
+      .login-main {
+        flex: 1;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 6vh 16px 40px;
+      }
+      .login-card {
+        width: 100%;
+        max-width: 400px;
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 36px 32px 28px;
+      }
+      .login-title { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+      .login-subtitle { font-size: 14px; color: var(--text-sub); margin-bottom: 22px; }
+
+      /* 系统公告 alert */
+      .notice {
+        display: flex;
+        gap: 10px;
+        background: var(--alert-bg);
+        border: 1px solid var(--alert-border);
+        border-radius: var(--radius);
+        padding: 12px 14px;
+        margin-bottom: 22px;
+      }
+      .notice svg { flex-shrink: 0; margin-top: 1px; color: var(--alert-text); }
+      .notice-body { font-size: 13px; line-height: 1.6; }
+      .notice-title { font-weight: 600; color: var(--alert-text); margin-bottom: 2px; }
+      .notice-content { color: var(--text-sub); }
+
+      /* 表单 */
+      .form-group { margin-bottom: 18px; }
+      .input-wrap { position: relative; }
+      .input-icon {
+        position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+        color: var(--text-muted); pointer-events: none; display: flex;
+      }
+      .input-wrap input {
+        width: 100%;
+        padding: 12px 40px 12px 40px;
+        font-size: 14px;
+        font-family: var(--font);
+        color: var(--text-main);
+        background: var(--input-bg);
+        border: 1px solid var(--input-border);
+        border-radius: var(--radius);
+        outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s;
+      }
+      .input-wrap input::placeholder { color: var(--text-muted); }
+      .input-wrap input:hover { border-color: var(--input-hover-border); }
+      .input-wrap input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24, 160, 88, 0.2); }
+      .input-eye {
+        position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+        width: 32px; height: 32px; border: none; background: transparent;
+        color: var(--text-muted); border-radius: 6px; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        transition: background 0.2s, color 0.2s;
+      }
+      .input-eye:hover { background: var(--hover-bg); color: var(--text-main); }
+
+      /* 复选框行 */
+      .remember-row { display: flex; align-items: center; gap: 8px; margin: -4px 0 18px; cursor: pointer; user-select: none; }
+      .remember-row input { accent-color: var(--primary); width: 15px; height: 15px; cursor: pointer; }
+      .remember-row span { font-size: 13px; color: var(--text-sub); }
+
+      /* 主按钮 */
+      .btn-primary {
+        width: 100%;
+        padding: 12px;
+        font-size: 15px;
+        font-weight: 600;
+        font-family: var(--font);
+        color: #fff;
+        background: var(--primary);
+        border: none;
+        border-radius: var(--radius);
+        cursor: pointer;
+        transition: background 0.2s, transform 0.1s;
+      }
+      .btn-primary:hover { background: var(--primary-hover); }
+      .btn-primary:active { transform: scale(0.99); }
+      .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+      /* Linux DO OAuth 按钮 */
+      .oauth-divider {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 16px 0 12px;
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+      .oauth-divider::before,
+      .oauth-divider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--divider);
+      }
+      .btn-linuxdo {
+        width: 100%;
+        padding: 12px;
+        font-size: 14px;
+        font-weight: 500;
+        font-family: var(--font);
+        color: #fff;
+        background: #f0b429;
+        border: none;
+        border-radius: var(--radius);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: background 0.2s, transform 0.1s;
+      }
+      .btn-linuxdo:hover { background: #e5a918; }
+      .btn-linuxdo:active { transform: scale(0.99); }
+      .btn-linuxdo svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+      .btn-outline {
+        width: 100%;
+        margin-top: 12px;
+        padding: 11px;
+        font-size: 14px;
+        font-weight: 500;
+        font-family: var(--font);
+        color: var(--text-main);
+        background: transparent;
+        border: 1px solid var(--input-border);
+        border-radius: var(--radius);
+        cursor: pointer;
+        transition: border-color 0.2s, background 0.2s;
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+      }
+      .btn-outline:hover { border-color: var(--input-hover-border); background: var(--hover-bg); }
+
+      /* 底部链接 */
+      .login-foot {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 24px;
+        padding-top: 18px;
+        border-top: 1px solid var(--divider);
+      }
+      .foot-link {
+        background: none; border: none; cursor: pointer;
+        font-size: 13px; font-family: var(--font);
+        color: var(--text-sub);
+        padding: 6px 10px; border-radius: 6px;
+        text-decoration: none;
+        transition: color 0.2s, background 0.2s;
+      }
+      .foot-link:hover { color: var(--text-main); background: var(--hover-bg); }
+
+      .msg-tip {
+        display: none;
+        font-size: 13px;
+        border-radius: 8px;
+        padding: 10px 12px;
+        margin-bottom: 16px;
+        line-height: 1.5;
+      }
+      .msg-tip.error { display: block; background: rgba(208, 48, 74, 0.12); color: #e88080; border: 1px solid rgba(208, 48, 74, 0.35); }
+      .msg-tip.ok { display: block; background: var(--alert-bg); color: var(--alert-text); border: 1px solid var(--alert-border); }
+
+      /* ==================== 设置弹窗 ==================== */
+      .modal-mask {
+        position: fixed; inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 1000;
+        opacity: 0; visibility: hidden;
+        transition: opacity 0.25s, visibility 0.25s;
+      }
+      .modal-mask.show { opacity: 1; visibility: visible; }
+      .settings-modal {
+        position: fixed; left: 50%; top: 40%;
+        transform: translate(-50%, -50%) scale(0.95);
+        width: min(400px, calc(100vw - 40px));
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 8px;
+        box-shadow: 0 12px 48px 16px rgba(0, 0, 0, 0.22);
+        z-index: 1001;
+        opacity: 0; visibility: hidden;
+        transition: opacity 0.25s, transform 0.25s, visibility 0.25s;
+      }
+      .settings-modal.show {
+        opacity: 1; visibility: visible;
+        transform: translate(-50%, -50%) scale(1);
+      }
+      .settings-head {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 18px 22px 0;
+        font-size: 17px; font-weight: 600;
+        color: var(--text-main);
+      }
+      .settings-close {
+        width: 28px; height: 28px; border: none; border-radius: 6px;
+        background: transparent; color: var(--text-muted);
+        cursor: pointer; display: flex; align-items: center; justify-content: center;
+        transition: background 0.2s, color 0.2s;
+      }
+      .settings-close:hover { background: var(--hover-bg); color: var(--text-main); }
+      .settings-body { padding: 16px 22px 22px; }
+      .settings-row {
+        display: flex; align-items: center; justify-content: space-between;
+        font-size: 14px; color: var(--text-main);
+      }
+      /* Naive UI 风格开关 */
+      .n-switch {
+        position: relative;
+        width: 40px; height: 22px;
+        border-radius: 3px;
+        background: var(--switch-off, rgba(128, 128, 128, 0.35));
+        cursor: pointer; border: none; outline: none;
+        transition: background 0.3s;
+        flex-shrink: 0;
+      }
+      html:not(.dark) .n-switch { --switch-off: rgba(0, 0, 0, 0.14); }
+      html.dark .n-switch { --switch-off: rgba(255, 255, 255, 0.2); }
+      .n-switch .rail-btn {
+        position: absolute; top: 2px; left: 2px;
+        width: 18px; height: 18px;
+        border-radius: 3px;
+        background: #fff;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+        transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .n-switch.active { background: #2080f0; }
+      .n-switch.active .rail-btn { left: 20px; }
+
+      /* 减弱动画效果：开启后禁用全局过渡 */
+      html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after {
+        transition: none !important;
+        animation: none !important;
+      }
+
+      /* 邮箱字段（注册模式显示） */
+      #emailGroup { display: none; }
+      html.reg-mode #emailGroup { display: block; }
+
+      @media (max-width: 480px) {
+        .login-card { padding: 28px 22px 22px; }
+        .login-title { font-size: 22px; }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ==================== 顶栏 ==================== -->
+    <header class="topbar">
+      <a class="brand" href="index.html">
+        <div class="brand-icon">⚡</div>
+        <span class="brand-name">VPS兑换</span>
+      </a>
+      <div class="topbar-actions">
+        <button class="icon-btn" type="button" title="设置" aria-label="设置" onclick="openSettings()">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+        <button class="icon-btn" type="button" id="themeToggle" title="切换暗黑模式" aria-label="切换暗黑模式" onclick="toggleTheme()">
+          <svg id="themeIcon" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ==================== 登录卡片 ==================== -->
+    <main class="login-main">
+      <div class="login-card">
+        <h1 class="login-title" id="formTitle">欢迎回来</h1>
+        <p class="login-subtitle" id="formSubtitle">登录你的账户，管理云端资源与服务。</p>
+
+        <div class="notice">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <div class="notice-body">
+            <div class="notice-title">系统公告</div>
+            <div class="notice-content">若在登录过程中遇到异常情况，可使用账户关联邮箱联系站点管理员寻求帮助。</div>
+          </div>
+        </div>
+
+        <div class="msg-tip" id="msgTip"></div>
+
+        <form id="authForm" onsubmit="doAuth(event)">
+          <div class="form-group">
+            <div class="input-wrap">
+              <span class="input-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                </svg>
+              </span>
+              <input type="text" id="authUser" placeholder="用户名" autocomplete="username" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="input-wrap">
+              <span class="input-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+              </span>
+              <input type="password" id="authPass" placeholder="密码" autocomplete="current-password" />
+              <button class="input-eye" type="button" id="passEye" aria-label="显示密码" onclick="togglePassVisible()">
+                <svg id="eyeIcon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group" id="emailGroup">
+            <div class="input-wrap">
+              <span class="input-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+                </svg>
+              </span>
+              <input type="email" id="authEmail" placeholder="邮箱（选填，用于找回密码）" autocomplete="email" />
+            </div>
+          </div>
+
+          <label class="remember-row">
+            <input type="checkbox" id="publicPc" />
+            <span>我正在使用公共电脑或网络</span>
+          </label>
+
+          <button class="btn-primary" type="submit" id="authBtn">登录</button>
+          <div id="oauthDivider" class="oauth-divider" style="display: none"><span>或</span></div>
+          <button id="linuxdoLoginBtn" class="btn-linuxdo" type="button" style="display: none" onclick="loginWithLinuxDO()">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+            </svg>
+            使用 Linux DO 登录
+          </button>
+        </form>
+
+        <div class="login-foot">
+          <a class="foot-link" href="#" id="switchLink" onclick="switchMode(event)">创建账户</a>
+          <a class="foot-link" href="#" onclick="forgotPassword(event)">找回密码</a>
+        </div>
+      </div>
+    </main>
+
+    <!-- ==================== 设置弹窗 ==================== -->
+    <div class="modal-mask" id="settingsMask" onclick="closeSettings()"></div>
+    <div class="settings-modal" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="settings-head">
+        <span id="settingsTitle">设置</span>
+        <button class="settings-close" type="button" aria-label="close" onclick="closeSettings()">
+          <svg width="14" height="14" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
+            <path d="M2.09 2.22l.06-.07c.17-.18.44-.19.64-.06l.07.06L6 5.29 9.15 2.15c.19-.2.51-.2.7 0 .2.19.2.51 0 .7L6.71 6l3.14 3.15c.18.17.19.44.06.64l-.06.07c-.17.17-.44.19-.64.06l-.07-.06L6 6.71 2.85 9.85c-.2.2-.51.2-.7 0-.2-.19-.2-.51 0-.7L5.29 6 2.15 2.85c-.18-.17-.19-.44-.06-.64z"/>
+          </svg>
+        </button>
+      </div>
+      <div class="settings-body">
+        <div class="settings-row">
+          <span>减弱动画效果</span>
+          <button class="n-switch" id="motionSwitch" type="button" role="switch" aria-checked="false" onclick="toggleReduceMotion()">
+            <span class="rail-btn"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/common.js?v=20260828"></script>
+    <script>
+      // ==================== 主题 ====================
+      function toggleTheme() {
+        const dark = document.documentElement.classList.toggle("dark");
+        try { localStorage.setItem("theme", dark ? "dark" : "light"); } catch (e) {}
+        updateThemeIcon();
+      }
+      function updateThemeIcon() {
+        const dark = document.documentElement.classList.contains("dark");
+        document.getElementById("themeIcon").innerHTML = dark
+          ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'          // 月亮
+          : '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>'; // 太阳
+      }
+      updateThemeIcon();
+
+      // ==================== 密码可见性 ====================
+      let passVisible = false;
+      function togglePassVisible() {
+        passVisible = !passVisible;
+        document.getElementById("authPass").type = passVisible ? "text" : "password";
+        document.getElementById("eyeIcon").innerHTML = passVisible
+          ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/><circle cx="12" cy="12" r="3"/>'
+          : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+      }
+
+      // ==================== 登录 / 注册模式 ====================
+      let isLoginMode = true;
+      function applyMode() {
+        const title = document.getElementById("formTitle");
+        const btn = document.getElementById("authBtn");
+        const link = document.getElementById("switchLink");
+        if (isLoginMode) {
+          document.documentElement.classList.remove("reg-mode");
+          title.textContent = "欢迎回来";
+          btn.textContent = "登录";
+          link.textContent = "创建账户";
+          document.getElementById("authPass").setAttribute("autocomplete", "current-password");
+        } else {
+          document.documentElement.classList.add("reg-mode");
+          title.textContent = "创建账户";
+          btn.textContent = "注册";
+          link.textContent = "已有账户？登录";
+          document.getElementById("authPass").setAttribute("autocomplete", "new-password");
+        }
+      }
+      function switchMode(e) {
+        e.preventDefault();
+        isLoginMode = !isLoginMode;
+        hideMsg();
+        applyMode();
+        const url = new URL(window.location.href);
+        if (!isLoginMode) url.searchParams.set("mode", "register");
+        else url.searchParams.delete("mode");
+        history.replaceState(null, "", url);
+      }
+      function forgotPassword(e) {
+        e.preventDefault();
+        showMsg("如需找回密码，请使用账户关联邮箱联系站点管理员处理。", "ok");
+      }
+
+      // ==================== 提示信息 ====================
+      function showMsg(text, type) {
+        const tip = document.getElementById("msgTip");
+        tip.className = "msg-tip " + (type === "ok" ? "ok" : "error");
+        tip.textContent = text;
+      }
+      function hideMsg() { document.getElementById("msgTip").className = "msg-tip"; }
+
+      // ==================== 认证提交 ====================
+      function doAuth(e) {
+        e.preventDefault();
+        const username = document.getElementById("authUser").value.trim();
+        const password = document.getElementById("authPass").value;
+        const email = document.getElementById("authEmail").value.trim();
+        if (!username || !password) { showMsg("请填写用户名和密码"); return; }
+        const body = new FormData();
+        body.append("action", isLoginMode ? "login" : "register");
+        body.append("username", username);
+        body.append("password", password);
+        if (!isLoginMode && email) body.append("email", email);
+        const btn = document.getElementById("authBtn");
+        btn.disabled = true;
+        btn.textContent = isLoginMode ? "登录中…" : "注册中…";
+        apiFetch("api/user.php", { method: "POST", body })
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.code !== 1) {
+              showMsg(data.msg || "操作失败");
+              btn.disabled = false;
+              btn.textContent = isLoginMode ? "登录" : "注册";
+              return;
+            }
+            if (isLoginMode) {
+              showMsg("登录成功，正在跳转…", "ok");
+              if (data.data.role === "admin") { window.location.href = "admin/index.html"; return; }
+              window.location.href = "index.html";
+            } else {
+              showMsg("注册成功，请登录", "ok");
+              isLoginMode = true;
+              applyMode();
+              document.getElementById("authUser").value = username;
+              document.getElementById("authPass").value = "";
+              btn.disabled = false;
+              btn.textContent = "登录";
+            }
+          })
+          .catch(() => {
+            showMsg("网络异常，请稍后重试");
+            btn.disabled = false;
+            btn.textContent = isLoginMode ? "登录" : "注册";
+          });
+      }
+
+      // ==================== 设置弹窗（减弱动画效果开关） ====================
+      function openSettings() {
+        document.getElementById("settingsModal").classList.add("show");
+      }
+      function closeSettings() {
+        document.getElementById("settingsModal").classList.remove("show");
+      }
+      function toggleReduceMotion() {
+        const on = document.documentElement.classList.toggle("reduce-motion");
+        try { localStorage.setItem("reduceMotion", on ? "1" : "0"); } catch (e) {}
+        const sw = document.getElementById("motionSwitch");
+        sw.classList.toggle("active", on);
+        sw.setAttribute("aria-checked", on ? "true" : "false");
+      }
+      (function initReduceMotion() {
+        try {
+          if (localStorage.getItem("reduceMotion") === "1") {
+            document.documentElement.classList.add("reduce-motion");
+          }
+        } catch (e) {}
+        const sw = document.getElementById("motionSwitch");
+        const on = document.documentElement.classList.contains("reduce-motion");
+        sw.classList.toggle("active", on);
+        sw.setAttribute("aria-checked", on ? "true" : "false");
+      })();
+
+      // ==================== Linux DO OAuth ====================
+      function loginWithLinuxDO() { window.location.href = "api/oauth.php?action=login"; }
+      function checkLinuxDOOAuth() {
+        apiFetch("api/oauth.php?action=check").then((r) => r.json())
+          .then((data) => {
+            const configured = data.code === 1 && data.data && data.data.configured;
+            document.getElementById("oauthDivider").style.display = configured ? "flex" : "none";
+            document.getElementById("linuxdoLoginBtn").style.display = configured ? "flex" : "none";
+          })
+          .catch(() => {
+            document.getElementById("oauthDivider").style.display = "none";
+            document.getElementById("linuxdoLoginBtn").style.display = "none";
+          });
+      }
+
+      // ==================== 初始化 ====================
+      (function init() {
+        initCsrfToken();
+        checkLinuxDOOAuth();
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("mode") === "register") { isLoginMode = false; }
+        applyMode();
+        // 已登录则直接跳回
+        apiFetch("api/user.php?action=check").then((r) => r.json()).then((data) => {
+          if (data.code === 1) {
+            window.location.href = (data.data && data.data.role === "admin") ? "admin/index.html" : "index.html";
+          }
+        }).catch(() => {});
+      })();
+    </script>
+  </body>
+</html>

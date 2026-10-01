@@ -102,7 +102,7 @@ function validateInt($value, ?int $min = null, ?int $max = null): ?int {
     if (is_string($value)) {
         $value = trim($value);
     }
-    if (!is_numeric($value) || (string)(int)$value !== (string)$value && !is_int($value)) {
+    if (!is_numeric($value) || ((string)(int)$value !== (string)$value && !is_int($value))) {
         return null;
     }
     $intValue = (int)$value;

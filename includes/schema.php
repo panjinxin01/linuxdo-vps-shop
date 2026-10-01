@@ -157,6 +157,7 @@ function getProjectTableDefinitions(): array {
             `name` VARCHAR(100) DEFAULT NULL,
             `type` VARCHAR(10) NOT NULL,
             `value` DECIMAL(10,2) NOT NULL,
+            `product_id` INT DEFAULT NULL,
             `min_amount` DECIMAL(10,2) NOT NULL DEFAULT 0,
             `max_discount` DECIMAL(10,2) DEFAULT NULL,
             `max_uses` INT NOT NULL DEFAULT 0,
@@ -166,7 +167,8 @@ function getProjectTableDefinitions(): array {
             `ends_at` DATETIME DEFAULT NULL,
             `status` TINYINT NOT NULL DEFAULT 1,
             `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
-            `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX `idx_coupons_product` (`product_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
 
         'payment_requests' => "CREATE TABLE IF NOT EXISTS `payment_requests` (
@@ -175,11 +177,13 @@ function getProjectTableDefinitions(): array {
             `external_order_no` VARCHAR(80) NOT NULL,
             `user_id` INT NOT NULL,
             `trade_no` VARCHAR(100) DEFAULT NULL,
+            `notify_id` VARCHAR(100) DEFAULT NULL,
             `status` TINYINT NOT NULL DEFAULT 0,
             `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
             `paid_at` DATETIME DEFAULT NULL,
             UNIQUE KEY `uniq_payment_requests_external` (`external_order_no`),
             INDEX `idx_payment_requests_order` (`order_no`),
+            INDEX `idx_payment_requests_notify` (`notify_id`),
             INDEX `idx_payment_requests_user_status` (`user_id`, `status`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
 

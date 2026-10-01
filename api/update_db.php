@@ -14,7 +14,7 @@ $pdo = getDB();
 checkAdmin($pdo);
 
 $action = requestValue('action', '');
-$csrfActions = ['update', 'reset', 'migrate_admin_role', 'migrate_linuxdo'];
+$csrfActions = ['update', 'reset', 'migrate_linuxdo'];
 if (in_array($action, $csrfActions, true)) {
     requireCsrf();
 }
@@ -159,6 +159,17 @@ function updSeedSettings(PDO $pdo): void {
     }
 }
 
+function updColumnIsNumeric(PDO $pdo, string $table, string $column): bool {
+    try {
+        $stmt = $pdo->prepare('SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?');
+        $stmt->execute([$table, $column]);
+        $type = strtolower((string)$stmt->fetchColumn());
+        return in_array($type, ['int', 'tinyint', 'smallint', 'mediumint', 'bigint', 'decimal', 'numeric', 'float', 'double'], true);
+    } catch (Throwable $e) {
+        return false;
+    }
+}
+
 function updBackfillData(PDO $pdo, array &$migrated): void {
     if (commerceTableExists($pdo, 'users') && commerceColumnExists($pdo, 'users', 'credit_balance')) {
         $pdo->exec('UPDATE users SET credit_balance = 0 WHERE credit_balance IS NULL');
@@ -200,7 +211,12 @@ function updBackfillData(PDO $pdo, array &$migrated): void {
             ];
             foreach ($snapshotMap as $orderCol => $productCol) {
                 if (commerceColumnExists($pdo, 'orders', $orderCol) && commerceColumnExists($pdo, 'products', $productCol)) {
-                    $pdo->exec("UPDATE orders o INNER JOIN products p ON o.product_id = p.id SET o.`{$orderCol}` = p.`{$productCol}` WHERE (o.`{$orderCol}` IS NULL OR o.`{$orderCol}` = '')");
+                    // 数值列（如 ssh_port_snapshot INT）不能与 '' 比较，否则严格模式下报 1292 错误
+                    if (updColumnIsNumeric($pdo, 'orders', $orderCol)) {
+                        $pdo->exec("UPDATE orders o INNER JOIN products p ON o.product_id = p.id SET o.`{$orderCol}` = p.`{$productCol}` WHERE o.`{$orderCol}` IS NULL");
+                    } else {
+                        $pdo->exec("UPDATE orders o INNER JOIN products p ON o.product_id = p.id SET o.`{$orderCol}` = p.`{$productCol}` WHERE (o.`{$orderCol}` IS NULL OR o.`{$orderCol}` = '')");
+                    }
                 }
             }
         }
@@ -300,6 +316,7 @@ function updCriticalColumnMap(): array {
         ],
         'users' => ['credit_balance', 'linuxdo_active', 'linuxdo_silenced', 'updated_at'],
         'products' => ['region', 'line_type', 'os_type', 'description', 'template_id', 'sort_order'],
+        'payment_requests' => ['notify_id'],
     ];
 }
 
@@ -379,6 +396,10 @@ function updMigrate(PDO $pdo): array {
         }
     }
 
+    // payment_requests
+    updEnsureColumn($pdo, 'payment_requests', 'notify_id', "`notify_id` VARCHAR(100) DEFAULT NULL", $migrated, $errors);
+    updEnsureIndex($pdo, 'payment_requests', 'idx_payment_requests_notify', '`notify_id`', $migrated, $errors);
+
     // orders
     updEnsureColumn($pdo, 'orders', 'original_price', "`original_price` DECIMAL(10,2) NOT NULL DEFAULT 0.00", $migrated, $errors);
     updEnsureColumn($pdo, 'orders', 'product_name_snapshot', "`product_name_snapshot` VARCHAR(100) DEFAULT NULL", $migrated, $errors);
@@ -457,7 +478,7 @@ try {
             $columnStatus = $criticalCheck['status'];
             $missingColumns = $criticalCheck['missing'];
             jsonResponse(1, 'ok', [
-                'build' => '20260315i',
+                'build' => '20260822',
                 'existing' => $existingTables,
                 'missing' => $missingTables,
                 'all_installed' => empty($missingTables),
@@ -468,7 +489,6 @@ try {
             break;
 
         case 'update':
-        case 'migrate_admin_role':
         case 'migrate_linuxdo':
             $beforeCheck = updCollectMissingCriticalColumns($pdo);
             $result = updMigrate($pdo);
@@ -476,7 +496,7 @@ try {
             $result['before_missing_columns'] = $beforeCheck['missing'];
             $result['remaining_missing_columns'] = $afterCheck['missing'];
             $result['remaining_missing_count'] = count($afterCheck['missing']);
-            $result['build'] = '20260315i';
+            $result['build'] = '20260822';
             logAudit($pdo, 'db.update', ['action' => $action, 'created' => $result['created'], 'migrated' => $result['migrated'], 'remaining_missing_columns' => $afterCheck['missing']]);
             if (!empty($result['errors'])) {
                 jsonResponse(0, '部分更新失败', $result);

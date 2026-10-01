@@ -29,52 +29,6 @@ try {
             jsonResponse(1, 'ok', ['settings' => $settings, 'stats' => $stats]);
             break;
 
-        case 'users':
-            checkAdmin($pdo);
-            $pg = paginateParams();
-            $keyword = normalizeString(requestValue('keyword', ''), 100);
-            $where = '1=1';
-            $params = [];
-            if ($keyword !== '') {
-                $conditions = ['username LIKE ?'];
-                $kw = '%' . $keyword . '%';
-                $params[] = $kw;
-                if (commerceColumnExists($pdo, 'users', 'linuxdo_username')) {
-                    $conditions[] = 'linuxdo_username LIKE ?';
-                    $params[] = $kw;
-                }
-                if (commerceColumnExists($pdo, 'users', 'linuxdo_name')) {
-                    $conditions[] = 'linuxdo_name LIKE ?';
-                    $params[] = $kw;
-                }
-                if (commerceColumnExists($pdo, 'users', 'linuxdo_id')) {
-                    $conditions[] = 'CAST(linuxdo_id AS CHAR) = ?';
-                    $params[] = $keyword;
-                }
-                $where .= ' AND (' . implode(' OR ', $conditions) . ')';
-            }
-            $stmt = $pdo->prepare('SELECT COUNT(*) FROM users WHERE ' . $where);
-            $stmt->execute($params);
-            $total = (int)$stmt->fetchColumn();
-            $fields = ['id', 'username', 'created_at'];
-            $fields[] = commerceColumnExists($pdo, 'users', 'linuxdo_id') ? 'linuxdo_id' : 'NULL AS linuxdo_id';
-            $fields[] = commerceColumnExists($pdo, 'users', 'linuxdo_username') ? 'linuxdo_username' : 'NULL AS linuxdo_username';
-            $fields[] = commerceColumnExists($pdo, 'users', 'linuxdo_name') ? 'linuxdo_name' : 'NULL AS linuxdo_name';
-            $fields[] = commerceColumnExists($pdo, 'users', 'linuxdo_trust_level') ? 'linuxdo_trust_level' : '0 AS linuxdo_trust_level';
-            $fields[] = commerceColumnExists($pdo, 'users', 'linuxdo_active') ? 'linuxdo_active' : '1 AS linuxdo_active';
-            $fields[] = commerceColumnExists($pdo, 'users', 'linuxdo_silenced') ? 'linuxdo_silenced' : '0 AS linuxdo_silenced';
-            $fields[] = commerceColumnExists($pdo, 'users', 'credit_balance') ? 'credit_balance' : '0 AS credit_balance';
-            $stmt = $pdo->prepare('SELECT ' . implode(', ', $fields) . ' FROM users WHERE ' . $where . ' ORDER BY id DESC LIMIT ? OFFSET ?');
-            $i = 1;
-            foreach ($params as $param) {
-                $stmt->bindValue($i++, $param);
-            }
-            $stmt->bindValue($i++, $pg['page_size'], PDO::PARAM_INT);
-            $stmt->bindValue($i++, $pg['offset'], PDO::PARAM_INT);
-            $stmt->execute();
-            jsonResponse(1, 'ok', paginateResponse($stmt->fetchAll(PDO::FETCH_ASSOC), $total, $pg));
-            break;
-
         case 'rules':
             checkAdmin($pdo);
             if (!commerceTableExists($pdo, 'linuxdo_user_access_rules')) {

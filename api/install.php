@@ -9,7 +9,38 @@ function jsonOut(int $code, string $msg = '', $data = null): void {
 }
 
 function getConfigPath(): string {
-    return __DIR__ . '/config.php';
+    return __DIR__ . '/config.local.php';
+}
+
+function readLocalConfigFile(string $path): array {
+    if (!is_file($path)) {
+        return [];
+    }
+    $loaded = @include $path;
+    return is_array($loaded) ? $loaded : [];
+}
+
+function applyEnvOverrides(array $cfg): array {
+    $envKeys = [
+        'DB_HOST', 'DB_PORT', 'DB_USER', 'DB_PASS', 'DB_NAME', 'SITE_NAME',
+        'DATA_ENCRYPTION_KEY', 'ADMIN_RECOVERY_ENABLED', 'ADMIN_RECOVERY_KEY',
+        'LINUXDO_CLIENT_ID', 'LINUXDO_CLIENT_SECRET', 'LINUXDO_REDIRECT_URI',
+        'LINUXDO_AUTH_URL', 'LINUXDO_TOKEN_URL', 'LINUXDO_USER_URL',
+    ];
+    foreach ($envKeys as $key) {
+        $value = getenv($key);
+        if ($value === false || $value === '') {
+            continue;
+        }
+        if ($key === 'DB_PORT') {
+            $cfg[$key] = (int)$value;
+        } elseif ($key === 'ADMIN_RECOVERY_ENABLED') {
+            $cfg[$key] = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+        } else {
+            $cfg[$key] = $value;
+        }
+    }
+    return $cfg;
 }
 
 function getCurrentConfig(): array {
@@ -19,53 +50,54 @@ function getCurrentConfig(): array {
         'DB_USER' => 'root',
         'DB_PASS' => '',
         'DB_NAME' => 'vps_shop',
+        'SITE_NAME' => 'VPS积分商城',
         'DATA_ENCRYPTION_KEY' => '',
         'ADMIN_RECOVERY_ENABLED' => false,
         'ADMIN_RECOVERY_KEY' => '',
+        'LINUXDO_CLIENT_ID' => '',
+        'LINUXDO_CLIENT_SECRET' => '',
+        'LINUXDO_REDIRECT_URI' => '',
+        'LINUXDO_AUTH_URL' => 'https://connect.linux.do/oauth2/authorize',
+        'LINUXDO_TOKEN_URL' => 'https://connect.linux.do/oauth2/token',
+        'LINUXDO_USER_URL' => 'https://connect.linux.do/api/user',
     ];
-    $path = getConfigPath();
-    if (file_exists($path)) {
-        @include $path;
-        foreach (array_keys($defaults) as $key) {
-            if (defined($key)) {
-                $defaults[$key] = constant($key);
-            }
-        }
-    }
-    return $defaults;
+    $cfg = array_merge($defaults, readLocalConfigFile(getConfigPath()));
+    return applyEnvOverrides($cfg);
 }
 
 function writeConfigFile(array $cfg): bool {
     $path = getConfigPath();
-    $existingContent = file_exists($path) ? (string)file_get_contents($path) : '';
+    $current = readLocalConfigFile($path);
+    $cfg = array_merge($current, $cfg);
 
-    $oauthVars = ['LINUXDO_CLIENT_ID' => '', 'LINUXDO_CLIENT_SECRET' => '', 'LINUXDO_REDIRECT_URI' => ''];
-    foreach ($oauthVars as $key => &$val) {
-        if (preg_match("/define\\('" . preg_quote($key, '/') . "',\\s*'([^']*)'\\)/", $existingContent, $m)) {
-            $val = $m[1];
+    $preferredKeys = [
+        'DB_HOST', 'DB_PORT', 'DB_USER', 'DB_PASS', 'DB_NAME', 'SITE_NAME',
+        'DATA_ENCRYPTION_KEY', 'ADMIN_RECOVERY_ENABLED', 'ADMIN_RECOVERY_KEY',
+        'LINUXDO_CLIENT_ID', 'LINUXDO_CLIENT_SECRET', 'LINUXDO_REDIRECT_URI',
+        'LINUXDO_AUTH_URL', 'LINUXDO_TOKEN_URL', 'LINUXDO_USER_URL',
+    ];
+    $ordered = [];
+    foreach ($preferredKeys as $key) {
+        if (array_key_exists($key, $cfg)) {
+            $ordered[$key] = $cfg[$key];
         }
     }
-    unset($val);
+    foreach ($cfg as $key => $value) {
+        if (!array_key_exists($key, $ordered)) {
+            $ordered[$key] = $value;
+        }
+    }
 
-    $c = "<?php\n";
-    $c .= "// 数据库配置\n";
-    $c .= "define('DB_HOST', " . var_export((string)$cfg['DB_HOST'], true) . ");\n";
-    $c .= "define('DB_PORT', " . (int)$cfg['DB_PORT'] . ");\n";
-    $c .= "define('DB_USER', " . var_export((string)$cfg['DB_USER'], true) . ");\n";
-    $c .= "define('DB_PASS', " . var_export((string)$cfg['DB_PASS'], true) . ");\n";
-    $c .= "define('DB_NAME', " . var_export((string)$cfg['DB_NAME'], true) . ");\n";
-    $c .= "\ndefine('SITE_NAME', 'VPS积分商城');\n";
-    $c .= "\ndefine('DATA_ENCRYPTION_KEY', " . var_export((string)$cfg['DATA_ENCRYPTION_KEY'], true) . ");\n";
-    $c .= "\ndefine('ADMIN_RECOVERY_ENABLED', " . (!empty($cfg['ADMIN_RECOVERY_ENABLED']) ? 'true' : 'false') . ");\n";
-    $c .= "define('ADMIN_RECOVERY_KEY', " . var_export((string)$cfg['ADMIN_RECOVERY_KEY'], true) . ");\n";
-    $c .= "\ndefine('LINUXDO_CLIENT_ID', " . var_export($oauthVars['LINUXDO_CLIENT_ID'], true) . ");\n";
-    $c .= "define('LINUXDO_CLIENT_SECRET', " . var_export($oauthVars['LINUXDO_CLIENT_SECRET'], true) . ");\n";
-    $c .= "define('LINUXDO_REDIRECT_URI', " . var_export($oauthVars['LINUXDO_REDIRECT_URI'], true) . ");\n";
-    $c .= "\ndefine('LINUXDO_AUTH_URL', 'https://connect.linux.do/oauth2/authorize');\n";
-    $c .= "define('LINUXDO_TOKEN_URL', 'https://connect.linux.do/oauth2/token');\n";
-    $c .= "define('LINUXDO_USER_URL', 'https://connect.linux.do/api/user');\n";
+    $content = "<?php\nreturn [\n";
+    foreach ($ordered as $key => $value) {
+        if (!preg_match('/^[A-Z0-9_]+$/', (string)$key)) {
+            continue;
+        }
+        $content .= '    ' . var_export((string)$key, true) . ' => ' . var_export($value, true) . ",\n";
+    }
+    $content .= "];\n";
 
-    $written = file_put_contents($path, $c) !== false;
+    $written = file_put_contents($path, $content, LOCK_EX) !== false;
     clearstatcache(true, $path);
     if ($written && function_exists('opcache_invalidate')) {
         @opcache_invalidate($path, true);
@@ -80,7 +112,16 @@ function seedInstallSettings(PDO $pdo): void {
     }
 }
 
+// 安装锁定检查（安装完成后创建 .install_lock 文件禁止危险操作）
+$installLockFile = __DIR__ . '/../.install_lock';
+$isInstalled = file_exists($installLockFile);
+$dangerousActions = ['run_install', 'save_config', 'test_db', 'generate_key'];
+
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
+
+if ($isInstalled && in_array($action, $dangerousActions, true)) {
+    jsonOut(0, '安装已完成，危险操作已被锁定。如需重新安装，请手动删除 .install_lock 文件（位于项目根目录）。');
+}
 
 switch ($action) {
     case 'get_config':
@@ -136,7 +177,7 @@ switch ($action) {
         }
 
         if (!writeConfigFile($cfg)) {
-            jsonOut(0, '写入配置文件失败，请检查 api/config.php 权限');
+            jsonOut(0, '写入配置文件失败，请检查 api/config.local.php 权限');
         }
         jsonOut(1, '配置已保存');
         break;
@@ -165,6 +206,8 @@ switch ($action) {
                 $pdo->exec($sql);
             }
             seedInstallSettings($pdo);
+            // 安装成功，写入锁文件
+            @file_put_contents($installLockFile, date('Y-m-d H:i:s') . "\n");
             jsonOut(1, '数据库初始化成功');
         } catch (PDOException $e) {
             jsonOut(0, '安装失败: ' . $e->getMessage());

@@ -57,6 +57,8 @@ function sendSmtpEmail(PDO $pdo, string $to, string $subject, string $body): boo
         }
     }
 
+    // 未配置 SMTP 时回退到 mail() 函数
+    // 注意：建议在后台配置真实的 SMTP 发件地址，否则默认发件人可能被拒收
     $headers = "MIME-Version: 1.0\r\n";
     $headers .= "Content-type: text/html; charset=UTF-8\r\n";
     $headers .= 'From: ' . $fromName . ' <' . $fromEmail . ">\r\n";
