@@ -5,54 +5,60 @@
       <div class="modal" style="max-width: 560px">
         <div class="modal-head">
           <h3>申请退款</h3>
-          <button class="modal-close" onclick="closeRefundModal()" aria-label="关闭">&times;</button>
+          <button type="button" class="modal-close" onclick="closeRefundModal()" aria-label="关闭">&times;</button>
         </div>
         <div class="modal-body">
           <div class="refund-summary-card">
             <div class="refund-summary-head">
               <div>
                 <div class="refund-summary-label">订单号</div>
-                <div class="refund-summary-value" id="refundModalOrderNo">-</div>
+                <div class="refund-summary-value"><code id="refundModalOrderNo">-</code></div>
               </div>
-              <div style="text-align: right">
-                <div class="refund-summary-label">退款金额</div>
-                <div class="refund-summary-value" id="refundModalAmount">-</div>
+              <div class="refund-summary-amount-col">
+                <div class="refund-summary-label">预计可退金额</div>
+                <div class="refund-summary-value refund-summary-amount" id="refundModalAmount">-</div>
               </div>
             </div>
-            <div class="refund-summary-tip">提交后会生成退款工单，管理员同意后自动退款。</div>
+            <div class="refund-summary-tip">提交后将创建退款工单，可在「退款售后」栏目随时查看处理进度。</div>
           </div>
           <input type="hidden" id="refundOrderId" />
           <div class="form-group">
-            <label>退款到哪里 *</label>
-            <div class="refund-option-list">
-              <label class="refund-option-card">
-                <input type="radio" name="refundTarget" value="original" checked />
+            <label>退款去向 *</label>
+            <div class="refund-option-list" id="refundTargetList">
+              <label class="refund-option-card is-checked">
+                <input type="radio" name="refundTarget" value="original" checked onchange="syncFrontRefundTargetCards()" />
                 <div>
                   <div class="refund-option-title">原路退回</div>
                   <div class="refund-option-desc">退回到原支付路径 / 原钱包</div>
                 </div>
               </label>
               <label class="refund-option-card">
-                <input type="radio" name="refundTarget" value="balance" />
+                <input type="radio" name="refundTarget" value="balance" onchange="syncFrontRefundTargetCards()" />
                 <div>
                   <div class="refund-option-title">退回站内余额</div>
-                  <div class="refund-option-desc">退款后可继续在站内购买</div>
+                  <div class="refund-option-desc">实时到账，可直接用于站内下单</div>
                 </div>
               </label>
             </div>
           </div>
           <div class="form-group">
             <label>退款原因 *</label>
-            <input type="text" id="refundReason" placeholder="例如：无法登录、交付异常、配置不符" />
+            <input type="text" id="refundReason" placeholder="例如：无法连接、线路不符、临时测试不再需要" />
+            <div class="refund-quick-reasons">
+              <button type="button" class="refund-reason-chip" onclick="setFrontRefundReason('无法连接 / SSH 异常')">无法连接 / SSH 异常</button>
+              <button type="button" class="refund-reason-chip" onclick="setFrontRefundReason('线路或延迟与预期不符')">线路或延迟不符</button>
+              <button type="button" class="refund-reason-chip" onclick="setFrontRefundReason('配置与商品描述不符')">配置与描述不符</button>
+              <button type="button" class="refund-reason-chip" onclick="setFrontRefundReason('临时测试结束，申请按剩余时长退款')">按剩余时长退款</button>
+            </div>
           </div>
-          <div class="form-group">
-            <label>补充说明</label>
-            <textarea id="refundContent" rows="4" placeholder="可填写更详细的问题描述、报错信息、已尝试的处理方式等"></textarea>
+          <div class="form-group" style="margin-bottom:0">
+            <label>补充说明（可选）</label>
+            <textarea id="refundContent" rows="3" placeholder="可填写报错信息、已排查情况或其他补充说明"></textarea>
           </div>
         </div>
         <div class="modal-foot">
-          <button class="btn btn-outline" style="flex: 1" onclick="closeRefundModal()">取消</button>
-          <button class="btn btn-primary" style="flex: 1" onclick="submitRefundRequest()">提交退款申请</button>
+          <button type="button" class="btn btn-outline" style="flex: 1" onclick="closeRefundModal()">取消</button>
+          <button type="button" class="btn btn-primary" id="refundSubmitBtn" style="flex: 1" onclick="submitRefundRequest()">提交退款申请</button>
         </div>
       </div>
     </div>

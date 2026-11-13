@@ -19,9 +19,10 @@ function saveAdmin() {
   if (!u || !p) { showToast("请填写用户名和密码"); return; }
   apiFetch("../api/admin.php?action=add", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: u, password: p, role: r }) }).then((r) => r.json()).then((d) => { if (d.code === 1) { showToast("管理员添加成功"); closeAdminModal(); loadAdmins(); } else showToast(d.msg || "添加失败"); });
 }
-function deleteAdmin(id) {
-  if (!confirm("确定删除该管理员？")) return;
-  apiFetch("../api/admin.php?action=delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) }).then((r) => r.json()).then((d) => { if (d.code === 1) { showToast("删除成功"); loadAdmins(); } else showToast(d.msg || "删除失败"); });
+async function deleteAdmin(id) {
+  const ok = await showConfirmModal({ title: "删除管理员", message: "确定删除该管理员吗？", confirmText: "确认删除", danger: true });
+  if (!ok) return;
+  apiFetch("../api/admin.php?action=delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) }).then((r) => r.json()).then((d) => { if (d.code === 1) { showToast("删除成功"); loadAdmins(); } else showToast(d.msg || "删除失败", "error"); });
 }
 function loadPromotableUsers() {
   const tbody = document.getElementById("promoteUserTable"); if (!tbody) return;
@@ -39,9 +40,10 @@ function loadPromotableUsers() {
     }).join("");
   }).catch(() => { tbody.innerHTML = '<tr><td colspan="4" class="empty">搜索失败</td></tr>'; });
 }
-function promoteExistingUser(userId, username) {
+async function promoteExistingUser(userId, username) {
   const role = document.getElementById("promoteUserRole")?.value || "admin", pw = document.getElementById("promoteUserPassword")?.value || "";
-  if (!confirm(`确定将 ${username} 提权为${role === "super" ? "超级管理员" : "管理员"}吗？`)) return;
-  apiFetch("../api/admin.php?action=promote_user", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: userId, role, password: pw }) }).then((r) => r.json()).then((d) => { if (d.code === 1) { showToast("提权成功"); if (document.getElementById("promoteUserPassword")) document.getElementById("promoteUserPassword").value = ""; loadAdmins(); loadPromotableUsers(); } else showToast(d.msg || "提权失败"); });
+  const ok = await showConfirmModal({ title: "提权确认", message: `确定将 ${username} 提权为${role === "super" ? "超级管理员" : "管理员"}吗？`, confirmText: "确认提权" });
+  if (!ok) return;
+  apiFetch("../api/admin.php?action=promote_user", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: userId, role, password: pw }) }).then((r) => r.json()).then((d) => { if (d.code === 1) { showToast("提权成功"); if (document.getElementById("promoteUserPassword")) document.getElementById("promoteUserPassword").value = ""; loadAdmins(); loadPromotableUsers(); } else showToast(d.msg || "提权失败", "error"); });
 }
 

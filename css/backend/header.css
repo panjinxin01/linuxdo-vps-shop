@@ -9,7 +9,7 @@
   position: sticky;
   top: 0;
   z-index: 20;
-  background: rgba(243, 245, 250, 0.82);
+  background: rgba(248, 250, 252, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
@@ -19,17 +19,17 @@
     border-color var(--transition);
 }
 .dark .top-header {
-  background: rgba(7, 11, 22, 0.72);
+  background: rgba(9, 12, 18, 0.78);
 }
 /* 滚动后：背景加深 + 投影（由内联脚本监听 .main-content 滚动） */
 .top-header.scrolled {
   box-shadow: var(--shadow-md);
 }
 html:not(.dark) .top-header.scrolled {
-  background: rgba(243, 245, 250, 0.94);
+  background: rgba(248, 250, 252, 0.96);
 }
 .dark .top-header.scrolled {
-  background: rgba(7, 11, 22, 0.9);
+  background: rgba(9, 12, 18, 0.92);
 }
 
 .header-inner {

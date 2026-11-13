@@ -40,6 +40,8 @@ var TICKET_CATEGORIES = {
   delivery_issue: "发货异常",
   payment_issue: "支付问题",
   refund_request: "退款申请",
+  tech: "技术支持",
+  delivery: "开通交付",
   other: "其他"
 };
 
@@ -80,19 +82,24 @@ function ticketCategoryLabel(category) {
 /* ==================== 2. 集中图标库 ==================== */
 
 var TICKET_ICONS = {
-  clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
-  user: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
-  headset: '<path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>',
-  bolt: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
-  clip: '<path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',
-  file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
-  close: '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>',
-  send: '<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>',
-  refresh: '<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>',
-  chat: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
-  alert: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
-  inbox: '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
-  chevron: '<polyline points="6 9 12 15 18 9"/>'
+  clock: APP_ICONS.clock,
+  user: APP_ICONS.user,
+  headset: APP_ICONS.headset,
+  bolt: APP_ICONS.bolt,
+  clip: APP_ICONS.clip,
+  file: APP_ICONS.file,
+  close: APP_ICONS["x-circle"],
+  send: APP_ICONS.send,
+  refresh: APP_ICONS["rotate-cw"],
+  chat: APP_ICONS.chat,
+  alert: APP_ICONS["alert-triangle"],
+  inbox: APP_ICONS.inbox,
+  chevron: APP_ICONS["chevron-down"],
+  code: APP_ICONS.code,
+  list: APP_ICONS.list,
+  link: APP_ICONS.link,
+  quote: APP_ICONS.quote,
+  image: APP_ICONS.image
 };
 
 function ticketIcon(name, size, strokeWidth) {

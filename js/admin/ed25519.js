@@ -24,7 +24,7 @@ function generateEd25519Keypair() {
     // 但这不可靠，换一个方案：动态加载 tweetnacl
     var script = document.createElement('script');
     script.src = 'https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/nacl-fast.min.js';
-    script.onload = function() {
+    script.onload = async function() {
       var kp = nacl.sign.keyPair.fromSeed(seed);
       var privB64 = btoa(String.fromCharCode.apply(null, seed));
       var pubB64 = btoa(String.fromCharCode.apply(null, kp.publicKey));
@@ -32,10 +32,14 @@ function generateEd25519Keypair() {
       var msg = '已生成 Ed25519 密钥对：\n\n' +
         '公钥 (Public Key):\n' + pubB64 + '\n\n' +
         '私钥 (Private Key):\n' + privB64 + '\n\n' +
-        '[!] 私钥极其重要，丢失后无法恢复！\n' +
-        '点击「确定」将自动填入表单并下载密钥备份文件。\n' +
-        '点击「取消」放弃本次生成。';
-      if (!confirm(msg)) return;
+        '私钥极其重要，丢失后无法恢复。\n' +
+        '点击「填入并下载」将自动填入表单并下载密钥备份文件。';
+      var ok = await showConfirmModal({
+        title: '保存 Ed25519 密钥对',
+        message: msg,
+        confirmText: '填入并下载',
+      });
+      if (!ok) return;
 
       document.getElementById('cfgLdcPrivateKey').value = privB64;
       document.getElementById('cfgLdcPublicKey').value = pubB64;
@@ -63,10 +67,10 @@ function generateEd25519Keypair() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      alert('密钥已填入表单，备份文件已下载。\n记得点击「保存 LDC Pay 配置」！');
+      showToast('密钥已填入表单并已下载备份，请点击「保存 LDC Pay 配置」', 'success');
     };
     script.onerror = function() {
-      alert('加载 Ed25519 库失败，请检查网络连接后重试。');
+      showToast('加载 Ed25519 库失败，请检查网络连接后重试', 'error');
     };
     document.head.appendChild(script);
   });

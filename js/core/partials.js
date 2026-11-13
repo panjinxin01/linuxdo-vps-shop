@@ -13,7 +13,7 @@
        页面级脚本请放在外部 js 文件中。
    ===================================================== */
 (function () {
-  var VERSION = "20261001";
+  var VERSION = "20261113d";
 
   function renderError(target, url) {
     var box = document.createElement("div");

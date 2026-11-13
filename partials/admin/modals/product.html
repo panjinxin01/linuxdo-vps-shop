@@ -7,7 +7,7 @@
           <h3 id="productModalTitle">添加商品</h3>
           <div style="display:flex;gap:8px;align-items:center">
             <button class="btn btn-outline btn-ai-generate" onclick="openAIGenerate()">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><path d="M12 2a10 10 0 0 1 10 10c0 5-4 9-10 10S2 17 2 12 7 2 12 2z"/><path d="M8 12l2 2 4-4"/><path d="M12 6v2"/><path d="M12 16v2"/></svg> AI 智能生成
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg> AI 智能生成
             </button>
             <button class="modal-close" onclick="closeProductModal()">
               &times;
@@ -31,6 +31,13 @@
               <label>积分价格 *</label
               ><input type="number" id="pPrice" placeholder="每月积分数" />
             </div>
+          </div>
+          <div class="preset-bar">
+            <span class="preset-bar-label">主流规格预设：</span>
+            <button type="button" class="preset-chip" onclick="applySpecPreset('1c1g', 'product')">1C 1G 入门</button>
+            <button type="button" class="preset-chip" onclick="applySpecPreset('2c2g', 'product')">2C 2G 标准</button>
+            <button type="button" class="preset-chip" onclick="applySpecPreset('4c4g', 'product')">4C 4G 进阶</button>
+            <button type="button" class="preset-chip" onclick="applySpecPreset('8c8g', 'product')">8C 8G 旗舰</button>
           </div>
           <div class="form-row">
             <div class="form-group">

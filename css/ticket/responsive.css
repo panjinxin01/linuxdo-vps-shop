@@ -4,6 +4,10 @@
    ===================================================== */
 /* === 响应式 === */
 @media (max-width: 768px) {
+  .tk-filter-bar {
+    padding: 12px;
+    gap: 8px;
+  }
   .tk-seg-group {
     order: 3;
     width: 100%;
@@ -14,16 +18,92 @@
     padding: 0 8px;
   }
   .tk-filter-bar select {
-    flex: 1 1 calc(50% - 5px);
+    flex: 1 1 calc(50% - 4px);
     min-width: 0;
   }
   .tk-filter-bar input[type="search"] {
     order: 4;
     flex-basis: 100%;
+    min-width: 0;
+    width: 100%;
   }
   .tk-filter-bar .tk-filter-reset {
     order: 5;
     flex: 1;
+  }
+  /* 后台工单表格移动端降级为卡片列表 */
+  .tk-admin-table thead {
+    display: none;
+  }
+  .tk-admin-table,
+  .tk-admin-table tbody,
+  .tk-admin-table tr,
+  .tk-admin-table td {
+    display: block;
+    width: 100%;
+  }
+  .tk-admin-table tr {
+    border-bottom: 1px solid var(--border);
+    padding: 8px 0;
+  }
+  .tk-admin-table tr:last-child {
+    border-bottom: none;
+  }
+  .tk-admin-table td {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: none;
+    padding: 6px 14px;
+    text-align: right;
+  }
+  .tk-admin-table td::before {
+    content: attr(data-label);
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .tk-admin-table td.tk-admin-col-title {
+    display: block;
+    text-align: left;
+    padding-bottom: 8px;
+  }
+  .tk-admin-table td.tk-admin-col-title::before {
+    display: none;
+  }
+  .tk-admin-row-title {
+    display: block;
+    font-weight: 600;
+    color: var(--text-main);
+    word-break: break-word;
+  }
+  .tk-admin-row-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .tk-order-code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--primary);
+    word-break: break-all;
+  }
+  .tk-admin-table td[data-label="操作"] {
+    padding-top: 8px;
+  }
+  .tk-admin-table td[data-label="操作"]::before {
+    display: none;
+  }
+  .tk-admin-table td[data-label="操作"] .action-btn {
+    width: 100%;
+    min-height: 36px;
+    margin: 0;
   }
   .ticket-item {
     padding: 15px 16px 14px;
@@ -33,7 +113,53 @@
     align-items: flex-start;
     gap: 6px;
   }
-  /* IM 气泡移动端放宽至 85% */
+  /* 详情壳与头部响应式 */
+  .tk-detail-card {
+    padding: 14px;
+    margin-top: 10px;
+  }
+  .tk-back-link {
+    min-height: 38px;
+    margin-left: -6px;
+    padding: 6px 10px;
+  }
+  .tk-view-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .tk-view-title {
+    font-size: 16.5px;
+    line-height: 1.4;
+  }
+  .tk-view-meta {
+    gap: 6px 8px;
+  }
+  .tk-view-header .tk-page-head-actions {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+  }
+  .tk-view-header .tk-page-head-actions .btn {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 42px;
+    padding: 9px 12px;
+    font-size: 13px;
+    justify-content: center;
+  }
+  .tk-alert-closed {
+    padding: 10px 12px;
+    font-size: 12.5px;
+  }
+  /* 消息卡片与 IM 气泡 */
+  .tk-msg-card {
+    padding: 12px 13px;
+  }
+  .tk-msg-card-name {
+    max-width: 150px;
+  }
   .tk-msg-main {
     max-width: 85%;
   }
@@ -57,11 +183,54 @@
     flex: 1 1 calc(50% - 5px);
     justify-content: center;
   }
+  /* 回复输入区与发送按钮 */
+  .ticket-reply-compose {
+    padding: 12px;
+    margin-top: 16px;
+  }
+  .ticket-reply-compose textarea {
+    min-height: 92px;
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+  .ticket-reply-compose-actions {
+    gap: 8px;
+  }
+  .ticket-upload-btn {
+    min-height: 38px;
+    padding: 7px 14px;
+    font-size: 13px;
+  }
   .ticket-reply-compose-actions .ticket-compose-hint {
     display: none;
   }
   .ticket-compose-count {
-    margin-left: 0;
+    margin-left: auto;
+  }
+  .tk-template-chip {
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+  }
+  .tk-compose-submit-row {
+    width: 100%;
+  }
+  .tk-compose-submit-row .btn-send {
+    width: 100%;
+    min-height: 42px;
+    justify-content: center;
+  }
+}
+@media (max-width: 480px) {
+  .tk-detail-card {
+    padding: 12px;
+  }
+  .tk-collapse-head {
+    padding: 8px 12px;
+  }
+  .tk-collapse-body {
+    padding: 4px 12px 12px;
   }
 }
 

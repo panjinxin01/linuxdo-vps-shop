@@ -6,7 +6,7 @@
             <h1 class="page-title">订单管理</h1>
             <div class="page-actions">
               <button class="btn btn-outline" onclick="exportData('orders')">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 导出CSV
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 导出CSV
               </button>
               <button
                 class="btn btn-outline"
@@ -20,6 +20,20 @@
               >
                 清理待支付
               </button>
+            </div>
+          </div>
+          <div class="admin-filter-bar">
+            <div class="admin-filter-tabs" id="adminOrderFilterTabs">
+              <button type="button" class="admin-filter-tab active" data-filter="all" onclick="setAdminOrderFilter('all', this)">全部订单</button>
+              <button type="button" class="admin-filter-tab" data-filter="paid_waiting" onclick="setAdminOrderFilter('paid_waiting', this)">待开通</button>
+              <button type="button" class="admin-filter-tab" data-filter="pending_pay" onclick="setAdminOrderFilter('pending_pay', this)">待支付</button>
+              <button type="button" class="admin-filter-tab" data-filter="delivered" onclick="setAdminOrderFilter('delivered', this)">已交付</button>
+              <button type="button" class="admin-filter-tab" data-filter="exception" onclick="setAdminOrderFilter('exception', this)">异常</button>
+              <button type="button" class="admin-filter-tab" data-filter="refunded" onclick="setAdminOrderFilter('refunded', this)">已退款</button>
+            </div>
+            <div class="admin-search-wrap">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" class="admin-search-input" id="orderSearchInput" placeholder="搜索订单号 / 商品 / 用户名..." oninput="filterAdminOrdersClient()" />
             </div>
           </div>
           <div class="table-container">

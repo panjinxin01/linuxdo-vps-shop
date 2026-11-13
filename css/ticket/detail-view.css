@@ -113,6 +113,7 @@
   line-height: 1.7;
   color: var(--text-light);
   word-break: break-word;
+  overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
 .tk-msg-card-body a {
@@ -128,6 +129,12 @@
 }
 
 /* 页面化详情头部 */
+.tk-detail-card {
+  padding: 22px;
+  margin-top: 12px;
+  min-width: 0;
+  overflow: hidden;
+}
 .tk-view-header {
   display: flex;
   align-items: flex-start;
@@ -156,5 +163,8 @@
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+}
+.tk-view-meta code {
+  word-break: break-all;
 }
 

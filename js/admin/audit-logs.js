@@ -16,11 +16,25 @@ function loadAuditLogs(page = 1) {
     else removePaginationWidget("auditPagination");
   });
 }
-function clearAuditLogs() {
-  if (currentAdminInfo.role !== "super") { showToast("仅超级管理员可清空日志"); return; }
-  const pw = prompt("请输入当前管理员密码"); if (pw === null) return; if (!pw.trim()) { showToast("请输入密码"); return; }
-  if (!confirm("确认删除全部操作日志？")) return;
+async function clearAuditLogs() {
+  if (currentAdminInfo.role !== "super") { showToast("仅超级管理员可清空日志", "warning"); return; }
+  const pw = await showPromptModal({
+    title: "安全验证",
+    label: "当前超级管理员密码",
+    placeholder: "请输入密码以继续",
+    inputType: "password",
+    confirmText: "下一步",
+  });
+  if (pw === null) return;
+  if (!pw.trim()) { showToast("请输入密码", "warning"); return; }
+  const ok = await showConfirmModal({
+    title: "清空操作日志",
+    message: "确认删除全部操作日志吗？此操作不可恢复。",
+    confirmText: "确认清空",
+    danger: true,
+  });
+  if (!ok) return;
   const body = new FormData(); body.append("action", "clear"); body.append("password", pw);
-  apiFetch("../api/audit_logs.php", { method: "POST", body }).then((r) => r.json()).then((d) => { if (d.code === 1) { showToast("操作日志已清空"); loadAuditLogs(1); } else showToast(d.msg || "清空失败"); });
+  apiFetch("../api/audit_logs.php", { method: "POST", body }).then((r) => r.json()).then((d) => { if (d.code === 1) { showToast("操作日志已清空", "success"); loadAuditLogs(1); } else showToast(d.msg || "清空失败", "error"); });
 }
 

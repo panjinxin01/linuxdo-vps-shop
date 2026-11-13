@@ -5,8 +5,10 @@
 /* === 主内容 === */
 .main-content {
   grid-area: content;
+  min-width: 0;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   padding: 26px 30px;
   background:
@@ -16,6 +18,7 @@
 }
 .tab-content {
   display: none;
+  min-width: 0;
   animation: fadeIn 0.28s ease;
 }
 .tab-content.active {

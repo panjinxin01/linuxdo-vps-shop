@@ -174,6 +174,16 @@ function commerceRefundOrder(PDO $pdo, array $order, string $refundTarget = 'ori
         $params[] = $orderNo;
         $stmt = $pdo->prepare('UPDATE orders SET ' . implode(', ', $parts) . ' WHERE order_no = ? AND status = 1');
         $stmt->execute($params);
+        // 退款后释放仍未被其他已支付订单占用的商品库存锁，
+        // 否则商品会永久停留在“已售”状态，无法再次兑换。
+        $refundProductId = (int)($order['product_id'] ?? 0);
+        if ($refundProductId > 0 && commerceTableExists($pdo, 'products')) {
+            $paidStmt = $pdo->prepare('SELECT COUNT(*) FROM orders WHERE product_id = ? AND status = 1');
+            $paidStmt->execute([$refundProductId]);
+            if ((int)$paidStmt->fetchColumn() === 0) {
+                $pdo->prepare('UPDATE products SET status = 1 WHERE id = ? AND status = 0')->execute([$refundProductId]);
+            }
+        }
         $pdo->commit();
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) {

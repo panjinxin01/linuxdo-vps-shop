@@ -268,9 +268,9 @@ function outputSuccess(string $username, bool $isNew): void {
     $message = $isNew ? '欢迎加入' : '欢迎回来';
     $safeUsername = htmlspecialchars($username, ENT_QUOTES, 'UTF-8');
 
-    $icon = '<svg class="status-icon success-icon" viewBox="0 0 52 52" aria-hidden="true">'
-        . '<circle cx="26" cy="26" r="24" fill="none"/>'
-        . '<path fill="none" d="M14.5 27.5l7.5 7.5L37.5 19" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    $icon = '<svg class="status-icon success-icon" viewBox="0 0 52 52" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+        . '<circle cx="26" cy="26" r="24"/>'
+        . '<path d="M14.5 27.5l7.5 7.5L37.5 19"/></svg>';
 
     $body = '<div class="status-icon-wrap success-glow">' . $icon . '</div>'
         . '<h1 class="card-title">' . $message . '</h1>'
@@ -288,10 +288,10 @@ function outputError(string $message): void {
     header('Content-Type: text/html; charset=utf-8');
     $safeMessage = htmlspecialchars($message, ENT_QUOTES, 'UTF-8');
 
-    $icon = '<svg class="status-icon error-icon" viewBox="0 0 52 52" aria-hidden="true">'
-        . '<circle cx="26" cy="26" r="24" fill="none"/>'
-        . '<path fill="none" d="M17 17l18 18" stroke-linecap="round"/>'
-        . '<path fill="none" d="M35 17l-18 18" stroke-linecap="round"/></svg>';
+    $icon = '<svg class="status-icon error-icon" viewBox="0 0 52 52" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+        . '<circle cx="26" cy="26" r="24"/>'
+        . '<path d="M17 17l18 18"/>'
+        . '<path d="M35 17l-18 18"/></svg>';
 
     $body = '<div class="status-icon-wrap error-glow">' . $icon . '</div>'
         . '<h1 class="card-title">登录失败</h1>'
@@ -313,10 +313,10 @@ function outputError(string $message): void {
 function outputNotConfigured(): void {
     header('Content-Type: text/html; charset=utf-8');
 
-    $icon = '<svg class="status-icon warn-icon" viewBox="0 0 52 52" aria-hidden="true">'
-        . '<path fill="none" stroke-linejoin="round" d="M26 6l18 8v12c0 11-7.7 18.6-18 21C15.7 44.6 8 37 8 26V14z"/>'
-        . '<path fill="none" stroke-linecap="round" d="M26 19v10"/>'
-        . '<circle cx="26" cy="35" r="1.6"/></svg>';
+    $icon = '<svg class="status-icon warn-icon" viewBox="0 0 52 52" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+        . '<path d="M26 6l18 8v12c0 11-7.7 18.6-18 21C15.7 44.6 8 37 8 26V14z"/>'
+        . '<path d="M26 19v10"/>'
+        . '<circle cx="26" cy="35" r="1.8" fill="#fbbf24" stroke="none"/></svg>';
 
     $body = '<div class="status-icon-wrap warn-glow">' . $icon . '</div>'
         . '<h1 class="card-title">无法发起登录</h1>'

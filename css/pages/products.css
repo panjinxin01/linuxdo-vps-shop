@@ -1,19 +1,88 @@
 /* =====================================================
-   商品卡片
-   来源：css/style.css 原始第 994-1095 行（目录结构拆分，内容零改动）
+   商品列表 · 筛选工具栏 · 实例卡片
    ===================================================== */
-/* === 产品卡片 === */
+.filter-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 12px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.filter-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.filter-chip {
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.filter-chip:hover {
+  color: var(--text-main);
+  background: var(--bg-hover);
+}
+.filter-chip.active {
+  background: var(--primary-light);
+  border-color: rgba(99, 102, 241, 0.45);
+  color: var(--primary);
+  font-weight: 600;
+}
+.filter-search-wrap {
+  position: relative;
+  min-width: 220px;
+  flex: 0 1 280px;
+}
+.filter-search-wrap svg {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-disabled);
+  pointer-events: none;
+}
+.filter-search-input {
+  width: 100%;
+  padding: 8px 12px 8px 34px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text-main);
+  font-size: 13px;
+  font-family: inherit;
+  transition: var(--transition);
+}
+.filter-search-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
 .products {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 16px;
   padding-bottom: 40px;
 }
 .card {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 24px;
+  padding: 20px;
   transition: var(--transition);
   position: relative;
   overflow: hidden;
@@ -22,42 +91,57 @@
   box-shadow: var(--shadow-sm);
 }
 .card:hover {
-  box-shadow: var(--shadow-lg);
-  border-color: var(--primary);
-  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(99, 102, 241, 0.45);
+  transform: translateY(-1px);
 }
 .card h3 {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 700;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   color: var(--text-main);
   letter-spacing: -0.01em;
+  text-wrap: balance;
 }
-.buy-card::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--gradient-brand);
-  opacity: 0;
-  transition: opacity 0.25s;
+.buy-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
 }
-.buy-card:hover::after {
-  opacity: 1;
+.buy-card-head h3 {
+  margin-bottom: 0;
+}
+.buy-card-meta-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.meta-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-muted);
+  border: 1px solid var(--border-light);
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
 }
 .specs {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  margin-bottom: 16px;
+  gap: 8px;
+  margin-bottom: 14px;
 }
 .spec {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 10px 14px;
+  padding: 9px 12px;
   background: var(--bg-muted);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-light);
@@ -66,15 +150,13 @@
   font-size: 11px;
   color: var(--text-muted);
   font-weight: 500;
-  letter-spacing: 0.03em;
-}
-.spec-icon {
-  font-size: 16px;
+  letter-spacing: 0.02em;
 }
 .spec-value {
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13.5px;
   color: var(--text-main);
+  font-variant-numeric: tabular-nums;
 }
 .card-footer {
   display: flex;
@@ -82,25 +164,32 @@
   align-items: center;
   gap: 12px;
   margin-top: auto;
-  padding-top: 18px;
+  padding-top: 14px;
   border-top: 1px solid var(--border-light);
 }
 .price {
-  font-size: 25px;
+  font-size: 22px;
   font-weight: 800;
-  color: var(--primary);
+  color: var(--text-main);
   letter-spacing: -0.02em;
   line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }
 .price span {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--text-muted);
-  margin-left: 2px;
+  margin-left: 3px;
 }
 .price-unit {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 400;
   color: var(--text-muted);
 }
 
+@media (max-width: 640px) {
+  .filter-search-wrap {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+}

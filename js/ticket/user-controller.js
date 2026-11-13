@@ -72,7 +72,6 @@ function loadMyTickets() {
     .then(function (data) {
       var list = data.data || [];
       TicketState.myTicketsCache = list;
-      if (typeof updateDashTickets === "function") { try { updateDashTickets(list); } catch (e) {} }
       if (!list.length) {
         c.innerHTML = renderTkEmptyArt({
           title: "暂无工单记录",

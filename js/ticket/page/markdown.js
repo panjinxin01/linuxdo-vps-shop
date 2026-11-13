@@ -37,8 +37,14 @@ function tkMdLines(taId, prefix) {
 }
 
 /* 插入链接 */
-function tkMdInsertLink() {
-  var url = prompt("请输入链接地址：", "https://");
+async function tkMdInsertLink() {
+  var url = await showPromptModal({
+    title: "插入超链接",
+    label: "链接地址",
+    defaultValue: "https://",
+    placeholder: "https://example.com",
+    confirmText: "插入",
+  });
   if (!url) return;
   if (!/^https?:\/\//i.test(url)) url = "https://" + url;
   tkMdWrap("tkNewContent", "[", "](" + url + ")");
@@ -78,7 +84,7 @@ function tkUpdateImageButton() {
   if (!b) return;
   var n = (TicketState.pendingNewImages || []).length;
   b.classList.toggle("is-image-pending", n > 0);
-  b.innerHTML = ticketIcon("clip", 13) + " 图片" + (n ? " (" + n + ")" : "");
+  b.innerHTML = ticketIcon("image", 13) + " 图片" + (n ? " (" + n + ")" : "");
 }
 
 function tkNewUpdateCount() {

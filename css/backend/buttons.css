@@ -1,13 +1,11 @@
 /* =====================================================
-   按钮
-   来源：css/admin.css 原始第 850-950 行（目录结构拆分，内容零改动）
+   后台按钮（含行内快捷交付按钮）
    ===================================================== */
-/* === 按钮 === */
 .btn {
-  padding: 9px 16px;
+  padding: 8px 14px;
   border-radius: var(--radius-md);
   cursor: pointer;
-  border: none;
+  border: 1px solid transparent;
   font-size: 13px;
   font-weight: 600;
   font-family: inherit;
@@ -17,19 +15,17 @@
   justify-content: center;
   gap: 6px;
   line-height: 1.2;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .btn-primary {
   background: var(--gradient-brand);
   color: white;
-  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.32);
+  box-shadow: var(--shadow-primary);
 }
 .btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.42);
+  box-shadow: var(--shadow-primary-hover);
   filter: brightness(1.06);
-}
-.btn-primary:active {
-  transform: translateY(0);
 }
 .btn-outline {
   background: var(--bg-card);
@@ -42,41 +38,38 @@
   background: var(--primary-light);
 }
 .btn-danger {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
+  background: var(--danger);
   color: white;
-  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
 }
 .btn-danger:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(239, 68, 68, 0.4);
+  filter: brightness(0.92);
 }
 .btn-success {
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: white;
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+  background: var(--success);
+  color: #052e16;
 }
 .btn-success:hover {
-  transform: translateY(-1px);
   filter: brightness(1.05);
 }
 .action-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 34px;
-  padding: 7px 13px;
-  border-radius: var(--radius-md);
-  font-size: 12.5px;
+  min-height: 30px;
+  padding: 5px 11px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
   font-weight: 600;
   font-family: inherit;
   border: 1px solid var(--border);
   background: var(--bg-card);
   color: var(--text-light);
   cursor: pointer;
-  margin-right: 6px;
-  margin-bottom: 6px;
+  margin-right: 5px;
+  margin-bottom: 4px;
   transition: var(--transition);
   line-height: 1.1;
+  white-space: nowrap;
 }
 .action-btn:hover {
   border-color: var(--primary);
@@ -84,9 +77,19 @@
   background: var(--primary-light);
 }
 .action-btn.edit {
-  border-color: rgba(99, 131, 255, 0.35);
+  border-color: rgba(99, 102, 241, 0.3);
   background: var(--primary-light);
   color: var(--primary);
+}
+.action-btn.deliver {
+  border-color: rgba(16, 185, 129, 0.35);
+  background: var(--success-bg);
+  color: var(--success);
+}
+.action-btn.deliver:hover {
+  border-color: var(--success);
+  background: var(--success);
+  color: #fff;
 }
 .action-btn.del {
   border-color: rgba(239, 68, 68, 0.3);
@@ -95,11 +98,19 @@
 }
 .action-btn.del:hover {
   border-color: var(--danger);
-  color: var(--danger);
-  background: var(--danger-bg);
-  box-shadow: 0 2px 10px rgba(239, 68, 68, 0.2);
+  color: #fff;
+  background: var(--danger);
 }
 .table-wrapper td .action-btn:last-child {
   margin-right: 0;
 }
-
+.admin-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+.admin-inline-actions .action-btn {
+  margin-right: 0;
+  margin-bottom: 0;
+}

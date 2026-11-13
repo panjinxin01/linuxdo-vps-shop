@@ -5,3 +5,8 @@ api/config.local.php
 .backup/
 uploads/
 *.zip
+data/
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm

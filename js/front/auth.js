@@ -18,12 +18,12 @@ function checkLogin() {
         currentRole = data.data.role || "user";
         renderUserArea();
         loadProducts();
-        if (currentRole === "user") { loadMyOrders(); loadMyTickets(); loadCreditSummary(); loadCreditTransactions(); initNotifications(); }
+        if (currentRole === "user") { loadMyOrders(); loadMyTickets(); if (typeof loadMyRefunds === "function") loadMyRefunds(); loadCreditSummary(); loadCreditTransactions(); initNotifications(); }
         else if (currentRole === "admin") { renderAdminFrontendHints(); renderAvailableInstances([]); }
         else { renderAvailableInstances([]); }
       } else {
         currentUser = null; currentRole = null; cachedOrderList = []; cachedPaidOrderList = [];
-        renderUserArea(); loadProducts(); loadMyOrders(); loadMyTickets(); stopNotificationPolling();
+        renderUserArea(); loadProducts(); loadMyOrders(); loadMyTickets(); if (typeof loadMyRefunds === "function") loadMyRefunds(); stopNotificationPolling();
       }
     })
     .catch(() => { currentUser = null; currentRole = null; cachedOrderList = []; cachedPaidOrderList = []; renderUserArea(); loadProducts(); loadMyOrders(); loadMyTickets(); });
@@ -64,8 +64,8 @@ function renderInstallStateNotice(state) {
 
 // ==================== 管理员前台提示 ====================
 function renderAdminFrontendHints() {
-  const adminHint = '<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><p>当前为管理员账号，请前往<a href="admin/index.html" style="color:var(--primary);text-decoration:underline;margin:0 4px">后台管理</a>查看</p></div>';
-  const targets = { myTickets: adminHint, myOrders: adminHint, buyProductList: adminHint, productList: adminHint };
+  const adminHint = '<div class="empty-state"><div class="empty-icon">' + appIcon("shield", 48, { strokeWidth: 1.5 }) + '</div><p>当前为管理员账号，请前往<a href="admin/index.html" style="color:var(--primary);text-decoration:underline;margin:0 4px">后台管理</a>查看</p></div>';
+  const targets = { myTickets: adminHint, myOrders: adminHint, myRefunds: adminHint, buyProductList: adminHint, productList: adminHint };
   Object.keys(targets).forEach(function(id) { const el = document.getElementById(id); if (el) el.innerHTML = targets[id]; });
 }
 
@@ -80,27 +80,27 @@ function doAuth() {
   const username = document.getElementById("authUser").value.trim();
   const password = document.getElementById("authPass").value;
   const email = document.getElementById("authEmail").value.trim();
-  if (!username || !password) { alert("请填写用户名和密码"); return; }
+  if (!username || !password) { showToast("请填写用户名和密码", "warning"); return; }
   const body = new FormData();
   body.append("action", isLoginMode ? "login" : "register");
   body.append("username", username);
   body.append("password", password);
   if (!isLoginMode && email) body.append("email", email);
   apiFetch("api/user.php", { method: "POST", body }).then((r) => r.json()).then((data) => {
-    if (data.code !== 1) { alert(data.msg || "操作失败"); return; }
+    if (data.code !== 1) { showToast(data.msg || "操作失败", "error"); return; }
     closeAuth();
     if (isLoginMode) {
       if (data.data.role === "admin") { window.location.href = "admin/index.html"; return; }
       currentUser = data.data && data.data.user ? data.data.user : { username: data.data.username || username, credit_balance: data.data.credit_balance || 0 };
       currentRole = "user"; renderUserArea(); loadMyOrders(); loadMyTickets(); loadCreditSummary(); loadCreditTransactions(); initNotifications();
-    } else { alert("注册成功，请登录"); showLogin(); }
+    } else { showToast("注册成功，请登录", "success"); showLogin(); }
   });
 }
 
 function logout() {
   apiFetch("api/user.php", { method: "POST", body: new URLSearchParams({ action: "logout" }) }).then(() => {
     currentUser = null; currentRole = null; cachedOrderList = []; cachedPaidOrderList = []; stopNotificationPolling();
-    renderUserArea(); loadProducts(); loadMyOrders(); loadMyTickets();
+    renderUserArea(); loadProducts(); loadMyOrders(); loadMyTickets(); if (typeof loadMyRefunds === "function") loadMyRefunds();
     const ce = document.getElementById("creditTransactions"); if (ce) ce.innerHTML = "暂无流水";
     const bs = document.getElementById("creditBalanceSummary"); if (bs) bs.textContent = "--";
     const bh = document.getElementById("creditBalanceHint"); if (bh) bh.textContent = "登录后查看余额信息";

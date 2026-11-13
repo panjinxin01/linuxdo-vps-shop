@@ -132,22 +132,25 @@ function renderAdminRefundCard(t) {
         "</div>" +
       "</div>" +
       '<div class="refund-admin-grid">' +
-        '<div class="refund-admin-item"><label>关联订单</label><div>' + escapeHtml(t.order_no || "-") + "</div></div>" +
+        '<div class="refund-admin-item is-full"><label>关联订单</label><div class="refund-order-code">' + escapeHtml(t.order_no || "-") + "</div></div>" +
         '<div class="refund-admin-item"><label>退款金额</label><div>' + (oi ? parseFloat(oi.price || 0).toFixed(2) + " 积分" : "-") + "</div></div>" +
-        '<div class="refund-admin-item"><label>提交原因</label><div>' + escapeHtml(t.refund_reason || "-") + "</div></div>" +
         '<div class="refund-admin-item"><label>处理管理员</label><div>' + escapeHtml(t.handled_admin_name || "-") + "</div></div>" +
+        '<div class="refund-admin-item is-full"><label>提交原因</label><div>' + escapeHtml(t.refund_reason || "-") + "</div></div>" +
       "</div>";
   if (parseInt(t.status, 10) !== 2) {
     h +=
       '<div class="refund-approve-section">' +
-        '<div class="refund-admin-grid">' +
-          '<div class="refund-admin-item"><label>审批退款方式</label><select id="approveRefundTarget">' +
+        '<div class="refund-admin-grid is-form-grid">' +
+          '<div class="refund-admin-item is-full"><label for="approveRefundTarget">审批退款方式</label><select id="approveRefundTarget">' +
             '<option value="original"' + (t.refund_target === "original" ? " selected" : "") + ">原路退回</option>" +
             '<option value="balance"' + (t.refund_target === "balance" ? " selected" : "") + ">退回站内余额</option>" +
           "</select></div>" +
-          '<div class="refund-admin-item" style="grid-column:1/-1"><label>审批备注</label>' +
+          '<div class="refund-admin-item is-full" style="grid-column:1/-1"><label for="approveRefundReason">审批备注</label>' +
             '<textarea id="approveRefundReason" rows="2" placeholder="会写入退款记录与工单回复">' + escapeHtml(t.refund_reason || "工单退款") + "</textarea>" +
           "</div>" +
+        "</div>" +
+        '<div class="refund-approve-actions">' +
+          '<button type="button" class="btn btn-danger" onclick="approveRefundTicket(' + t.id + ')">' + ticketIcon("refresh", 14) + "同意并执行退款</button>" +
         "</div>" +
       "</div>";
   }

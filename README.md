@@ -2,8 +2,8 @@
 
 一个轻量级、**开箱即用**的 VPS 积分 / 信用兑换商城：PHP + MySQL 单体站点，前台 / 后台均为静态页面 + PHP 接口，无需 Composer 依赖。
 
-> **当前版本**：`v20261002`（全量代码审计与缺陷修复归档；含 `v20261001` 工程结构拆分）
-> **静态资源版本**：`?v=20261001`
+> **当前版本**：`v20261113-repack`（2026-11-13，结构重组 GitHub 直传版；含 `v20261002` 全量审计修复与 `v20261001` 工程结构拆分）：扁平结构，可直接上传 GitHub / 虚拟主机；安装改回 MySQL 向导，移除 SQLite 预览与演示数据；新增退款售后专属页面与新版 UI。详见 [`CHANGELOG.md`](CHANGELOG.md)
+> **静态资源版本**：`?v=20261113c`
 > **完整更新日志**：[`CHANGELOG.md`](CHANGELOG.md)　|　**许可**：MIT（见 [`LICENSE`](LICENSE)）
 
 ## 目录
@@ -97,9 +97,9 @@
 
 ```
 ├── admin/                          # 后台页面骨架（5 个 HTML）
-├── api/                            # HTTP 接口（29 个 PHP，含自建的 config.local.php）
+├── api/                            # HTTP 接口（29 个 PHP，含 config.local.example.php）
 │   ├── config.php                  # 配置加载器（环境变量 / config.local.php）
-│   ├── config.local.php            # 部署私有配置（自建，不提交仓库）
+│   ├── config.local.example.php    # 部署私有配置模板（复制为 config.local.php 后填写；真实配置不提交仓库）
 │   ├── orders.php products.php tickets.php
 │   ├── pay.php notify.php          # 支付发起 / 异步回调
 │   ├── ldcpay.php                  # LDC Pay 平台管理接口（管理员）
@@ -397,6 +397,7 @@ return [
 
 | 版本 | 日期 | 摘要 |
 |------|------|------|
+| **v20261113-repack** | 2026-11-13 | 结构重组 GitHub 直传版：扁平结构 + MySQL 安装向导，移除 SQLite 预览；新增退款售后专属页面、新版 UI、附件上限可配与库存锁修复 |
 | **v20261002** | 2026-10-02 | 全量代码审计与缺陷修复（原 `DEBUG_REPORT.md` 并入）；文档全面重构 |
 | **v20261001** | 2026-10-01 | 工程结构全面拆分：CSS / JS / HTML / PHP 单体大文件按职责拆分，业务逻辑零改动 |
 | **v20260926** | 2026-09-26 | 修复工单输入控件缺失 CSS 样式（发起新工单 + 后台退款审批） |

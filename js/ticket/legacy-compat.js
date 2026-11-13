@@ -38,7 +38,6 @@ function showTicketDetail(id) {
     catch (e) { openTicketView(id); }
   }
 }
-function closeTicketDetail() { window.location.hash = "#tickets"; }
 
 /* 前台：回复（页面版，回复后局部刷新） */
 function replyTicket(ticketId) {
@@ -65,15 +64,16 @@ function replyTicket(ticketId) {
 }
 
 /* 前台：关闭工单（页面版，关闭后就地呈现警示条） */
-function closeTicket(ticketId) {
-  if (!confirm("确定要关闭此工单吗？关闭后无法再回复。")) return;
+async function closeTicket(ticketId) {
+  const ok = await showConfirmModal({ title: "关闭工单", message: "确定要关闭此工单吗？关闭后无法再回复。", confirmText: "确认关闭", danger: true });
+  if (!ok) return;
   TicketApi.close(ticketId)
     .then(function () {
-      showToast("工单已关闭");
+      showToast("工单已关闭", "success");
       loadMyTickets();
       return refreshTicketView(ticketId);
     })
-    .catch(function (err) { showToast((err && err.message) || "操作失败"); });
+    .catch(function (err) { showToast((err && err.message) || "操作失败", "error"); });
 }
 
 /* 后台：详情入口 → 内嵌子视图（原弹窗废弃） */
@@ -81,21 +81,23 @@ function showAdminTicketDetail(id) { openAdminTicketView(id); }
 function closeAdminTicketDetail() { closeAdminTicketView(); }
 
 /* 后台：关闭工单（页面版） */
-function adminCloseTicket(tid) {
-  if (!confirm("确定要关闭此工单吗？")) return;
+async function adminCloseTicket(tid) {
+  const ok = await showConfirmModal({ title: "关闭工单", message: "确定要关闭此工单吗？", confirmText: "确认关闭", danger: true });
+  if (!ok) return;
   TicketApi.close(tid)
     .then(function () {
-      showToast("工单已关闭");
+      showToast("工单已关闭", "success");
       loadTickets();
       loadTicketStats();
       return refreshAdminTicketView(tid);
     })
-    .catch(function (err) { showToast((err && err.message) || "操作失败"); });
+    .catch(function (err) { showToast((err && err.message) || "操作失败", "error"); });
 }
 
 /* 后台：同意退款（页面版，完成后就地刷新审批卡状态） */
-function approveRefundTicket(tid) {
-  if (!confirm("确认同意该退款申请并立即执行退款吗？")) return;
+async function approveRefundTicket(tid) {
+  const ok = await showConfirmModal({ title: "同意退款申请", message: "确认同意该退款申请并立即执行退款吗？", confirmText: "立即退款", danger: true });
+  if (!ok) return;
   var target = (document.getElementById("approveRefundTarget") || {}).value || "original";
   var reason = (((document.getElementById("approveRefundReason") || {}).value || "").trim()) || "工单退款";
   if (TicketState.refunding) return;
@@ -103,15 +105,16 @@ function approveRefundTicket(tid) {
   TicketApi.approveRefund(tid, target, reason)
     .then(function () {
       TicketState.refunding = false;
-      showToast("退款已完成");
+      showToast("退款已完成", "success");
       loadTickets();
       loadTicketStats();
       if (typeof loadOrders === "function") loadOrders(typeof adminOrderPagination !== "undefined" ? adminOrderPagination.page || 1 : 1);
+      if (typeof loadAdminRefunds === "function") loadAdminRefunds();
       return refreshAdminTicketView(tid);
     })
     .catch(function (err) {
       TicketState.refunding = false;
-      showToast((err && err.message) || "退款失败");
+      showToast((err && err.message) || "退款失败", "error");
     });
 }
 

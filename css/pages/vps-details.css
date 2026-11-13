@@ -1,69 +1,174 @@
 /* =====================================================
-   VPS 凭据信息
-   来源：css/style.css 原始第 1612-1676 行（目录结构拆分，内容零改动）
+   VPS 连接凭据面板（一键复制 IP / 端口 / 用户名 / 密码 / SSH 命令）
    ===================================================== */
-/* === VPS 信息 === */
-.vps-info {
-  background: var(--bg-muted);
-  border: 1px solid var(--border-light);
+.vps-info,
+.ssh-panel {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 18px 20px;
+  padding: 14px 16px;
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 12.5px;
 }
+
+.ssh-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.ssh-panel-title {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ssh-row,
 .vps-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
-  padding: 10px 0;
+  gap: 10px;
+  padding: 7px 0;
   border-bottom: 1px solid var(--border-light);
 }
+
+.ssh-row:last-of-type,
 .vps-row:last-of-type {
   border-bottom: none;
 }
+
+.ssh-label,
 .vps-label,
 .vps-row > span {
+  font-family: var(--font-sans);
   color: var(--text-muted);
   flex-shrink: 0;
   font-size: 12px;
+  font-weight: 500;
 }
+
+.ssh-value,
 .vps-value {
   color: var(--text-main);
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.ssh-code,
+.vps-row code {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  background: var(--bg-muted);
+  border: 1px solid var(--border-light);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  display: flex;
+  max-width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+
+.ssh-icon-btn {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-.vps-row code {
-  word-break: break-all;
-  white-space: normal;
-}
-.vps-copy-all {
-  margin-top: 12px;
-}
-.copy-btn {
-  padding: 4px 10px;
-  background: var(--primary-light);
-  color: var(--primary);
-  border: none;
-  border-radius: 8px;
-  font-size: 12px;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-muted);
   cursor: pointer;
   flex-shrink: 0;
   transition: var(--transition);
-  font-weight: 500;
 }
+
+.ssh-icon-btn:hover {
+  color: var(--text-main);
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+  transition: var(--transition);
+}
+
 .copy-btn:hover {
   background: var(--primary);
   color: #fff;
 }
+
 .copy-btn.copied {
-  background: var(--success);
-  color: #fff;
+  background: var(--success-bg);
+  color: var(--success);
+  border-color: rgba(52, 211, 153, 0.35);
 }
 
+.ssh-cmd-bar {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  background: var(--bg-darker);
+  border: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ssh-cmd-text {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-light);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.ssh-actions,
+.vps-copy-all {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+}
+
+.ssh-actions .btn,
+.vps-copy-all .btn {
+  flex: 1;
+  padding: 7px 12px;
+  font-size: 12px;
+}

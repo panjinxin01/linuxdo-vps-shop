@@ -16,3 +16,93 @@
       </div>
     </div>
 
+    <!-- 快捷交付弹窗 -->
+    <div class="modal-bg" id="quickDeliverModal">
+      <div class="modal" style="max-width: 560px">
+        <div class="modal-head">
+          <h3 id="qdModalTitle">快捷交付订单</h3>
+          <button type="button" class="modal-close" onclick="closeQuickDeliverModal()" aria-label="关闭">&times;</button>
+        </div>
+        <div class="modal-body modal-scroll">
+          <input type="hidden" id="qdOrderNo" />
+          <div class="quick-deliver-summary" id="qdOrderSummary"></div>
+          <div class="form-group">
+            <label>交付状态</label>
+            <select id="qdDeliveryStatus">
+              <option value="delivered">已交付（自动解锁用户查看凭据并通知）</option>
+              <option value="provisioning">处理中（开通中）</option>
+              <option value="exception">异常（需补充说明）</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px">
+              <label style="margin-bottom:0">交付信息 / 凭据补充</label>
+              <button type="button" class="preset-chip" onclick="fillQuickDeliverFromOrder()">一键填充SSH模板</button>
+            </div>
+            <textarea id="qdDeliveryInfo" rows="5" placeholder="填写面板地址、SSH 连接说明、到期时间或重置信息等"></textarea>
+          </div>
+          <div class="form-group">
+            <label>交付备注（用户可见）</label>
+            <input type="text" id="qdDeliveryNote" placeholder="可选，如：已完成系统重装与端口放行" />
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label>异常说明（仅状态为异常时必填）</label>
+            <input type="text" id="qdDeliveryError" placeholder="可选，如：上游宿主机维护中" />
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn btn-outline" onclick="closeQuickDeliverModal()">取消</button>
+          <button type="button" class="btn btn-primary" id="qdSubmitBtn" onclick="submitQuickDeliver()">确认交付并通知用户</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 可视化退款确认弹窗（替代 prompt，兼容直接退款与工单审批） -->
+    <div class="modal-bg" id="adminRefundModal">
+      <div class="modal" style="max-width: 500px">
+        <div class="modal-head">
+          <h3 id="rfModalTitle">订单退款确认</h3>
+          <button type="button" class="modal-close" onclick="closeAdminRefundModal()" aria-label="关闭">&times;</button>
+        </div>
+        <div class="modal-body modal-scroll">
+          <input type="hidden" id="rfOrderNo" />
+          <input type="hidden" id="rfTicketId" />
+          <div class="quick-deliver-summary" id="rfOrderSummary"></div>
+          <div class="form-group">
+            <label>退款方式</label>
+            <div class="refund-target-grid" id="adminRefundTargetList">
+              <label class="refund-target-card is-checked">
+                <input type="radio" name="rfTarget" value="original" checked onchange="syncAdminRefundTargetCards()" />
+                <div>
+                  <div class="refund-target-title">原路退回</div>
+                  <div class="refund-target-desc">按支付通道原路返还对应金额</div>
+                </div>
+              </label>
+              <label class="refund-target-card">
+                <input type="radio" name="rfTarget" value="balance" onchange="syncAdminRefundTargetCards()" />
+                <div>
+                  <div class="refund-target-title">退回站内余额</div>
+                  <div class="refund-target-desc">实时退入用户积分账户余额</div>
+                </div>
+              </label>
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label>退款原因（将写入审计日志）</label>
+            <input type="text" id="rfReason" value="人工退款" placeholder="请输入退款原因" />
+            <div class="reason-chips">
+              <button type="button" class="reason-chip" onclick="setRefundReason('无法连接 / SSH 异常')">无法连接 / SSH 异常</button>
+              <button type="button" class="reason-chip" onclick="setRefundReason('配置与描述不符')">配置与描述不符</button>
+              <button type="button" class="reason-chip" onclick="setRefundReason('库存异常退款')">库存异常退款</button>
+              <button type="button" class="reason-chip" onclick="setRefundReason('用户主动协商退款')">用户主动协商退款</button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn btn-outline" onclick="closeAdminRefundModal()">取消</button>
+          <button type="button" class="btn btn-danger" id="rfSubmitBtn" onclick="submitAdminRefund()">确认立即退款</button>
+        </div>
+      </div>
+    </div>
+
+

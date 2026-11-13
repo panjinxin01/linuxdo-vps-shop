@@ -154,7 +154,7 @@ function buildTicketViewPageHtml(t, att, opts) {
       templates: adminSide ? (o.templates || null) : null
     });
     h +=
-      '<div class="tk-page-head-actions" style="justify-content:flex-end;margin-top:12px">' +
+      '<div class="tk-page-head-actions tk-compose-submit-row" style="justify-content:flex-end;margin-top:12px">' +
         '<button type="button" class="btn btn-primary btn-send" id="' + sendBtnId + '" onclick="' + sendFn + "(" + t.id + ')">' + ticketIcon("send", 14) + "发送回复</button>" +
       "</div>";
   }

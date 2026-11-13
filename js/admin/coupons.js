@@ -43,7 +43,7 @@ function toggleCouponType() {
 }
 function saveCoupon() {
   const id = document.getElementById("cId").value, code = document.getElementById("cCode").value.trim(), name = document.getElementById("cName").value.trim(), value = document.getElementById("cValue").value;
-  if (!code || !name || !value) { alert("请填写必填项"); return; }
+  if (!code || !name || !value) { showToast("请填写必填项", "warning"); return; }
   const body = new FormData(); body.append("action", id ? "update" : "create"); if (id) body.append("id", id);
   body.append("code", code); body.append("name", name); body.append("type", document.getElementById("cType").value); body.append("value", value);
   body.append("min_amount", document.getElementById("cMinAmount").value); body.append("max_uses", document.getElementById("cMaxUses").value); body.append("per_user_limit", document.getElementById("cPerUserLimit").value);
@@ -51,8 +51,12 @@ function saveCoupon() {
   const sa = document.getElementById("cStartsAt").value; if (sa) body.append("starts_at", sa.replace("T", " "));
   const ea = document.getElementById("cEndsAt").value; if (ea) body.append("ends_at", ea.replace("T", " "));
   body.append("status", document.getElementById("cStatus").checked ? 1 : 0);
-  apiFetch("../api/coupons.php", { method: "POST", body }).then((r) => r.json()).then((data) => { alert(data.msg); if (data.code === 1) { closeCouponModal(); loadCoupons(); } });
+  apiFetch("../api/coupons.php", { method: "POST", body }).then((r) => r.json()).then((data) => { showToast(data.msg || "保存完成", data.code === 1 ? "success" : "error"); if (data.code === 1) { closeCouponModal(); loadCoupons(); } });
 }
-function toggleCouponStatus(id, cs) { const body = new FormData(); body.append("action", "toggle"); body.append("id", id); body.append("status", cs == 1 ? 0 : 1); apiFetch("../api/coupons.php", { method: "POST", body }).then((r) => r.json()).then((d) => { if (d.code === 1) loadCoupons(); else alert(d.msg); }); }
-function deleteCoupon(id) { if (!confirm("确定要删除此优惠券吗？")) return; const body = new FormData(); body.append("action", "delete"); body.append("id", id); apiFetch("../api/coupons.php", { method: "POST", body }).then((r) => r.json()).then((d) => { alert(d.msg); if (d.code === 1) loadCoupons(); }); }
+function toggleCouponStatus(id, cs) { const body = new FormData(); body.append("action", "toggle"); body.append("id", id); body.append("status", cs == 1 ? 0 : 1); apiFetch("../api/coupons.php", { method: "POST", body }).then((r) => r.json()).then((d) => { if (d.code === 1) { showToast("状态已更新", "success"); loadCoupons(); } else showToast(d.msg || "操作失败", "error"); }); }
+async function deleteCoupon(id) {
+  const ok = await showConfirmModal({ title: "删除优惠券", message: "确定要删除此优惠券吗？", confirmText: "确认删除", danger: true });
+  if (!ok) return;
+  const body = new FormData(); body.append("action", "delete"); body.append("id", id); apiFetch("../api/coupons.php", { method: "POST", body }).then((r) => r.json()).then((d) => { showToast(d.msg || "已删除", d.code === 1 ? "success" : "error"); if (d.code === 1) loadCoupons(); });
+}
 

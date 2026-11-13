@@ -176,10 +176,9 @@ function renderReplyComposer(opts) {
       chips +
       '<textarea id="' + taId + '" rows="3" maxlength="' + TICKET_REPLY_MAXLEN + '" aria-label="回复内容输入框" placeholder="输入回复内容..." onkeydown="handleComposeKeydown(event,' + tid + ')" oninput="tkUpdateComposerCount(this,\'' + taId + 'Count\')"></textarea>' +
       '<div class="ticket-reply-compose-actions">' +
-        '<input type="file" id="' + fileId + '" accept="image/*,.txt,.log,.pdf" onchange="handleTicketFileChange(this,\'' + fileId + 'Label\',\'' + fileId + 'Name\')">' +
-        '<label for="' + fileId + '" class="ticket-upload-btn" id="' + fileId + 'Label">' + ticketIcon("clip", 12) + "选择附件</label>" +
+        '<input type="file" id="' + fileId + '" accept="image/*,.txt,.log,.pdf" onchange="handleAndUploadTicketFile(' + tid + ',\'' + fileId + '\')">' +
+        '<button type="button" class="ticket-upload-btn" id="' + fileId + 'UploadBtn" onclick="document.getElementById(\'' + fileId + '\').click()" aria-label="上传附件">' + ticketIcon("clip", 12) + "上传附件</button>" +
         '<span class="ticket-file-name" id="' + fileId + 'Name"></span>' +
-        '<button type="button" class="btn btn-outline btn-send" style="padding:7px 14px;font-size:12px" id="' + fileId + 'UploadBtn" onclick="uploadAttachmentToTicket(' + tid + ',\'' + fileId + '\')" aria-label="上传附件">' + ticketIcon("clip", 12) + "上传附件</button>" +
         hint +
         count +
       "</div>" +

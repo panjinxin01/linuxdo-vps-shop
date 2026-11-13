@@ -58,11 +58,11 @@ function renderTicketNewFormHtml() {
             '<button type="button" class="tk-tool-btn" title="斜体" aria-label="斜体" onclick="tkMdWrap(\'tkNewContent\',\'*\',\'*\')"><i>I</i></button>' +
             '<button type="button" class="tk-tool-btn" title="行内代码" aria-label="行内代码" onclick="tkMdWrap(\'tkNewContent\',\'`\',\'`\')">' + ticketIcon("code", 13) + "</button>" +
             '<span class="tk-tool-sep"></span>' +
-            '<button type="button" class="tk-tool-btn" title="引用" aria-label="引用" onclick="tkMdLines(\'tkNewContent\',\'> \')">❝</button>' +
+            '<button type="button" class="tk-tool-btn" title="引用" aria-label="引用" onclick="tkMdLines(\'tkNewContent\',\'> \')">' + ticketIcon("quote", 13) + "</button>" +
             '<button type="button" class="tk-tool-btn" title="无序列表" aria-label="无序列表" onclick="tkMdLines(\'tkNewContent\',\'- \')">' + ticketIcon("list", 13) + "</button>" +
             '<span class="tk-tool-sep"></span>' +
             '<button type="button" class="tk-tool-btn" title="插入链接" aria-label="插入链接" onclick="tkMdInsertLink()">' + ticketIcon("link", 13) + "</button>" +
-            '<button type="button" class="tk-tool-btn" id="tkNewImageBtn" title="上传图片（随工单提交）" onclick="tkNewImagePick()">' + ticketIcon("clip", 13) + " 图片</button>" +
+            '<button type="button" class="tk-tool-btn" id="tkNewImageBtn" title="上传图片（随工单提交）" onclick="tkNewImagePick()">' + ticketIcon("image", 13) + " 图片</button>" +
             '<input type="file" id="tkNewImageFile" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none" onchange="tkNewImageSelected(this)" />' +
           "</div>" +
           '<textarea id="tkNewContent" rows="8" placeholder="请详细描述遇到的问题：复现步骤、报错信息、期望结果等…" aria-label="问题描述" oninput="tkNewUpdateCount()"></textarea>' +
@@ -165,7 +165,7 @@ function openTicketView(id) {
 function tkTicketViewShellHtml(t, att) {
   return (
     '<button type="button" class="tk-back-link" onclick="location.hash=\'#tickets\'">← 返回工单列表</button>' +
-    '<div class="card" style="padding:22px;margin-top:12px">' +
+    '<div class="card tk-detail-card">' +
       buildTicketViewPageHtml(t, att, { isAdminSide: false }) +
     "</div>"
   );

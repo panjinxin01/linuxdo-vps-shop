@@ -18,16 +18,16 @@ function renderUserArea() {
         ? `<span class="name">${escapeHtml(username)}</span><span class="balance">管理员</span>`
         : `<span class="name">${escapeHtml(username)}</span><span class="balance"><span data-role="user-balance">${balance.toFixed(2)}</span> 积分</span>`;
       const menuItems = [
-        isAdmin ? '<a href="admin/index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>返回后台</a>' : "",
-        '<a href="#" onclick="switchPage(\'orders\');return false;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>我的账户</a>',
+        isAdmin ? '<a href="admin/index.html">' + appIcon("shield", null) + '返回后台</a>' : "",
+        '<a href="#" onclick="switchPage(\'orders\');return false;">' + appIcon("monitor", null) + '我的账户</a>',
         '<div class="user-dropdown-divider"></div>',
-        '<a href="#" class="danger" onclick="logout();return false;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>退出登录</a>',
+        '<a href="#" class="danger" onclick="logout();return false;">' + appIcon("logout", null) + '退出登录</a>',
       ].join("");
       area.innerHTML = `<div class="user-area-wrap" id="userMenuWrap">
         <button type="button" class="user-menu-btn" id="userMenuBtn" onclick="toggleUserMenu(event)" aria-haspopup="true">
           <span class="avatar">${initial}</span>
           <span class="meta">${metaHtml}</span>
-          <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+          ${appIcon("chevron-down", 14, { className: "chev" })}
         </button>
         <div class="user-dropdown" id="userDropdown">${menuItems}</div>
       </div>`;

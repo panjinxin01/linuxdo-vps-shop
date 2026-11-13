@@ -7,28 +7,28 @@
             <h1 class="page-title">工单管理</h1>
             <div class="page-actions">
               <button class="btn btn-outline" onclick="exportData('tickets')">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 导出CSV
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 导出CSV
               </button>
             </div>
           </div>
           <div class="stats-grid" style="margin-bottom: 20px">
             <div class="stat-card warning">
-              <div class="stat-header"><div class="stat-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div></div>
+              <div class="stat-header"><div class="stat-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div></div>
               <div class="stat-label">待回复</div>
               <div class="stat-value" id="statTicketPending">-</div>
             </div>
             <div class="stat-card success">
-              <div class="stat-header"><div class="stat-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div></div>
+              <div class="stat-header"><div class="stat-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div></div>
               <div class="stat-label">已回复</div>
               <div class="stat-value" id="statTicketReplied">-</div>
             </div>
             <div class="stat-card">
-              <div class="stat-header"><div class="stat-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div></div>
+              <div class="stat-header"><div class="stat-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div></div>
               <div class="stat-label">已关闭</div>
               <div class="stat-value" id="statTicketClosed">-</div>
             </div>
             <div class="stat-card primary">
-              <div class="stat-header"><div class="stat-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div></div>
+              <div class="stat-header"><div class="stat-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div></div>
               <div class="stat-label">总工单</div>
               <div class="stat-value" id="statTicketTotal">-</div>
             </div>
@@ -69,7 +69,7 @@
           </div>
           <div class="table-container">
             <div class="table-wrapper">
-              <table>
+              <table class="tk-admin-table">
                 <thead>
                   <tr>
                     <th>ID</th>
@@ -94,7 +94,7 @@
           <!-- 工单详情子视图（v20260825 · tab 内嵌页面化详情，替代弹窗） -->
           <div id="ticketAdminView" style="display: none">
             <button type="button" class="tk-back-link" onclick="closeAdminTicketView()">← 返回工单列表</button>
-            <div class="card" style="padding: 22px; margin-top: 12px" id="ticketAdminViewBody"></div>
+            <div class="card tk-detail-card" id="ticketAdminViewBody"></div>
           </div>
         </div>
 

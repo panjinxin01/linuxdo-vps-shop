@@ -3,21 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#070b16" media="(prefers-color-scheme: dark)" />
-    <meta name="theme-color" content="#f3f5fa" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#090c12" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)" />
     <meta name="description" content="VPS积分商城 - 使用 Linux DO 积分兑换高性能云服务器" />
     <title>VPS积分商城 - Linux DO Credit</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
       rel="stylesheet"
       media="print"
       onload="this.media='all'"
     />
     <noscript>
       <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
         rel="stylesheet"
       />
     </noscript>
@@ -31,15 +31,19 @@
         } catch (e) {}
       })();
     </script>
-    <link rel="stylesheet" id="mainCss" href="css/style.css?v=20261001" />
-    <link rel="stylesheet" href="css/tickets.css?v=20261001" />
+    <link rel="stylesheet" id="mainCss" href="css/style.css?v=20261113c" />
+    <link rel="stylesheet" href="css/tickets.css?v=20261113c" />
   </head>
   <body>
     <!-- ==================== 侧边栏 ==================== -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
-        <a href="/" class="logo">
-          <div class="logo-icon">⚡</div>
+        <a href="./" class="logo">
+          <div class="logo-icon" aria-hidden="true">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/>
+            </svg>
+          </div>
           <span class="logo-text">VPS兑换</span>
         </a>
         <button
@@ -48,8 +52,8 @@
           title="折叠侧边栏"
           aria-label="折叠侧边栏"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <line x1="11" y1="4" x2="19" y2="12" /><line x1="11" y1="20" x2="19" y2="12" /><line x1="5" y1="12" x2="17" y2="12" />
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
           </svg>
         </button>
       </div>
@@ -71,6 +75,12 @@
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
             </svg>
             <span class="nav-text">我的账户</span>
+          </a>
+          <a href="#refunds" class="nav-item" data-page="refunds" data-route="refunds">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+            </svg>
+            <span class="nav-text">退款售后</span>
           </a>
         </div>
 
@@ -123,7 +133,7 @@
           <!-- 左区：移动端菜单 + 面包屑 -->
           <div class="header-left">
             <button class="menu-btn" id="menuBtn" onclick="openSidebar()" aria-label="打开导航菜单" aria-controls="sidebar">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
               </svg>
             </button>
@@ -140,7 +150,7 @@
           <div class="header-actions">
             <!-- 主题切换 -->
             <button class="icon-btn" id="themeToggle" type="button" onclick="toggleTheme()" title="切换主题" aria-label="切换主题">
-              <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="5"/>
                 <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
                 <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
@@ -151,7 +161,7 @@
             <!-- 通知铃铛 -->
             <div class="notification-wrapper" id="notificationWrapper">
               <button class="icon-btn" id="notificationBtn" type="button" onclick="toggleNotificationPanel(event)" aria-label="通知中心" aria-haspopup="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
                 <span class="notification-badge" id="notificationBadge" style="display: none">0</span>
@@ -200,6 +210,15 @@
       <div data-partial="partials/front/pages/announcements.html"></div>
       <!-- 通知中心页 -->
       <div data-partial="partials/front/pages/notifications.html"></div>
+      <!-- 退款售后页 -->
+      <div data-partial="partials/front/pages/refunds.html"></div>
+
+      <footer class="footer">
+        <div class="container">
+          <p>VPS积分商城 &copy; 2026 | Powered by Linux DO Credit</p>
+          <p style="margin-top: 8px; opacity: 0.6; font-size: 12px">极致性能 · 社区驱动 · 积分互联</p>
+        </div>
+      </footer>
     </div>
 
     <!-- 登录 / 注册弹窗（已页面化，保留空壳） -->
@@ -224,37 +243,38 @@
     <!-- ========== 基础层：公共工具 / 主题路由 / 前台工具函数 ========== -->
 
     <!-- ========== HTML 片段注入（必须在所有占位符之后、业务脚本之前） ========== -->
-    <script src="js/core/partials.js?v=20261001"></script>
-    <script src="js/core/common.js?v=20261001"></script>
-    <script src="js/front/utils.js?v=20261001"></script>
-    <script src="js/front/ui.js?v=20261001"></script>
+    <script src="js/core/partials.js?v=20261113d"></script>
+    <script src="js/core/common.js?v=20261113d"></script>
+    <script src="js/front/utils.js?v=20261113d"></script>
+    <script src="js/front/ui.js?v=20261113d"></script>
     <!-- ========== 工单共享模块（前后台通用） ========== -->
-    <script src="js/ticket/core/constants.js?v=20261001"></script>
-    <script src="js/ticket/core/api.js?v=20261001"></script>
-    <script src="js/ticket/render/list.js?v=20261001"></script>
-    <script src="js/ticket/render/detail.js?v=20261001"></script>
-    <script src="js/ticket/render/states.js?v=20261001"></script>
-    <script src="js/ticket/core/helpers.js?v=20261001"></script>
-    <script src="js/ticket/user-controller.js?v=20261001"></script>
-    <script src="js/ticket/page/view.js?v=20261001"></script>
-    <script src="js/ticket/page/markdown.js?v=20261001"></script>
-    <script src="js/ticket/page/new.js?v=20261001"></script>
-    <script src="js/ticket/legacy-compat.js?v=20261001"></script>
+    <script src="js/ticket/core/constants.js?v=20261113d"></script>
+    <script src="js/ticket/core/api.js?v=20261113d"></script>
+    <script src="js/ticket/render/list.js?v=20261113d"></script>
+    <script src="js/ticket/render/detail.js?v=20261113d"></script>
+    <script src="js/ticket/render/states.js?v=20261113d"></script>
+    <script src="js/ticket/core/helpers.js?v=20261113d"></script>
+    <script src="js/ticket/user-controller.js?v=20261113d"></script>
+    <script src="js/ticket/page/view.js?v=20261113d"></script>
+    <script src="js/ticket/page/markdown.js?v=20261113d"></script>
+    <script src="js/ticket/page/new.js?v=20261113d"></script>
+    <script src="js/ticket/legacy-compat.js?v=20261113d"></script>
     <!-- ========== 前台业务模块 ========== -->
-    <script src="js/front/app.js?v=20261001"></script>
-    <script src="js/front/auth.js?v=20261001"></script>
-    <script src="js/front/user-area.js?v=20261001"></script>
-    <script src="js/front/home.js?v=20261001"></script>
-    <script src="js/front/dashboard.js?v=20261001"></script>
-    <script src="js/front/products.js?v=20261001"></script>
-    <script src="js/front/orders.js?v=20261001"></script>
-    <script src="js/front/order-credentials.js?v=20261001"></script>
-    <script src="js/front/announcements.js?v=20261001"></script>
-    <script src="js/front/credits.js?v=20261001"></script>
-    <script src="js/front/notifications/bell.js?v=20261001"></script>
-    <script src="js/front/notifications/panel.js?v=20261001"></script>
-    <script src="js/front/notifications/list.js?v=20261001"></script>
-    <script src="js/front/notifications/actions.js?v=20261001"></script>
-    <script src="js/front/notifications/center.js?v=20261001"></script>
+    <script src="js/front/app.js?v=20261113d"></script>
+    <script src="js/front/auth.js?v=20261113d"></script>
+    <script src="js/front/user-area.js?v=20261113d"></script>
+    <script src="js/front/home.js?v=20261113d"></script>
+    <script src="js/front/dashboard.js?v=20261113d"></script>
+    <script src="js/front/products.js?v=20261113d"></script>
+    <script src="js/front/orders.js?v=20261113d"></script>
+    <script src="js/front/order-credentials.js?v=20261113d"></script>
+    <script src="js/front/refunds.js?v=20261113d"></script>
+    <script src="js/front/announcements.js?v=20261113d"></script>
+    <script src="js/front/credits.js?v=20261113d"></script>
+    <script src="js/front/notifications/bell.js?v=20261113d"></script>
+    <script src="js/front/notifications/panel.js?v=20261113d"></script>
+    <script src="js/front/notifications/list.js?v=20261113d"></script>
+    <script src="js/front/notifications/actions.js?v=20261113d"></script>
+    <script src="js/front/notifications/center.js?v=20261113d"></script>
   </body>
 </html>

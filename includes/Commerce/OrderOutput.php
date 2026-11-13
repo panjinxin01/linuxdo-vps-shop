@@ -30,7 +30,20 @@ function commercePrepareOrderForOutput(array &$order, bool $hideRestrictedCreden
         $order['delivery_info'] = commerceDecryptDeliveryInfo((string)$order['delivery_info']);
     }
     if ($hideRestrictedCredentials && !commerceOrderShouldShowCredentials($order)) {
-        unset($order['ip_address'], $order['ssh_port'], $order['ssh_user'], $order['ssh_password'], $order['extra_info']);
+        // 输出层统一收口：除计算别名外，订单表里 o.* 带出的 *_snapshot 原列同样属于凭据明文，
+        // 未支付/非交付状态必须一并清除，避免任何复用 buildOrderSelectSql() 的接口泄露。
+        unset(
+            $order['ip_address'],
+            $order['ssh_port'],
+            $order['ssh_user'],
+            $order['ssh_password'],
+            $order['extra_info'],
+            $order['ip_address_snapshot'],
+            $order['ssh_port_snapshot'],
+            $order['ssh_user_snapshot'],
+            $order['ssh_password_snapshot'],
+            $order['extra_info_snapshot']
+        );
     }
 }
 

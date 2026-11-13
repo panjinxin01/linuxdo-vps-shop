@@ -35,8 +35,8 @@ function submitCreditAdjust() {
   body.append("amount", document.getElementById("creditAmount").value);
   body.append("remark", document.getElementById("creditRemark").value);
   apiFetch("../api/credits.php", { method: "POST", body }).then((r) => r.json()).then((d) => {
-    if (d.code === 1) { showToast("积分已调整"); document.getElementById("creditAmount").value = ""; document.getElementById("creditRemark").value = ""; loadCreditAdminUsers(); loadCreditTransactionList(document.getElementById("creditUserId").value); loadStats(); }
-    else alert(d.msg || "调整失败");
+    if (d.code === 1) { showToast("积分已调整", "success"); document.getElementById("creditAmount").value = ""; document.getElementById("creditRemark").value = ""; loadCreditAdminUsers(); loadCreditTransactionList(document.getElementById("creditUserId").value); loadStats(); }
+    else showToast(d.msg || "调整失败", "error");
   });
 }
 

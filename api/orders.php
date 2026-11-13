@@ -8,7 +8,7 @@ require_once __DIR__ . '/../includes/commerce.php';
 $action = requestValue('action', '');
 $pdo = getDB();
 
-$csrfActions = ['create', 'refund', 'delete', 'batch_delete', 'update_note', 'mark_delivered', 'update_delivery_info', 'update_delivery_status', 'pay_balance'];
+$csrfActions = ['create', 'refund', 'delete', 'batch_delete', 'update_note', 'mark_delivered', 'update_delivery_status', 'pay_balance'];
 if (in_array($action, $csrfActions, true)) {
     requireCsrf();
 }
@@ -586,10 +586,26 @@ try {
             $statusCode = $type === 'expired' ? 3 : ($type === 'refunded' ? 2 : 0);
             $stmt = $pdo->query('SELECT order_no, user_id, product_id FROM orders WHERE status = ' . (int)$statusCode);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $productIds = [];
             foreach ($rows as $row) {
+                $productIds[] = (int)$row['product_id'];
                 releaseCouponByOrder($pdo, $row['order_no']);
             }
             $pdo->exec('DELETE FROM orders WHERE status = ' . (int)$statusCode);
+            // 批量清理后释放仍未被其他已支付订单占用的商品库存锁（与单条删除、超时取消语义一致）
+            if (commerceTableExists($pdo, 'products')) {
+                $productIds = array_values(array_unique(array_filter($productIds)));
+                foreach ($productIds as $pid) {
+                    if ($pid <= 0) {
+                        continue;
+                    }
+                    $paid = $pdo->prepare('SELECT COUNT(*) FROM orders WHERE product_id = ? AND status = 1');
+                    $paid->execute([$pid]);
+                    if ((int)$paid->fetchColumn() === 0) {
+                        $pdo->prepare('UPDATE products SET status = 1 WHERE id = ? AND status = 0')->execute([$pid]);
+                    }
+                }
+            }
             logAudit($pdo, 'order.batch_delete', ['type' => $type]);
             jsonResponse(1, '批量删除完成');
             break;

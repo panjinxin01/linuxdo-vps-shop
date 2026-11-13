@@ -10,7 +10,7 @@
 }
 .ticket-attachments-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(140px, 100%), 1fr));
   gap: 10px;
 }
 .ticket-attachment {
@@ -61,8 +61,13 @@
   background: var(--primary-light);
   color: var(--primary);
 }
+.ticket-attachment.file > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+}
 .ticket-attachment-name {
-  max-width: 170px;
+  display: block;
+  max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

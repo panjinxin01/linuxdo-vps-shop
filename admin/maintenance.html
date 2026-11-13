@@ -6,8 +6,8 @@
     <title>数据库维护 - VPS积分商城</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../css/admin.css?v=20261001">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/admin.css?v=20261113">
     <script>
         // 主题防闪烁：默认深色，与前台共享 localStorage.theme（v20260822 与前台逻辑统一）
         (function () {
@@ -18,7 +18,7 @@
             } catch (e) {}
         })();
     </script>
-    <link rel="stylesheet" href="../css/backend/maintenance.css?v=20261001" />
+    <link rel="stylesheet" href="../css/backend/maintenance.css?v=20261113" />
 </head>
 <body style="overflow-y: auto; height: auto; min-height: 100vh;">
     <div class="auth-layout" style="align-items: flex-start; padding: 40px 20px; min-height: 100vh; height: auto; overflow: visible;">
@@ -27,7 +27,7 @@
 
             <div class="page-hero">
                 <div class="page-hero-icon">
-                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
                 </div>
                 <div>
                     <h1 class="page-title">数据库维护</h1>
@@ -36,7 +36,7 @@
             </div>
 
             <div class="maintenance-card">
-                <h3><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> 数据库状态检查</h3>
+                <h3><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> 数据库状态检查</h3>
                 <p>检查数据库连接状态和表结构完整性。如果某些功能无法使用，可以先检查状态确认问题。</p>
                 <div id="dbStatus"></div>
                 <div class="btn-group">
@@ -45,7 +45,7 @@
             </div>
 
             <div class="maintenance-card">
-                <h3><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> 数据库更新</h3>
+                <h3><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> 数据库更新</h3>
                 <p>点击后系统会先<strong>自动检查</strong>数据库结构：如果所有数据表和字段已经齐全，会直接提示「数据库已完整安装，无需更新」，<strong>不会对数据库做任何改动</strong>；只有检测到缺失的表或字段时，才会提示将要新增的具体内容，确认后自动补齐。此操作<strong>不会删除或修改任何现有数据</strong>。</p>
                 <div class="btn-group">
                     <button class="btn btn-primary" onclick="updateDatabase()">更新数据库</button>
@@ -53,13 +53,13 @@
             </div>
 
             <div class="maintenance-card danger-zone">
-                <h3><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> 重置数据库</h3>
+                <h3><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> 重置数据库</h3>
                 <p><strong>危险操作！</strong>此操作将删除所有数据表并重新创建，包括：<br>
                     • 所有商品信息<br>
                     • 所有订单记录<br>
                     • 所有用户账号（管理员除外）<br>
                     • 所有工单和公告<br><br>
-                    此操作<strong>不可恢复</strong>，请在操作前务必备份重要数据！
+                    执行重置需经过<strong>两步二次确认</strong>并输入确认口令 <code>RESET</code>，此操作<strong>不可恢复</strong>！
                 </p>
                 <div class="btn-group">
                     <button class="btn-danger-lg" onclick="resetDatabase()">重置数据库</button>
@@ -67,14 +67,16 @@
             </div>
 
             <div class="maintenance-card">
-                <h3><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> 操作说明</h3>
+                <h3><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> 操作说明</h3>
                 <p style="margin-bottom: 12px;"><strong>检查状态</strong>：查看当前数据库的连接情况，以及缺失了哪些数据表 / 关键字段，只查看、不修改。</p>
                 <p style="margin-bottom: 12px;"><strong>更新数据库</strong>：自动对比并补齐缺失的数据表和字段——结构已完整时会提示「无需更新」；有缺失时会先列出将要新增的内容，确认后才会执行。适用于版本升级后的兼容性修复。</p>
-                <p style="margin-bottom: 0;"><strong>重置数据库</strong>：清空所有业务数据并重建表结构（仅保留管理员账号和系统设置）。仅在需要完全重置系统时使用。</p>
+                <p style="margin-bottom: 0;"><strong>重置数据库</strong>：清空所有业务数据并重建表结构（仅保留管理员账号和系统设置）。需通过二次确认弹窗并输入 <code>RESET</code> 方可执行。</p>
             </div>
         </div>
     </div>
 
-    <script src="../js/install/maintenance.js?v=20261001"></script>
+    <script>window.__apiBase = "../";</script>
+    <script src="../js/core/common.js?v=20261113d"></script>
+    <script src="../js/install/maintenance.js?v=20261113d"></script>
 </body>
 </html>

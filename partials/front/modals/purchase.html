@@ -1,4 +1,4 @@
-<!-- 购买确认弹窗（含优惠券区） -->
+<!-- 购买确认弹窗（自动验券 + 智能支付选择） -->
 <!-- 来源：index.html · 由 js/core/partials.js 同步注入，请勿在此文件内写 <script> -->
     <!-- ==================== 购买确认弹窗 ==================== -->
     <div class="modal-bg" id="buyModal">
@@ -10,28 +10,47 @@
         <div class="modal-body">
           <div class="summary" id="orderSummary"></div>
 
-          <!-- 优惠券区域 -->
+          <!-- 优惠券区域（输入/粘贴即自动验证） -->
           <div class="coupon-section">
-            <label class="coupon-label">优惠券</label>
+            <div class="coupon-label-row">
+              <label class="coupon-label" for="couponCode">优惠券</label>
+              <span class="coupon-auto-hint">输入或粘贴券码自动验证</span>
+            </div>
             <div class="coupon-input-group">
-              <input type="text" id="couponCode" placeholder="请输入优惠券码" />
-              <button class="btn btn-outline" style="padding: 0 16px" onclick="validateCoupon()">验证</button>
+              <input type="text" id="couponCode" placeholder="输入优惠券码（如 LINUXDO20）" autocomplete="off" />
+              <button type="button" class="btn btn-outline" id="clearCouponBtn" style="padding: 0 12px; display: none" onclick="clearCouponCode()">清除</button>
+            </div>
+            <div class="coupon-hints" id="couponHints">
+              <button type="button" class="coupon-hint-chip" onclick="applyCouponHint('LINUXDO20')">LINUXDO20 (8折)</button>
+              <button type="button" class="coupon-hint-chip" onclick="applyCouponHint('WELCOME15')">WELCOME15 (-15积分)</button>
             </div>
             <div class="coupon-msg" id="couponMsg"></div>
           </div>
 
-          <div class="balance-tip-box" id="buyBalanceBox">
-            当前余额：<strong id="buyBalanceAmount">--</strong>
-            <div style="margin-top: 6px">支持「优惠券后再余额支付」，余额不足时可继续使用 Linux DO Credit 积分支付。</div>
+          <!-- 智能支付方式选择 -->
+          <div class="checkout-pay-section">
+            <div class="checkout-pay-title">支付方式（已为您自动匹配最优方案）</div>
+            <div class="checkout-pay-grid">
+              <button type="button" class="checkout-pay-card" id="payCardBalance" onclick="selectPayMethod('balance')">
+                <div class="checkout-pay-card-head">
+                  <span class="checkout-pay-name">站内余额支付</span>
+                  <span class="checkout-pay-badge recommended" id="payBadgeBalance">推荐</span>
+                </div>
+                <div class="checkout-pay-desc" id="payDescBalance">可用余额：--</div>
+              </button>
+              <button type="button" class="checkout-pay-card" id="payCardEpay" onclick="selectPayMethod('epay')">
+                <div class="checkout-pay-card-head">
+                  <span class="checkout-pay-name">Linux DO Credit</span>
+                  <span class="checkout-pay-badge external">外部结算</span>
+                </div>
+                <div class="checkout-pay-desc">跳转 Linux DO Credit 完成积分结算</div>
+              </button>
+            </div>
           </div>
-
-          <p class="pay-hint">可选择余额支付或跳转 Linux DO Credit 进行外部支付。<br />支付成功后自动进入交付流程。</p>
         </div>
         <div class="modal-foot buy-foot">
-          <button class="btn btn-outline" style="flex: 1" onclick="closeBuy()">取消</button>
-          <button class="btn btn-outline" style="flex: 1" onclick="confirmBuy('balance')">余额支付</button>
-          <button class="btn btn-primary" style="flex: 1" onclick="confirmBuy('epay')">积分支付</button>
+          <button class="btn btn-outline" style="flex: 0 0 auto; min-width: 96px" onclick="closeBuy()">取消</button>
+          <button class="btn btn-primary" id="confirmCheckoutBtn" style="flex: 1" onclick="submitCheckout()">确认支付</button>
         </div>
       </div>
     </div>
-

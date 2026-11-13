@@ -7,11 +7,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" id="adminCss" href="../css/admin.css?v=20261001" />
-    <link rel="stylesheet" href="../css/tickets.css?v=20261001" />
+    <link rel="stylesheet" id="adminCss" href="../css/admin.css?v=20261113c" />
+    <link rel="stylesheet" href="../css/tickets.css?v=20261113c" />
     <script>
       // 主题防闪烁：默认深色，与前台共享 localStorage.theme（v20260822 与前台逻辑统一）
       (function () {
@@ -53,6 +53,8 @@
         <div data-partial="../partials/admin/tabs/reports.html"></div>
         <!-- 订单管理 -->
         <div data-partial="../partials/admin/tabs/orders.html"></div>
+        <!-- 退款管理 -->
+        <div data-partial="../partials/admin/tabs/refunds.html"></div>
         <!-- 优惠券管理 -->
         <div data-partial="../partials/admin/tabs/coupons.html"></div>
         <!-- 工单管理 -->
@@ -83,46 +85,45 @@
     <!-- ========== 基础层：公共工具 ========== -->
 
     <!-- ========== HTML 片段注入（必须在所有占位符之后、业务脚本之前） ========== -->
-    <script src="../js/core/partials.js?v=20261001"></script>
-    <script src="../js/core/common.js?v=20261001"></script>
+    <script src="../js/core/partials.js?v=20261113d"></script>
+    <script src="../js/core/common.js?v=20261113d"></script>
     <!-- ========== 工单共享模块（前后台通用） ========== -->
-    <script src="../js/ticket/core/constants.js?v=20261001"></script>
-    <script src="../js/ticket/core/api.js?v=20261001"></script>
-    <script src="../js/ticket/render/list.js?v=20261001"></script>
-    <script src="../js/ticket/render/detail.js?v=20261001"></script>
-    <script src="../js/ticket/render/states.js?v=20261001"></script>
-    <script src="../js/ticket/core/helpers.js?v=20261001"></script>
-    <script src="../js/ticket/admin-controller.js?v=20261001"></script>
-    <script src="../js/ticket/page/view.js?v=20261001"></script>
-    <script src="../js/ticket/page/markdown.js?v=20261001"></script>
-    <script src="../js/ticket/page/new.js?v=20261001"></script>
-    <script src="../js/ticket/page/admin-view.js?v=20261001"></script>
-    <script src="../js/ticket/legacy-compat.js?v=20261001"></script>
+    <script src="../js/ticket/core/constants.js?v=20261113d"></script>
+    <script src="../js/ticket/core/api.js?v=20261113d"></script>
+    <script src="../js/ticket/render/list.js?v=20261113d"></script>
+    <script src="../js/ticket/render/detail.js?v=20261113d"></script>
+    <script src="../js/ticket/render/states.js?v=20261113d"></script>
+    <script src="../js/ticket/core/helpers.js?v=20261113d"></script>
+    <script src="../js/ticket/admin-controller.js?v=20261113d"></script>
+    <script src="../js/ticket/page/view.js?v=20261113d"></script>
+    <script src="../js/ticket/page/markdown.js?v=20261113d"></script>
+    <script src="../js/ticket/page/new.js?v=20261113d"></script>
+    <script src="../js/ticket/page/admin-view.js?v=20261113d"></script>
+    <script src="../js/ticket/legacy-compat.js?v=20261113d"></script>
     <!-- ========== 后台业务模块 ========== -->
-    <script src="../js/admin/app.js?v=20261001"></script>
-    <script src="../js/admin/dashboard.js?v=20261001"></script>
-    <script src="../js/admin/products.js?v=20261001"></script>
-    <script src="../js/admin/orders.js?v=20261001"></script>
-    <script src="../js/admin/settings.js?v=20261001"></script>
-    <script src="../js/admin/ed25519.js?v=20261001"></script>
-    <script src="../js/admin/coupons.js?v=20261001"></script>
-    <script src="../js/admin/announcements.js?v=20261001"></script>
-    <script src="../js/admin/maintenance.js?v=20261001"></script>
-    <script src="../js/admin/admins.js?v=20261001"></script>
-    <script src="../js/admin/audit-logs.js?v=20261001"></script>
-    <script src="../js/admin/templates.js?v=20261001"></script>
-    <script src="../js/admin/ai.js?v=20261001"></script>
-    <script src="../js/admin/credits.js?v=20261001"></script>
-    <script src="../js/admin/community.js?v=20261001"></script>
-    <script src="../js/admin/reports.js?v=20261001"></script>
+    <script src="../js/admin/app.js?v=20261113d"></script>
+    <script src="../js/admin/dashboard.js?v=20261113d"></script>
+    <script src="../js/admin/products.js?v=20261113d"></script>
+    <script src="../js/admin/orders.js?v=20261113d"></script>
+    <script src="../js/admin/refunds.js?v=20261113d"></script>
+    <script src="../js/admin/settings.js?v=20261113d"></script>
+    <script src="../js/admin/ed25519.js?v=20261113d"></script>
+    <script src="../js/admin/coupons.js?v=20261113d"></script>
+    <script src="../js/admin/announcements.js?v=20261113d"></script>
+    <script src="../js/admin/maintenance.js?v=20261113d"></script>
+    <script src="../js/admin/admins.js?v=20261113d"></script>
+    <script src="../js/admin/audit-logs.js?v=20261113d"></script>
+    <script src="../js/admin/templates.js?v=20261113d"></script>
+    <script src="../js/admin/ai.js?v=20261113d"></script>
+    <script src="../js/admin/credits.js?v=20261113d"></script>
+    <script src="../js/admin/community.js?v=20261113d"></script>
+    <script src="../js/admin/reports.js?v=20261113d"></script>
     <script>
       // 后台主题切换（与前台共享 localStorage.theme）
       function updateAdminThemeIcon(isDark) {
         var icon = document.getElementById("adminThemeIcon");
         if (!icon) return;
-        icon.innerHTML = isDark
-          ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'
-          : '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+        icon.innerHTML = isDark ? APP_ICONS.moon : APP_ICONS.sun;
       }
       function toggleAdminTheme() {
         var isDark = document.documentElement.classList.toggle("dark");

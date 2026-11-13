@@ -61,18 +61,17 @@ function renderTicketErrorState(containerId, message) {
 function renderTkEmptyArt(opts) {
   var o = opts || {};
   var art =
-    '<svg class="tk-empty-art" viewBox="0 0 128 92" fill="none" aria-hidden="true">' +
+    '<svg class="tk-empty-art" viewBox="0 0 128 92" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
       /* 背景装饰气泡 */
-      '<rect class="art-soft" x="78" y="8" width="42" height="26" rx="8"/>' +
-      '<circle class="art-soft" cx="90" cy="21" r="2.4" fill="currentColor"/>' +
-      '<circle class="art-soft" cx="99" cy="21" r="2.4" fill="currentColor"/>' +
-      '<circle class="art-soft" cx="108" cy="21" r="2.4" fill="currentColor"/>' +
+      '<rect class="art-soft" x="78" y="8" width="42" height="26" rx="8" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="2"/>' +
+      '<circle class="art-soft" cx="90" cy="21" r="2.2" fill="currentColor"/>' +
+      '<circle class="art-soft" cx="99" cy="21" r="2.2" fill="currentColor"/>' +
+      '<circle class="art-soft" cx="108" cy="21" r="2.2" fill="currentColor"/>' +
       /* 信封主体 */
       '<rect x="18" y="30" width="72" height="48" rx="8" fill="none" stroke="currentColor" stroke-width="2.5"/>' +
-      '<path class="art-accent" d="M20 36 L54 58 L88 36" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>' +
+      '<path class="art-accent" d="M20 36 L54 58 L88 36" stroke="currentColor" stroke-width="2.5" fill="none"/>' +
       /* 前景小气泡（品牌色点缀） */
-      '<rect class="art-accent" x="86" y="52" width="34" height="22" rx="7" fill="currentColor" opacity="0.18"/>' +
-      '<path class="art-accent" d="M96 74 L92 82 L102 76 Z" fill="currentColor"/>' +
+      '<path class="art-accent" d="M93 52 H113 A7 7 0 0 1 120 59 V67 A7 7 0 0 1 113 74 H103 L92 82 L96 74 H93 A7 7 0 0 1 86 67 V59 A7 7 0 0 1 93 52 Z" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="2"/>' +
     "</svg>";
   return (
     '<div class="tk-empty">' +

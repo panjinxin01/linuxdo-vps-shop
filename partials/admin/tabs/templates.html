@@ -5,7 +5,10 @@
           <div class="page-header">
             <h1 class="page-title">商品模板</h1>
             <div class="page-actions">
-              <button class="btn btn-primary" onclick="saveTemplate()">
+              <button type="button" class="btn btn-outline" onclick="openTemplateFromProductModal()">
+                从商品生成模板
+              </button>
+              <button type="button" class="btn btn-primary" onclick="saveTemplate()">
                 保存模板
               </button>
             </div>
@@ -20,6 +23,13 @@
                   id="tplName"
                   placeholder="如：香港高防模板"
                 />
+              </div>
+              <div class="preset-bar">
+                <span class="preset-bar-label">规格预设：</span>
+                <button type="button" class="preset-chip" onclick="applySpecPreset('1c1g', 'template')">1C 1G</button>
+                <button type="button" class="preset-chip" onclick="applySpecPreset('2c2g', 'template')">2C 2G</button>
+                <button type="button" class="preset-chip" onclick="applySpecPreset('4c4g', 'template')">4C 4G</button>
+                <button type="button" class="preset-chip" onclick="applySpecPreset('8c8g', 'template')">8C 8G</button>
               </div>
               <div class="form-row">
                 <div class="form-group">
@@ -84,5 +94,27 @@
               </div>
             </div>
           </div>
+          <!-- 从商品生成模板弹窗 -->
+          <div class="modal-bg" id="templateFromProductModal">
+            <div class="modal" style="max-width: 460px">
+              <div class="modal-head">
+                <h3>从现有商品生成模板</h3>
+                <button type="button" class="modal-close" onclick="closeTemplateFromProductModal()" aria-label="关闭">&times;</button>
+              </div>
+              <div class="modal-body">
+                <div class="form-group" style="margin-bottom:0">
+                  <label>选择商品</label>
+                  <select id="tplSourceProductSelect">
+                    <option value="">请选择商品...</option>
+                  </select>
+                </div>
+              </div>
+              <div class="modal-foot">
+                <button type="button" class="btn btn-outline" onclick="closeTemplateFromProductModal()">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitTemplateFromProduct()">生成模板</button>
+              </div>
+            </div>
+          </div>
         </div>
+
 

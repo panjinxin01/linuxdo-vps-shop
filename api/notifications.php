@@ -9,7 +9,7 @@ $pdo = getDB();
 
 require_once __DIR__ . '/../includes/notifications.php';
 
-$csrfActions = ['mark_read', 'mark_all_read', 'delete', 'send'];
+$csrfActions = ['mark_read', 'mark_all_read', 'delete'];
 if (in_array($action, $csrfActions, true)) {
     requireCsrf();
 }

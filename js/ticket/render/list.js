@@ -34,17 +34,17 @@ function renderTicketRow(t, apiBase) {
   var sc = ticketStatusKey(t.status);
   return (
     "<tr>" +
-      "<td>#" + t.id + "</td>" +
-      '<td><span style="font-weight:600;color:var(--text-main)">' + escapeHtml(t.title) + "</span>" +
-        '<div style="font-size:12px;color:var(--text-muted);margin-top:2px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+      '<td data-label="编号"><span class="tk-cell-id">#' + t.id + "</span></td>" +
+      '<td class="tk-admin-col-title"><span class="tk-admin-row-title">' + escapeHtml(t.title) + "</span>" +
+        '<div class="tk-admin-row-sub">' +
           '<span class="tk-priority ' + ticketPriorityKey(t.priority) + '">' + escapeHtml(ticketPriorityLabel(t.priority)) + "</span>" +
           '<span>' + escapeHtml(ticketCategoryLabel(t.category)) + "</span>" +
         "</div></td>" +
-      "<td>" + escapeHtml(t.username || "-") + "</td>" +
-      "<td>" + (t.order_no ? '<code style="font-family:var(--font-mono);font-size:12px;color:var(--primary)">' + escapeHtml(t.order_no) + "</code>" : "-") + "</td>" +
-      "<td>" + renderTicketBadge(t.status) + "</td>" +
-      '<td style="color:var(--text-muted);font-size:12px">' + escapeHtml(t.updated_at || "") + "</td>" +
-      '<td><button class="action-btn edit" onclick="showAdminTicketDetail(' + t.id + ')">查看</button></td>' +
+      '<td data-label="用户">' + escapeHtml(t.username || "-") + "</td>" +
+      '<td data-label="关联订单">' + (t.order_no ? '<code class="tk-order-code">' + escapeHtml(t.order_no) + "</code>" : "-") + "</td>" +
+      '<td data-label="状态">' + renderTicketBadge(t.status) + "</td>" +
+      '<td data-label="更新时间" style="color:var(--text-muted);font-size:12px">' + escapeHtml(t.updated_at || "") + "</td>" +
+      '<td data-label="操作"><button class="action-btn edit" onclick="showAdminTicketDetail(' + t.id + ')">查看</button></td>' +
     "</tr>"
   );
 }

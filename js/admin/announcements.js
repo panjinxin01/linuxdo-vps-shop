@@ -30,14 +30,18 @@ function editAnnouncementById(id) {
 function closeAnnouncementModal() { document.getElementById("announcementModal").classList.remove("show"); }
 function saveAnnouncement() {
   const id = document.getElementById("annId").value, title = document.getElementById("annTitle").value.trim(), content = document.getElementById("annContent").value.trim();
-  if (!title || !content) { alert("请填写标题和内容"); return; }
+  if (!title || !content) { showToast("请填写标题和内容", "warning"); return; }
   const body = new FormData(); body.append("action", id ? "edit" : "add"); if (id) body.append("id", id);
   body.append("title", title); body.append("content", content);
   body.append("is_top", document.getElementById("annTop").checked ? 1 : 0); body.append("status", document.getElementById("annStatus").checked ? 1 : 0);
   const pa = document.getElementById("annPublishAt").value; if (pa) body.append("publish_at", pa.replace("T", " "));
   const ea = document.getElementById("annExpiresAt").value; if (ea) body.append("expires_at", ea.replace("T", " "));
-  apiFetch("../api/announcements.php", { method: "POST", body }).then((r) => r.json()).then((d) => { alert(d.msg); if (d.code === 1) { closeAnnouncementModal(); loadAnnouncements(); } });
+  apiFetch("../api/announcements.php", { method: "POST", body }).then((r) => r.json()).then((d) => { showToast(d.msg || (d.code === 1 ? "已保存" : "保存失败"), d.code === 1 ? "success" : "error"); if (d.code === 1) { closeAnnouncementModal(); loadAnnouncements(); } });
 }
-function toggleAnnouncementTop(id) { const body = new FormData(); body.append("action", "toggle_top"); body.append("id", id); apiFetch("../api/announcements.php", { method: "POST", body }).then((r) => r.json()).then((d) => { if (d.code === 1) loadAnnouncements(); else alert(d.msg); }); }
-function deleteAnnouncement(id) { if (!confirm("确定删除该公告？")) return; const body = new FormData(); body.append("action", "delete"); body.append("id", id); apiFetch("../api/announcements.php", { method: "POST", body }).then((r) => r.json()).then((d) => { alert(d.msg); loadAnnouncements(); }); }
+function toggleAnnouncementTop(id) { const body = new FormData(); body.append("action", "toggle_top"); body.append("id", id); apiFetch("../api/announcements.php", { method: "POST", body }).then((r) => r.json()).then((d) => { if (d.code === 1) { showToast("置顶状态已更新", "success"); loadAnnouncements(); } else showToast(d.msg || "操作失败", "error"); }); }
+async function deleteAnnouncement(id) {
+  const ok = await showConfirmModal({ title: "删除公告", message: "确定删除该公告吗？", confirmText: "确认删除", danger: true });
+  if (!ok) return;
+  const body = new FormData(); body.append("action", "delete"); body.append("id", id); apiFetch("../api/announcements.php", { method: "POST", body }).then((r) => r.json()).then((d) => { showToast(d.msg || "已删除", d.code === 1 ? "success" : "error"); loadAnnouncements(); });
+}
 

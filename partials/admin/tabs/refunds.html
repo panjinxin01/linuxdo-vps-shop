@@ -1,0 +1,68 @@
+<!-- 退款管理 tab -->
+<!-- 来源：admin/index.html · 由 js/core/partials.js 同步注入，请勿在此文件内写 <script> -->
+        <!-- 退款管理 -->
+        <div class="tab-content" id="refunds">
+          <div class="page-header">
+            <h1 class="page-title">退款管理</h1>
+            <div class="page-actions">
+              <button type="button" class="btn btn-outline" onclick="loadAdminRefunds()">刷新列表</button>
+              <button type="button" class="btn btn-outline" onclick="switchTab('orders')">订单列表</button>
+            </div>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card warning">
+              <div class="stat-header">
+                <div class="stat-icon">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                </div>
+              </div>
+              <div class="stat-label">待审批退款工单</div>
+              <div class="stat-value" id="adminRfPendingTickets">0</div>
+            </div>
+            <div class="stat-card info">
+              <div class="stat-header">
+                <div class="stat-icon">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                </div>
+              </div>
+              <div class="stat-label">可退款已支付订单</div>
+              <div class="stat-value" id="adminRfEligibleOrders">0</div>
+            </div>
+            <div class="stat-card danger">
+              <div class="stat-header">
+                <div class="stat-icon">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </div>
+              </div>
+              <div class="stat-label">已退款订单数</div>
+              <div class="stat-value" id="adminRfRefundedCount">0</div>
+            </div>
+            <div class="stat-card primary">
+              <div class="stat-header">
+                <div class="stat-icon">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                </div>
+              </div>
+              <div class="stat-label">已退款累计金额</div>
+              <div class="stat-value" id="adminRfRefundedSum">0.00</div>
+            </div>
+          </div>
+
+          <div class="admin-filter-bar">
+            <div class="admin-filter-tabs" id="adminRefundFilterTabs">
+              <button type="button" class="admin-filter-tab active" data-filter="pending_tickets" onclick="setAdminRefundFilter('pending_tickets', this)">待审批工单</button>
+              <button type="button" class="admin-filter-tab" data-filter="all_tickets" onclick="setAdminRefundFilter('all_tickets', this)">全部退款工单</button>
+              <button type="button" class="admin-filter-tab" data-filter="eligible_orders" onclick="setAdminRefundFilter('eligible_orders', this)">可退款订单</button>
+              <button type="button" class="admin-filter-tab" data-filter="refunded_orders" onclick="setAdminRefundFilter('refunded_orders', this)">已退款记录</button>
+            </div>
+            <div class="admin-search-wrap">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" class="admin-search-input" id="adminRefundSearchInput" placeholder="搜索工单号 / 订单号 / 用户名 / 原因..." oninput="renderAdminRefunds()" />
+            </div>
+          </div>
+
+          <div id="adminRefundList">
+            <div class="empty">加载中...</div>
+          </div>
+        </div>

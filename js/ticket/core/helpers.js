@@ -90,36 +90,59 @@ function handleComposeKeydown(e, tid) {
 function handleTicketFileChange(input, labelId, nameId) {
   var label = document.getElementById(labelId);
   var nameEl = document.getElementById(nameId);
-  if (!label || !nameEl) return;
-  if (input.files && input.files[0]) {
-    label.classList.add("has-file");
-    label.innerHTML = ticketIcon("clip", 12) + "已选择";
-    nameEl.textContent = input.files[0].name;
-  } else {
-    label.classList.remove("has-file");
-    label.innerHTML = ticketIcon("clip", 12) + "选择附件";
-    nameEl.textContent = "";
+  if (nameEl) {
+    nameEl.textContent = (input && input.files && input.files[0]) ? input.files[0].name : "";
   }
+  if (label) {
+    if (input && input.files && input.files[0]) {
+      label.classList.add("has-file");
+    } else {
+      label.classList.remove("has-file");
+    }
+  }
+}
+
+function handleAndUploadTicketFile(tid, fileId) {
+  var fi = document.getElementById(fileId);
+  if (!fi || !fi.files || !fi.files[0]) return;
+  uploadAttachmentToTicket(tid, fileId);
 }
 
 function uploadAttachmentToTicket(tid, fileId) {
   var fi = document.getElementById(fileId);
-  if (!fi || !fi.files || !fi.files[0]) { showToast("请先选择文件"); return; }
-  if (fi.files[0].size > 5 * 1024 * 1024) { showToast("文件大小不能超过5MB"); return; }
+  if (!fi) return;
+  if (!fi.files || !fi.files[0]) {
+    fi.click();
+    return;
+  }
+  var file = fi.files[0];
+  if (file.size > 5 * 1024 * 1024) {
+    showToast("文件大小不能超过5MB", "warning");
+    fi.value = "";
+    return;
+  }
+  var nameEl = document.getElementById(fileId + "Name");
+  if (nameEl) nameEl.textContent = file.name;
   /* 上传按钮进入 loading 态 */
   var btn = document.getElementById(fileId + "UploadBtn");
   tkSetSending(btn, true, "上传中...", null);
-  TicketApi.uploadAttachment(tid, fi.files[0])
+  TicketApi.uploadAttachment(tid, file)
     .then(function () {
-      showToast("附件上传成功");
+      showToast("附件上传成功", "success");
       fi.value = "";
-      handleTicketFileChange({ files: null }, fileId + "Label", fileId + "Name");
+      if (nameEl) nameEl.textContent = "";
       /* v20260825：页面化后按侧别就地刷新详情视图 */
       if (window.__TK_IS_ADMIN__) refreshAdminTicketView(tid);
       else refreshTicketView(tid);
     })
-    .catch(function (err) { showToast((err && err.message) || "上传请求失败"); })
-    .finally(function () { tkSetSending(btn, false, "", null); });
+    .catch(function (err) {
+      fi.value = "";
+      if (nameEl) nameEl.textContent = "";
+      showToast((err && err.message) || "上传请求失败", "error");
+    })
+    .finally(function () {
+      tkSetSending(btn, false, "", ticketIcon("clip", 12) + "上传附件");
+    });
 }
 
 /* 对话流组装（IM 气泡 + 时间线 + 附件折叠面板 + 输入区），前台后台共用 */

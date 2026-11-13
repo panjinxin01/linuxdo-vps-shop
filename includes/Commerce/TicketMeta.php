@@ -11,6 +11,8 @@ function commerceGetTicketCategories(): array {
         'delivery_issue' => '发货异常',
         'payment_issue' => '支付问题',
         'refund_request' => '退款申请',
+        'tech' => '技术支持',
+        'delivery' => '开通交付',
         'other' => '其他',
     ];
 }

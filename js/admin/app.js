@@ -12,7 +12,7 @@ let adminOrderPagination = { page: 1, pageSize: 20, total: 0, totalPages: 0 };
 let auditPagination = { page: 1, pageSize: 20, total: 0, totalPages: 0 };
 let currentAdminInfo = { id: 0, username: "", role: "admin" };
 
-const tabTitles = { dashboard: "仪表盘", products: "商品管理", templates: "商品模板", credits: "积分管理", community: "社区规则", reports: "统计报表", orders: "订单管理", coupons: "优惠券管理", tickets: "工单管理", announcements: "公告管理", admins: "管理员管理", audit_logs: "操作日志", settings: "系统设置" };
+const tabTitles = { dashboard: "仪表盘", products: "商品管理", templates: "商品模板", credits: "积分管理", community: "社区规则", reports: "统计报表", orders: "订单管理", refunds: "退款管理", coupons: "优惠券管理", tickets: "工单管理", announcements: "公告管理", admins: "管理员管理", audit_logs: "操作日志", settings: "系统设置" };
 
 // ==================== 侧边栏 / UI ====================
 function toggleSidebar() { document.getElementById("sidebar").classList.toggle("open"); document.getElementById("sidebarOverlay").classList.toggle("show"); }
@@ -39,6 +39,7 @@ function switchTab(tab) {
       if (tlw) tlw.style.display = "";
     }
   }
+  if (tab === "refunds" && typeof loadAdminRefunds === "function") loadAdminRefunds();
   if (window.innerWidth <= 768) closeSidebar();
 }
 
@@ -63,7 +64,7 @@ function updateAdminUI() {
 }
 
 function init() {
-loadStats(); loadProducts(); loadOrders(); loadCoupons(); loadSettings(); loadLdcPaySettings(); loadOAuthSettings();
+loadStats(); loadProducts(); loadOrders(); if (typeof loadAdminRefunds === "function") loadAdminRefunds(); loadCoupons(); loadSettings(); loadLdcPaySettings(); loadOAuthSettings();
 loadSmtpSettings(); loadNotificationSettings(); loadCacheStats(); loadTickets(); loadAnnouncements();
 loadTicketStats(); loadRecentOrders(); loadRecentTickets(); loadAdmins(); loadAuditLogs();
 loadTemplateList(); loadProductTemplateOptions(); loadCreditAdminUsers(); renderCreditTxnPlaceholder();

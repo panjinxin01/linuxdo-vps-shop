@@ -1,8 +1,8 @@
 # VPS 积分商城 · 更新日志（CHANGELOG）
 
 > **项目**：VPS 积分商城（Linux DO Credit）— 基于 PHP + MySQL 的轻量级 VPS 积分 / 信用兑换商城
-> **当前版本**：**v20261002**（全量代码审计与缺陷修复归档；含 v20261001 工程结构拆分）
-> **发布日期**：2026-10-02
+> **当前版本**：**v20261113-repack**（结构重组 GitHub 直传版；含 v20261002 全量审计修复与 v20261001 工程结构拆分）
+> **发布日期**：2026-11-13
 > **相关文档**：功能特性、部署与配置说明见 `README.md`；开源许可见 `LICENSE`
 
 ---
@@ -39,6 +39,7 @@
 
 | 版本号 | 发布日期 | 类型 | 摘要 |
 |--------|----------|------|------|
+| **v20261113-repack** | 2026-11-13 | 🏗️📦✨🎨 | **结构重组（GitHub 直传版）**：去掉 Next.js 壳与 `php-shop/` 子目录，PHP 应用回到仓库根目录；安装方式改回 MySQL 安装向导，移除 SQLite 预览数据库与演示数据；相对仓库上版 v20261002，新增退款售后专属页面、新版 UI、附件上限可配与库存锁修复。详见 [v20261113-repack](#v20261113-repack--结构重组github-直传版2026-11-13) |
 | **v20261002** | 2026-10-02 | 🐛🛡️📄 | **全量代码审计与缺陷修复（原 Debug 报告并入）**：修复 8 项致命 / 高危 + 16 项中危 + 4 项前端一致性问题；文档（README / CHANGELOG）全面重构。详见 [v20261002](#v20261002--全量代码审计与缺陷修复原-debug_reportmd-并入) |
 | **v20261001** | 2026-10-01 | 🏗️ | **工程结构全面拆分**：CSS / JS / HTML / PHP 单体大文件按职责拆为小文件，业务逻辑零改动。详见 [v20261001](#v20261001--工程结构全面拆分2026-10-01) |
 | **v20260926** | 2026-09-26 | 🐛🎨 | 修复工单相关输入控件缺失 CSS 样式（发起新工单 + 后台退款审批）；资源版本号升至 `?v=20260926` |
@@ -54,6 +55,65 @@
 ---
 
 ## 二、详细更新记录
+
+### v20261113-repack · 结构重组（GitHub 直传版）（2026-11-13）
+
+> 本次为**打包结构重组**，应用功能代码以 AI Studio 版（`v20261113`，含退款售后功能与新版 UI）为基线，
+> 结构与安装方式对齐原版扁平包（linux.do 版），可直接解压上传到 GitHub / 任意 PHP 虚拟主机，无需 Node。
+
+- 🏗️ **扁平结构**：删除根目录 Next.js 壳（`package.json` / `app/` / `scripts/` / `public/` 等）与 `php-shop/` 子目录层级，
+  `admin/` `api/` `css/` `js/` `includes/` `partials/` `index.html` `login.html` 全部回到仓库根目录。
+- 📦 **安装方式改回 MySQL 向导**：`api/check_install.php`、`includes/Db/Connection.php`、`includes/Security/Session.php`、
+  `api/update_db.php` 恢复为 MySQL 专版；部署时访问首页自动跳转 `admin/install.html`，填 MySQL 连接信息 →
+  一键建表 → `admin/setup.html` 创建超级管理员（详见 `README.md` 第 4 节）。
+- 🗑️ **移除 SQLite 预览模式**：删除 `data/preview.sqlite`、`includes/Db/SeedDemo.php`、`includes/Db/SqliteCompat.php`，
+  以及 `update_db.php` 的 `seed_demo` 动作与数据库维护页的「恢复演示数据」按钮；前端移除演示账号一键登录
+  （`login.html` / `admin/login.html` 的演示填充条）与 iframe 预览用的 `X-App-Session` 会话兜底
+  （`js/core/common.js`、`includes/Security/Session.php` 恢复标准 `SameSite=Lax` Cookie 会话）。
+- 🛡️ **配置防泄漏**：不再随包附带 `api/config.local.php`（原包内含真实部署配置，禁止提交仓库）；
+  改为附带占位模板 `api/config.local.example.php`，复制改名后填写即可；`.gitignore` 新增 `data/` 与 `*.sqlite*`。
+- ✅ **保留的新版内容**：退款售后（前台「退款售后」页 + 后台「退款管理」）、工单分类 `tech` / `delivery`、
+  Lucide 统一图标库与新版字体 / 配色（资源版本 `?v=20261113c/d`）均保留。
+
+> **同步说明**：本次同步以仓库 `main` 分支 `9ec845c`（v20261002，2026-10-01）为对比基线，共 105 个文件有内容变更、
+> 7 个全新文件、1 个改名；无数据库结构变更（`api/update_db.php` 与 `includes/Schema/` 均未动），
+> 已部署站点直接覆盖文件即可，无需跑数据库更新。
+
+#### A. 新功能
+
+- **partials/front/pages/refunds.html + js/front/refunds.js**：前台新增「退款售后」专属页面，`index.html` 导航新增 `#refunds` 入口。
+- **partials/admin/tabs/refunds.html + js/admin/refunds.js**：后台新增「退款管理」页签，`admin/index.html` 接入对应 partial。
+- **includes/Commerce/TicketMeta.php**：工单分类新增 `tech`（技术支持）与 `delivery`（开通交付）。
+- **api/upload.php**：工单附件大小上限改为可配，取后台 `ticket_attachment_max_mb` 与 PHP `upload_max_filesize` / `post_max_size` 的最小值（默认 5MB）。
+
+#### B. 缺陷修复
+
+- **includes/Commerce/Refund.php**：退款后释放商品库存锁；此前退款的商品会永久停留在"已售"状态，无法再次兑换。
+- **api/orders.php**：订单批量清理（`batch_delete`）后同样释放无已支付订单占用的商品库存锁，与单条删除、超时取消语义一致。
+
+#### C. 安全加固
+
+- **includes/Commerce/OrderOutput.php**：订单输出层一并清除 `*_snapshot` 凭据明文列（IP / SSH 端口 / 账号 / 密码 / 附加信息），避免未支付或非交付状态的订单经任何复用 `buildOrderSelectSql()` 的接口泄露凭据。
+- **api/announcements.php、api/notifications.php、api/orders.php**：清理 CSRF 校验列表中已无处理分支的 action（`toggle_status` / `send` / `update_delivery_info`，三处在仓库上版中也仅存在于列表、无实际分支）。
+
+#### D. 界面 / 交互
+
+- **css/pages/login.css**：登录 / 注册页整页重写为 Linear / Vercel Obsidian Console 风格。
+- **js/core/common.js**：新增 Lucide 统一图标库 `APP_ICONS`（24x24 描边风格，前后台及工单模块共用）；前台 logo 由 emoji ⚡ 改为 SVG 服务器图标，后台主题切换图标改用 `APP_ICONS`。
+- **index.html、admin/index.html**：字体由 Inter 改为 DM Sans + Plus Jakarta Sans + JetBrains Mono；主题色微调。
+- **全站**：CSS / JS / partials / 页面共 94 个文件同步刷新，静态资源版本升至 `?v=20261113c/d`。
+
+#### E. 清理 / 重构
+
+- **css/ticket/error.css → css/ticket/retry-state.css**：纯改名（内容逐字节一致），`css/tickets.css` 的 `@import` 同步更新；旧文件随本次同步从仓库删除。
+- **js/install/maintenance.js**：改为复用 `js/core/common.js` 的公共方法，删除重复的 CSRF / fetch 封装。
+- **api/oauth.php**：登录回调三态页（成功 / 失败 / 未配置）的 SVG 图标标记整理，视觉不变。
+- **css/install.css、css/variables.css**：随重组包带入的根目录副本，其中 `css/install.css` 与 `css/install/install.css` 内容相同，两文件目前均无页面引用（安装页引用的是 `css/install/install.css`）；保留原样，后续可清理。
+
+#### 验证
+
+- 本次同步内容与 2026-11-13 扁平重组包一致，该包已在本地用真实 MariaDB 10.11.14 端到端验证通过（安装向导建表 25 张、安装锁、创建超级管理员、前后台登录注册均正常）。
+- 同步前已逐文件比对仓库 `main` 分支 `9ec845c`，确认无真实部署配置（`api/config.local.php` 不在包内，仅附占位模板 `api/config.local.example.php`）。
 
 ### v20261002 · 全量代码审计与缺陷修复（原 `DEBUG_REPORT.md` 并入）
 
@@ -534,4 +594,4 @@
 - **归档发布**：未标注日期的历史修复批次（如原 `DEBUG_REPORT.md` 的审计修复）按归档日补记版本号，并在条目中说明其代码基线的相对位置；
 - **历史条目**：2026-08-21 及以前的版本按原记录保留版本号，发布日期统一归并为史诗级更新发布日；
 - **数据库构建版本**：`api/update_db.php` 返回的 `build` 字段与主版本号保持一致（当前 `20260822`），后台「数据库维护」页面可查看；
-- **静态资源版本**：页面引用的 `?v=YYYYMMDD` 与发布版本同步递增（当前 `?v=20261001`）。
+- **静态资源版本**：页面引用的 `?v=YYYYMMDD` 与发布版本同步递增（当前 `?v=20261113c/d`；安装向导页 `admin/install.html` / `admin/setup.html` 仍为 `?v=20261001`）。

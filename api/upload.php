@@ -8,7 +8,8 @@ $action = requestValue('action', '');
 $pdo = getDB();
 
 define('UPLOAD_DIR', __DIR__ . '/../uploads');
-define('MAX_FILE_SIZE', 5 * 1024 * 1024);
+// 后台未配置 ticket_attachment_max_mb 时的兜底默认值
+define('DEFAULT_MAX_FILE_SIZE', 5 * 1024 * 1024);
 define('ALLOWED_TYPES', ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'text/plain', 'application/pdf']);
 define('ALLOWED_EXTENSIONS', ['jpg', 'jpeg', 'png', 'gif', 'webp', 'txt', 'log', 'pdf']);
 
@@ -35,7 +36,49 @@ function generateSafeFilename(string $originalName): string {
     return date('Ymd') . '_' . bin2hex(random_bytes(8)) . '.' . $ext;
 }
 
-function validateFile(array $file): array {
+// 把 php.ini 里的 "8M" / "512K" / "1G" 写法换算成字节
+function uploadIniBytes(string $value): int {
+    $value = trim($value);
+    if ($value === '') {
+        return 0;
+    }
+    $unit = strtolower(substr($value, -1));
+    $num = (float)$value;
+    if ($unit === 'g') {
+        $num *= 1024 * 1024 * 1024;
+    } elseif ($unit === 'm') {
+        $num *= 1024 * 1024;
+    } elseif ($unit === 'k') {
+        $num *= 1024;
+    }
+    return (int)$num;
+}
+
+// 附件大小上限：后台配置 ticket_attachment_max_mb 与 PHP 运行时硬限制取最小值
+function resolveUploadMaxBytes(PDO $pdo): int {
+    $configuredMb = (int)commerceGetSetting($pdo, 'ticket_attachment_max_mb', '5');
+    if ($configuredMb <= 0) {
+        $configuredMb = 5;
+    }
+    $limit = $configuredMb * 1024 * 1024;
+    if ($limit <= 0) {
+        $limit = DEFAULT_MAX_FILE_SIZE;
+    }
+    foreach (['upload_max_filesize', 'post_max_size'] as $iniKey) {
+        $iniBytes = uploadIniBytes((string)ini_get($iniKey));
+        if ($iniBytes > 0 && $iniBytes < $limit) {
+            $limit = $iniBytes;
+        }
+    }
+    return $limit;
+}
+
+function formatUploadMaxLabel(int $bytes): string {
+    $mb = $bytes / 1048576;
+    return rtrim(rtrim(number_format($mb, 1, '.', ''), '0'), '.');
+}
+
+function validateFile(array $file, int $maxBytes = DEFAULT_MAX_FILE_SIZE): array {
     if ($file['error'] !== UPLOAD_ERR_OK) {
         $errors = [
             UPLOAD_ERR_INI_SIZE => '文件超过服务器限制',
@@ -48,8 +91,8 @@ function validateFile(array $file): array {
         return ['ok' => false, 'msg' => $errors[$file['error']] ?? '上传错误'];
     }
 
-    if ($file['size'] > MAX_FILE_SIZE) {
-        return ['ok' => false, 'msg' => '文件大小不能超过5MB'];
+    if ($file['size'] > $maxBytes) {
+        return ['ok' => false, 'msg' => '文件大小不能超过' . formatUploadMaxLabel($maxBytes) . 'MB'];
     }
 
     $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
@@ -142,7 +185,7 @@ function handleUploadTicket(): void {
     if (!isset($_FILES['file'])) {
         jsonResponse(0, '请选择文件');
     }
-    $validation = validateFile($_FILES['file']);
+    $validation = validateFile($_FILES['file'], resolveUploadMaxBytes($pdo));
     if (!$validation['ok']) {
         jsonResponse(0, $validation['msg']);
     }

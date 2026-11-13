@@ -18,7 +18,7 @@
 @import "ticket/refund-card.css";
 @import "ticket/empty.css";
 @import "ticket/skeleton.css";
-@import "ticket/error.css";
+@import "ticket/retry-state.css";
 @import "ticket/animations.css";
 @import "ticket/responsive.css";
 @import "ticket/motion.css";

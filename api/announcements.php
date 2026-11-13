@@ -5,7 +5,7 @@ require_once __DIR__ . '/../includes/db.php';
 
 $action = requestValue('action', '');
 
-$csrfActions = ['add', 'edit', 'delete', 'toggle_top', 'toggle_status'];
+$csrfActions = ['add', 'edit', 'delete', 'toggle_top'];
 if (in_array($action, $csrfActions, true)) {
     requireCsrf();
 }
